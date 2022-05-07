@@ -21,9 +21,9 @@ public class Credentials {
 
         router.get("/credentials").handler(this::validate).handler(this::get);
 
-        router.put("/credentials").handler(this::validate).handler(this::delete);
+        router.put("/credentials").handler(this::validate).handler(this::update);
 
-        router.delete("/credentials").handler(this::validate).handler(this::update);
+        router.delete("/credentials/:id").handler(this::validate).handler(this::delete);
 
     }
 
@@ -144,7 +144,7 @@ public class Credentials {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
-        vertx.eventBus().<JsonArray>request(Constants.DATABSE_GET_ALL,userData,response->{
+        vertx.eventBus().<JsonArray>request(Constants.DATABASE_GET_ALL,userData,response->{
 
             try {
                 if (response.succeeded()) {
@@ -185,6 +185,46 @@ public class Credentials {
     }
 
     void delete(RoutingContext routingContext){
+
+        String id = routingContext.pathParam("id");
+
+        vertx.eventBus().request(Constants.DATABASE_DELETE,id,response->{
+
+            try {
+                if (response.succeeded()) {
+
+//                    JsonArray jsonArray = response.result().body();
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(new JsonObject().put(Constants.STATUS,Constants.SUCCESS).encodePrettily());
+
+                } else {
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+                }
+
+            }catch (Exception exception){
+
+                routingContext.response()
+
+                        .setStatusCode(400)
+
+                        .putHeader(Constants.CONTENT_TYPE,"application/json")
+
+                        .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).encodePrettily());
+
+            }
+
+        });
+
 
     }
 

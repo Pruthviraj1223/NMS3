@@ -202,6 +202,43 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
+    boolean delete(String id) throws SQLException {
+
+        Connection connection=null;
+
+        boolean result= false;
+
+        try{
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
+
+            String query = "delete from Credentials where credentialId='" + id  +  "'";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(query);
+
+            int a  = preparedStatement.executeUpdate();
+
+            if(a>0){
+                result =true;
+            }
+
+
+    }catch (Exception exception){
+
+        LOG.debug("Error {} ", exception.getMessage());
+
+    }
+
+        finally {
+        if(connection!=null){
+            connection.close();
+        }
+    }
+
+        return result;
+    }
+
 
 
     static final Logger LOG = LoggerFactory.getLogger(DatabaseEngine.class.getName());
@@ -258,7 +295,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         });
 
-        vertx.eventBus().<JsonArray>consumer(Constants.DATABSE_GET_ALL,consumer->{
+        vertx.eventBus().<JsonArray>consumer(Constants.DATABASE_GET_ALL,consumer->{
 
            vertx.executeBlocking(handler->{
 
@@ -288,6 +325,49 @@ public class DatabaseEngine extends AbstractVerticle {
                }
 
            });
+
+        });
+
+        vertx.eventBus().consumer(Constants.DATABASE_DELETE,handler->{
+
+            vertx.executeBlocking(request -> {
+
+                boolean result;
+
+                try {
+
+                    result = delete(handler.body().toString());
+
+                    if(result){
+
+                        request.complete();
+
+                    }else{
+
+                        request.fail(Constants.FAIL);
+
+                    }
+
+
+                } catch (Exception exception) {
+
+                    LOG.debug("Error : {}" + exception.getMessage());
+
+                    request.fail(exception.getMessage());
+
+                }
+
+            }).onComplete(completeHandler->{
+
+                if(completeHandler.succeeded()){
+
+                    handler.reply(Constants.SUCCESS);
+                }else{
+
+                    handler.fail(-1,Constants.FAIL);
+
+                }
+            });
 
         });
 
