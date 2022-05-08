@@ -10,9 +10,11 @@ public class Constants {
 
     public static final String DATABASE_INSERT = "database.insert";
 
-    public static final String DATABASE_GET_ALL = "database.getall";
+    public static final String DATABASE_GET_ALL = "database.getAll";
 
     public static final String DATABASE_DELETE = "database.delete";
+
+    public static final String DATABASE_UPDATE = "database.update";
 
     public static final String IP_ADDRESS = "ip.address";
 

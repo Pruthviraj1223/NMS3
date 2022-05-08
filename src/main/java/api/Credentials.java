@@ -31,7 +31,7 @@ public class Credentials {
 
         try{
 
-            if(routingContext.request().method()== HttpMethod.POST){
+            if(routingContext.request().method()== HttpMethod.POST || routingContext.request().method()== HttpMethod.PUT){
 
                 JsonObject userData = routingContext.getBodyAsJson();
 
@@ -230,7 +230,43 @@ public class Credentials {
 
     void update(RoutingContext routingContext){
 
-    }
+        JsonObject userData = routingContext.getBodyAsJson();
 
+        vertx.eventBus().<JsonObject>request(Constants.DATABASE_UPDATE,userData,response->{
+
+            try {
+                if (response.succeeded()) {
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).encodePrettily());
+
+                } else {
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+                }
+
+            }catch (Exception exception){
+
+                routingContext.response()
+
+                        .setStatusCode(400)
+
+                        .putHeader(Constants.CONTENT_TYPE,"application/json")
+
+                        .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).encodePrettily());
+
+            }
+
+        });
+
+    }
 
 }

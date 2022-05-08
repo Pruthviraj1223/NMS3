@@ -12,7 +12,6 @@ public class Bootstrap {
 
     static final Logger LOG = LoggerFactory.getLogger(Bootstrap.class.getName());
 
-
     public static void main(String[] args) {
 
 

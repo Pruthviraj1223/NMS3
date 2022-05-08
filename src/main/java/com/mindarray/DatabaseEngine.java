@@ -1,7 +1,9 @@
 package com.mindarray;
 
+import com.mysql.cj.log.Log;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
@@ -71,7 +73,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
-                PreparedStatement preparedStatement = connection.prepareStatement("insert into Credentials (credentialId,credentialName,protocol,username,password,community,version) values (?,?,?,?,?,?,?)");
+                PreparedStatement preparedStatement = connection.prepareStatement("insert into Credentials (credentialId,credentialName,protocol,name,password,community,version) values (?,?,?,?,?,?,?)");
 
                 preparedStatement.setString(1, userData.getString(Constants.CREDENTIAL_ID));
 
@@ -132,7 +134,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             if (!tables.next()) {
 
-                stmt.executeUpdate("create table Credentials (credentialId varchar(255),credentialName varchar(255) PRIMARY KEY,protocol varchar(255),username varchar(255),password varchar(255),community varchar(255),version varchar(255))");
+                stmt.executeUpdate("create table Credentials (credentialId varchar(255),credentialName varchar(255) PRIMARY KEY,protocol varchar(255),name varchar(255),password varchar(255),community varchar(255),version varchar(255))");
 
             }
 
@@ -239,6 +241,44 @@ public class DatabaseEngine extends AbstractVerticle {
         return result;
     }
 
+    boolean update(JsonObject userData) throws SQLException {
+
+        Connection connection=null;
+
+        boolean result= true;
+
+        try{
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
+
+            String query = "update Credentials SET name = '" + userData.getString(Constants.NAME) + "' , password = '" + userData.getString(Constants.PASSWORD) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(query);
+
+            preparedStatement.execute();
+
+        }catch (Exception exception){
+
+            LOG.debug("Error {} ", exception.getMessage());
+
+            return  false;
+
+        }
+
+        finally {
+
+            if(connection!=null){
+
+                connection.close();
+
+            }
+        }
+
+    return  result;
+
+    }
+
 
 
     static final Logger LOG = LoggerFactory.getLogger(DatabaseEngine.class.getName());
@@ -328,7 +368,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         });
 
-        vertx.eventBus().consumer(Constants.DATABASE_DELETE,handler->{
+        vertx.eventBus().<String>consumer(Constants.DATABASE_DELETE,handler->{
 
             vertx.executeBlocking(request -> {
 
@@ -336,7 +376,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 try {
 
-                    result = delete(handler.body().toString());
+                    result = delete(handler.body());
 
                     if(result){
 
@@ -368,6 +408,57 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }
             });
+
+        });
+
+
+        vertx.eventBus().<JsonObject>consumer(Constants.DATABASE_UPDATE,handler->{
+
+            vertx.executeBlocking(blockingHandler->{
+
+                JsonObject userData = handler.body();
+
+                boolean result;
+
+                try{
+
+                    result = update(userData);
+
+                    if(result){
+
+                        blockingHandler.complete();
+                    }else{
+
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+
+                }catch (Exception exception){
+
+                    LOG.debug("Error {} ", exception.getMessage());
+
+                    blockingHandler.fail(Constants.FAIL);
+
+                }
+
+            }).onComplete(resultHandler -> {
+
+
+                if(resultHandler.succeeded()){
+
+                    handler.reply(Constants.SUCCESS);
+
+
+                }else{
+
+                    handler.fail(-1,Constants.FAIL);
+
+                }
+
+            });
+
+
 
         });
 
