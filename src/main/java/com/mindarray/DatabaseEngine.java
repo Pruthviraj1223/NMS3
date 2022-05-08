@@ -329,14 +329,16 @@ public class DatabaseEngine extends AbstractVerticle {
     }
 
 
-    boolean delete(String id) throws SQLException {
+    boolean delete(String tableName, String column,String id) throws SQLException {
 
         Connection connection = null;
 
         boolean result = false;
 
-        if(id==null || id.isEmpty()){
+        if(id==null || tableName==null || column==null){
+
             return false;
+
         }
 
         try {
@@ -345,7 +347,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
-            String query = "delete from Credentials where credentialId='" + id + "'";
+            String query = "delete from " + tableName + " where " + column  + " ='" + id + "'";
 
             PreparedStatement preparedStatement = connection.prepareStatement(query);
 
@@ -688,7 +690,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 try {
 
-                    result = delete(handler.body());
+                    result = delete(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,handler.body());
 
                     if (result) {
 
@@ -816,6 +818,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
         });
 
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
         vertx.eventBus().<JsonObject>consumer(Constants.DATABASE_DISCOVERY_CHECK_NAME, dataHandler -> {
 
             vertx.executeBlocking(blockingHandler -> {
@@ -909,6 +914,49 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }
 
+            });
+
+        });
+
+        vertx.eventBus().<String>consumer(Constants.DATABASE_DISCOVERY_DELETE, handler -> {
+
+            vertx.executeBlocking(request -> {
+
+                boolean result;
+
+                try {
+
+                    result = delete(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,handler.body());
+
+                    if (result) {
+
+                        request.complete();
+
+                    } else {
+
+                        request.fail(Constants.FAIL);
+
+                    }
+
+
+                } catch (Exception exception) {
+
+                    LOG.debug("Error : {}" + exception.getMessage());
+
+                    request.fail(exception.getMessage());
+
+                }
+
+            }).onComplete(completeHandler -> {
+
+                if (completeHandler.succeeded()) {
+
+                    handler.reply(Constants.SUCCESS);
+                } else {
+
+                    handler.fail(-1, Constants.FAIL);
+
+                }
             });
 
         });

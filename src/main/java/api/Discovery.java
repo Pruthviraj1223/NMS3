@@ -25,11 +25,11 @@ public class Discovery {
 
         discoveryRouter.get("/discovery").handler(this::validate).handler(this::get);
 
-        discoveryRouter.get("/discovery").handler(this::validate).handler(this::getId);
+        discoveryRouter.get("/discovery/:id").handler(this::validate).handler(this::getId);
 
         discoveryRouter.put("/discovery").handler(this::validate).handler(this::update);
 
-        discoveryRouter.delete("/discovery").handler(this::validate).handler(this::delete);
+        discoveryRouter.delete("/discovery/:id").handler(this::validate).handler(this::delete);
 
     }
 
@@ -166,7 +166,47 @@ public class Discovery {
 
     }
 
-    void delete(RoutingContext rx){
+    void delete(RoutingContext routingContext) {
+
+        String id = routingContext.pathParam("id");
+
+        vertx.eventBus().request(Constants.DATABASE_DISCOVERY_DELETE, id, response -> {
+
+            try {
+                if (response.succeeded()) {
+
+//                    JsonArray jsonArray = response.result().body();
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).encodePrettily());
+
+                } else {
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+                }
+
+            } catch (Exception exception) {
+
+                routingContext.response()
+
+                        .setStatusCode(400)
+
+                        .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+            }
+
+        });
+
 
     }
 
