@@ -4,10 +4,12 @@ import com.mindarray.Bootstrap;
 import com.mindarray.Constants;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+
 import java.util.HashMap;
 
 
@@ -15,11 +17,13 @@ public class Credentials {
 
     Vertx vertx = Bootstrap.vertx;
 
-    public void init(Router router){
+    public void init(Router router) {
 
         router.post("/credentials").handler(this::validate).handler(this::create);
 
         router.get("/credentials").handler(this::validate).handler(this::get);
+
+        router.get("/credentials/:id").handler(this::validate).handler(this::getId);
 
         router.put("/credentials").handler(this::validate).handler(this::update);
 
@@ -27,17 +31,17 @@ public class Credentials {
 
     }
 
-    void validate(RoutingContext routingContext){
+    void validate(RoutingContext routingContext) {
 
-        try{
+        try {
 
-            if(routingContext.request().method()== HttpMethod.POST || routingContext.request().method()== HttpMethod.PUT){
+            if (routingContext.request().method() == HttpMethod.POST || routingContext.request().method() == HttpMethod.PUT) {
+
+                HashMap<String, Object> result;
 
                 JsonObject userData = routingContext.getBodyAsJson();
 
-                HashMap<String,Object> result;
-
-                if(!(userData==null)){
+                if(userData!=null){
 
                     result = new HashMap<>(userData.getMap());
 
@@ -45,9 +49,9 @@ public class Credentials {
 
                         Object val = result.get(key);
 
-                        if(val instanceof String){
+                        if (val instanceof String) {
 
-                            result.put(key,val.toString().trim());
+                            result.put(key, val.toString().trim());
 
                         }
 
@@ -55,53 +59,69 @@ public class Credentials {
 
                     userData = new JsonObject(result);
 
-                    routingContext.setBody(userData.toBuffer());
+                    vertx.eventBus().<JsonObject>request(Constants.DATABASE_CHECK_NAME, userData, handler -> {
 
-                    routingContext.next();
+                        if (handler.succeeded()) {
 
-                }else{
+                            JsonObject response = handler.result().body();
+
+                            routingContext.setBody(response.toBuffer());
+
+                            routingContext.next();
+
+                        } else {
+
+                            routingContext.response()
+
+                                    .setStatusCode(400)
+
+                                    .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, Constants.EXIST).encodePrettily());
+
+                        }
+
+                    });
+
+                } else{
 
                     routingContext.response()
 
                             .setStatusCode(400)
 
-                            .putHeader(Constants.CONTENT_TYPE,"application/json")
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                            .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
                 }
-            }
-            else if(routingContext.request().method()== HttpMethod.GET){
+            }else if (routingContext.request().method() == HttpMethod.GET) {
 
                 routingContext.next();
 
-            } else if(routingContext.request().method() == HttpMethod.DELETE){
+            } else if (routingContext.request().method() == HttpMethod.DELETE) {
 
                 routingContext.next();
 
             }
 
-
-        }catch (Exception exception){
+        } catch (Exception exception) {
 
             routingContext.response()
 
                     .setStatusCode(400)
 
-                    .putHeader(Constants.CONTENT_TYPE,"application/json")
+                    .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                    .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).encodePrettily());
+                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
         }
-
-
-
     }
 
-    void create(RoutingContext routingContext){
+
+    void create(RoutingContext routingContext) {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
-        vertx.eventBus().<JsonObject>request(Constants.DATABASE_INSERT,userData,response->{
+        vertx.eventBus().<JsonObject>request(Constants.DATABASE_INSERT, userData, response -> {
 
             try {
                 if (response.succeeded()) {
@@ -124,15 +144,15 @@ public class Credentials {
 
                 }
 
-            }catch (Exception exception){
+            } catch (Exception exception) {
 
                 routingContext.response()
 
                         .setStatusCode(400)
 
-                        .putHeader(Constants.CONTENT_TYPE,"application/json")
+                        .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                        .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).encodePrettily());
+                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
             }
 
@@ -140,11 +160,10 @@ public class Credentials {
 
 
     }
-    void get(RoutingContext routingContext){
 
-        JsonObject userData = routingContext.getBodyAsJson();
+    void get(RoutingContext routingContext) {
 
-        vertx.eventBus().<JsonArray>request(Constants.DATABASE_GET_ALL,userData,response->{
+        vertx.eventBus().<JsonArray>request(Constants.DATABASE_GET_ALL, "", response -> {
 
             try {
                 if (response.succeeded()) {
@@ -167,15 +186,15 @@ public class Credentials {
 
                 }
 
-            }catch (Exception exception){
+            } catch (Exception exception) {
 
                 routingContext.response()
 
                         .setStatusCode(400)
 
-                        .putHeader(Constants.CONTENT_TYPE,"application/json")
+                        .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                        .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).encodePrettily());
+                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
             }
 
@@ -184,22 +203,22 @@ public class Credentials {
 
     }
 
-    void delete(RoutingContext routingContext){
+    void getId(RoutingContext routingContext) {
 
         String id = routingContext.pathParam("id");
 
-        vertx.eventBus().request(Constants.DATABASE_DELETE,id,response->{
+        vertx.eventBus().<JsonObject>request(Constants.DATABASE_GET_ID, id, response -> {
 
             try {
                 if (response.succeeded()) {
 
-//                    JsonArray jsonArray = response.result().body();
+                    JsonObject result = response.result().body();
 
                     routingContext.response()
 
                             .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                            .end(new JsonObject().put(Constants.STATUS,Constants.SUCCESS).encodePrettily());
+                            .end(result.encodePrettily());
 
                 } else {
 
@@ -211,15 +230,15 @@ public class Credentials {
 
                 }
 
-            }catch (Exception exception){
+            } catch (Exception exception) {
 
                 routingContext.response()
 
                         .setStatusCode(400)
 
-                        .putHeader(Constants.CONTENT_TYPE,"application/json")
+                        .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                        .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).encodePrettily());
+                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
             }
 
@@ -228,11 +247,55 @@ public class Credentials {
 
     }
 
-    void update(RoutingContext routingContext){
+    void delete(RoutingContext routingContext) {
+
+        String id = routingContext.pathParam("id");
+
+        vertx.eventBus().request(Constants.DATABASE_DELETE, id, response -> {
+
+            try {
+                if (response.succeeded()) {
+
+//                    JsonArray jsonArray = response.result().body();
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).encodePrettily());
+
+                } else {
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+                }
+
+            } catch (Exception exception) {
+
+                routingContext.response()
+
+                        .setStatusCode(400)
+
+                        .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+            }
+
+        });
+
+
+    }
+
+    void update(RoutingContext routingContext) {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
-        vertx.eventBus().<JsonObject>request(Constants.DATABASE_UPDATE,userData,response->{
+        vertx.eventBus().<JsonObject>request(Constants.DATABASE_UPDATE, userData, response -> {
 
             try {
                 if (response.succeeded()) {
@@ -253,15 +316,15 @@ public class Credentials {
 
                 }
 
-            }catch (Exception exception){
+            } catch (Exception exception) {
 
                 routingContext.response()
 
                         .setStatusCode(400)
 
-                        .putHeader(Constants.CONTENT_TYPE,"application/json")
+                        .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                        .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).encodePrettily());
+                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
             }
 

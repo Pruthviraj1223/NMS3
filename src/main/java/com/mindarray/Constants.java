@@ -6,22 +6,24 @@ public class Constants {
 
     public static final String DISCOVERY_ADDRESS = "discovery";
 
-    public static final String DATABASE_CHECKIP = "database.checkIp";
+    public static final String DATABASE_CHECK_IP = "database.checkIp";
 
     public static final String DATABASE_INSERT = "database.insert";
 
     public static final String DATABASE_GET_ALL = "database.getAll";
 
+    public static final String DATABASE_GET_ID = "database.getId";
+
     public static final String DATABASE_DELETE = "database.delete";
 
     public static final String DATABASE_UPDATE = "database.update";
 
+    public static final String DATABASE_CHECK_NAME = "database.check.name";
+
     public static final String IP_ADDRESS = "ip.address";
 
     public static final String PORT = "port";
-
     public static final String NAME = "name";
-
     public static final String PASSWORD = "password";
 
     public static final String METRIC_TYPE = "metricType";
@@ -37,6 +39,8 @@ public class Constants {
     public static final String STATUS = "status";
 
     public static final String ERROR = "error";
+
+    public static final String EXIST = "Already exist";
 
     public static final String PROTOCOL = "protocol";
 
