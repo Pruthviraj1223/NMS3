@@ -54,6 +54,44 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
+    boolean containsAll(JsonObject data){
+
+        if(!(data.containsKey(Constants.CREDENTIAL_ID) && (!data.getString(Constants.CREDENTIAL_ID).isEmpty()))){
+            return false;
+        }
+
+        if(!(data.containsKey(Constants.CREDENTIAL_NAME) && (!data.getString(Constants.CREDENTIAL_NAME).isEmpty()))){
+            return false;
+        }
+
+        if(!(data.containsKey(Constants.PROTOCOL) && (!data.getString(Constants.PROTOCOL).isEmpty()))){
+            return false;
+        }
+
+
+        if(data.getString(Constants.PROTOCOL).equalsIgnoreCase("linux") || data.getString(Constants.PROTOCOL).equalsIgnoreCase("windows")){
+            if(!(data.containsKey(Constants.NAME) && (!data.getString(Constants.NAME).isEmpty()))){
+                return false;
+            }
+            if(!(data.containsKey(Constants.PASSWORD) && (!data.getString(Constants.PASSWORD).isEmpty()))){
+                return false;
+            }
+        }
+
+        if(data.getString(Constants.PROTOCOL).equalsIgnoreCase("snmp")){
+            if(!(data.containsKey(Constants.COMMUNITY) && (!data.getString(Constants.COMMUNITY).isEmpty()))){
+                return false;
+            }
+            if(!(data.containsKey(Constants.VERSION) && (!data.getString(Constants.VERSION).isEmpty()))){
+                return false;
+            }
+
+        }
+
+      return true;
+
+    }
+
 
 
     JsonObject insert(JsonObject userData) throws SQLException {
@@ -61,6 +99,10 @@ public class DatabaseEngine extends AbstractVerticle {
         Connection connection = null;
 
         JsonObject result = new JsonObject();
+
+        if(!containsAll(userData)){
+            return null;
+        }
 
         try {
 
@@ -175,19 +217,27 @@ public class DatabaseEngine extends AbstractVerticle {
 
             while (resultSet.next()){
 
-                JsonObject jsonObject = new JsonObject();
+                JsonObject result = new JsonObject();
               
-                jsonObject.put(Constants.CREDENTIAL_ID,resultSet.getString(1));
+                result.put(Constants.CREDENTIAL_ID,resultSet.getString(1));
               
-                jsonObject.put(Constants.CREDENTIAL_NAME,resultSet.getString(2));
+                result.put(Constants.CREDENTIAL_NAME,resultSet.getString(2));
               
-                jsonObject.put(Constants.PROTOCOL,resultSet.getString(3));
-               
-                jsonObject.put(Constants.NAME,resultSet.getString(4));
-               
-                jsonObject.put(Constants.PASSWORD,resultSet.getString(5));
-                
-                jsonArray.add(jsonObject);
+                result.put(Constants.PROTOCOL,resultSet.getString(3));
+
+                if(resultSet.getString(3).equalsIgnoreCase("linux") || resultSet.getString(3).equalsIgnoreCase("windows")){
+                    result.put(Constants.NAME,resultSet.getString(4));
+
+                    result.put(Constants.PASSWORD,resultSet.getString(5));
+                }else if(resultSet.getString(3).equalsIgnoreCase("snmp")){
+
+                    result.put(Constants.NAME,resultSet.getString(6));
+
+                    result.put(Constants.PASSWORD,resultSet.getString(7));
+
+                }
+
+                jsonArray.add(result);
 
             }
 
@@ -235,9 +285,17 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 result.put(Constants.PROTOCOL,resultSet.getString(3));
 
-                result.put(Constants.NAME,resultSet.getString(4));
+                if(resultSet.getString(3).equalsIgnoreCase("linux") || resultSet.getString(3).equalsIgnoreCase("windows")){
+                    result.put(Constants.NAME,resultSet.getString(4));
 
-                result.put(Constants.PASSWORD,resultSet.getString(5));
+                    result.put(Constants.PASSWORD,resultSet.getString(5));
+                }else if(resultSet.getString(3).equalsIgnoreCase("snmp")){
+
+                    result.put(Constants.NAME,resultSet.getString(6));
+
+                    result.put(Constants.PASSWORD,resultSet.getString(7));
+
+                }
 
             }
 
@@ -310,13 +368,29 @@ public class DatabaseEngine extends AbstractVerticle {
 
         boolean result= true;
 
+
+        if(userData.containsKey(Constants.CREDENTIAL_ID)){
+            return false;
+        }
+
         try{
 
             Class.forName("com.mysql.cj.jdbc.Driver");
 
             connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
-            String query = "update Credentials SET name = '" + userData.getString(Constants.NAME) + "' , password = '" + userData.getString(Constants.PASSWORD) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
+            String query;
+            if(userData.containsKey(Constants.NAME) && userData.containsKey(Constants.PASSWORD)){
+                query = "update Credentials SET name = '" + userData.getString(Constants.NAME) + "' , password = '" + userData.getString(Constants.PASSWORD) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
+
+            }else if(userData.containsKey(Constants.NAME)){
+                query = "update Credentials SET name = '" + userData.getString(Constants.NAME) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
+            }else if(userData.containsKey(Constants.PASSWORD)){
+                query = "update Credentials SET password = '" + userData.getString(Constants.PASSWORD) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
+            }else{
+                return false;
+            }
+
 
             PreparedStatement preparedStatement = connection.prepareStatement(query);
 
@@ -409,7 +483,12 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     result = insert(userData);
 
-                    if(result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)){
+                    if(result==null){
+
+                        request.fail(Constants.FAIL);
+                    }
+
+                    else if(result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)){
 
                         request.complete();
 
