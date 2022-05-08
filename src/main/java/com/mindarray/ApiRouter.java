@@ -12,7 +12,7 @@ public class ApiRouter extends AbstractVerticle {
 
 
     @Override
-    public void start(Promise<Void> startPromise)  {
+    public void start(Promise<Void> startPromise) {
 
         Router router = Router.router(vertx);
 
@@ -20,9 +20,9 @@ public class ApiRouter extends AbstractVerticle {
 
         Router credentialRouter = Router.router(vertx);
 
-        router.mountSubRouter("/api/",discoveryRouter);
+        router.mountSubRouter("/api/", discoveryRouter);
 
-        router.mountSubRouter("/api/",credentialRouter);
+        router.mountSubRouter("/api/", credentialRouter);
 
         router.route().handler(BodyHandler.create());
 

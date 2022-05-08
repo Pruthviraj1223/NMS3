@@ -41,7 +41,7 @@ public class Credentials {
 
                 JsonObject userData = routingContext.getBodyAsJson();
 
-                if(userData!=null){
+                if (userData != null) {
 
                     result = new HashMap<>(userData.getMap());
 
@@ -83,7 +83,7 @@ public class Credentials {
 
                     });
 
-                } else{
+                } else {
 
                     routingContext.response()
 
@@ -94,7 +94,7 @@ public class Credentials {
                             .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
                 }
-            }else if (routingContext.request().method() == HttpMethod.GET) {
+            } else if (routingContext.request().method() == HttpMethod.GET) {
 
                 routingContext.next();
 

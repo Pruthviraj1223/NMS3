@@ -19,32 +19,32 @@ public class Bootstrap {
 
                 .compose(future -> start(DatabaseEngine.class.getName()))
 
-                .onComplete(handler->{
+                .onComplete(handler -> {
 
-                    if(handler.succeeded()){
+                    if (handler.succeeded()) {
 
                         LOG.debug("Deployed");
 
-                    }else{
+                    } else {
 
                         LOG.debug("Deployed Unsuccessfully");
 
                     }
 
                 });
-        }
+    }
 
     public static Future<Void> start(String verticle) {
 
         Promise<Void> promise = Promise.promise();
 
-        vertx.deployVerticle(verticle, handler->{
+        vertx.deployVerticle(verticle, handler -> {
 
-            if(handler.succeeded()){
+            if (handler.succeeded()) {
 
                 promise.complete();
 
-            }else{
+            } else {
 
                 promise.fail(handler.cause());
 
