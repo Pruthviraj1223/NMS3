@@ -1,33 +1,38 @@
 package api;
 
 import com.mindarray.Bootstrap;
+
 import com.mindarray.Constants;
+
 import io.vertx.core.Vertx;
+
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
+
 import io.vertx.core.json.JsonArray;
+
 import io.vertx.core.json.JsonObject;
+
 import io.vertx.ext.web.Router;
+
 import io.vertx.ext.web.RoutingContext;
 
 import java.util.HashMap;
-
 
 public class Credentials {
 
     Vertx vertx = Bootstrap.vertx;
 
-    public void init(Router router) {
+    public void init(Router credentialRouter) {
 
-        router.post("/credentials").handler(this::validate).handler(this::create);
+        credentialRouter.post("/credentials").handler(this::validate).handler(this::create);
 
-        router.get("/credentials").handler(this::validate).handler(this::get);
+        credentialRouter.get("/credentials").handler(this::validate).handler(this::get);
 
-        router.get("/credentials/:id").handler(this::validate).handler(this::getId);
+        credentialRouter.get("/credentials/:id").handler(this::validate).handler(this::getId);
 
-        router.put("/credentials").handler(this::validate).handler(this::update);
+        credentialRouter.put("/credentials").handler(this::validate).handler(this::update);
 
-        router.delete("/credentials/:id").handler(this::validate).handler(this::delete);
+        credentialRouter.delete("/credentials/:id").handler(this::validate).handler(this::delete);
 
     }
 
@@ -94,11 +99,7 @@ public class Credentials {
                             .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
                 }
-            } else if (routingContext.request().method() == HttpMethod.GET) {
-
-                routingContext.next();
-
-            } else if (routingContext.request().method() == HttpMethod.DELETE) {
+            } else if (routingContext.request().method() == HttpMethod.GET || routingContext.request().method() == HttpMethod.DELETE) {
 
                 routingContext.next();
 
@@ -121,7 +122,7 @@ public class Credentials {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
-        vertx.eventBus().<JsonObject>request(Constants.DATABASE_INSERT, userData, response -> {
+        vertx.eventBus().<JsonObject>request(Constants.DATABASE_CREDENTIAL_INSERT, userData, response -> {
 
             try {
                 if (response.succeeded()) {
@@ -140,7 +141,7 @@ public class Credentials {
 
                             .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,Constants.INVALID_INPUT).encodePrettily());
 
                 }
 
@@ -163,7 +164,7 @@ public class Credentials {
 
     void get(RoutingContext routingContext) {
 
-        vertx.eventBus().<JsonArray>request(Constants.DATABASE_GET_ALL, "", response -> {
+        vertx.eventBus().<JsonArray>request(Constants.DATABASE_CREDENTIAL_GET_ALL, "", response -> {
 
             try {
                 if (response.succeeded()) {
@@ -207,7 +208,7 @@ public class Credentials {
 
         String id = routingContext.pathParam("id");
 
-        vertx.eventBus().<JsonArray>request(Constants.DATABASE_GET_ID, id, response -> {
+        vertx.eventBus().<JsonArray>request(Constants.DATABASE_CREDENTIAL_GET_ID, id, response -> {
 
             try {
                 if (response.succeeded()) {
@@ -251,7 +252,7 @@ public class Credentials {
 
         String id = routingContext.pathParam("id");
 
-        vertx.eventBus().request(Constants.DATABASE_DELETE, id, response -> {
+        vertx.eventBus().request(Constants.DATABASE_CREDENTIAL_DELETE, id, response -> {
 
             try {
                 if (response.succeeded()) {
@@ -295,7 +296,7 @@ public class Credentials {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
-        vertx.eventBus().<JsonObject>request(Constants.DATABASE_UPDATE, userData, response -> {
+        vertx.eventBus().<JsonObject>request(Constants.DATABASE_CREDENTIAL_UPDATE, userData, response -> {
 
             try {
                 if (response.succeeded()) {

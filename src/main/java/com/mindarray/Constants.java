@@ -1,24 +1,51 @@
 package com.mindarray;
 
+import java.net.StandardProtocolFamily;
+
 public class Constants {
 
     public static final String DISCOVERY = "/discovery";
 
     public static final String DISCOVERY_ADDRESS = "discovery";
 
-    public static final String DATABASE_CHECK_IP = "database.checkIp";
+    public static final String DATABASE_CREDENTIAL_INSERT = "database.credential.insert";
 
-    public static final String DATABASE_INSERT = "database.insert";
+    public static final String DATABASE_CREDENTIAL_GET_ALL = "database.credential.getAll";
 
-    public static final String DATABASE_GET_ALL = "database.getAll";
+    public static final String DATABASE_CREDENTIAL_GET_ID = "database.credential.getId";
 
-    public static final String DATABASE_GET_ID = "database.getId";
+    public static final String DATABASE_CREDENTIAL_DELETE = "database.credential.delete";
 
-    public static final String DATABASE_DELETE = "database.delete";
+    public static final String DATABASE_CREDENTIAL_UPDATE = "database.credential.update";
 
-    public static final String DATABASE_UPDATE = "database.update";
+    public static final String DATABASE_DISCOVERY_CHECK_NAME = "database.discovery.check.name";
+
+    public static final String DATABASE_DISCOVERY_INSERT = "database.discovery.insert";
+
+    public static final String DATABASE_DISCOVERY_GET_ALL = "database.discovery.getAll";
+
+    public static final String DATABASE_DISCOVERY_GET_ID = "database.discovery.getId";
+
+    public static final String DATABASE_DISCOVERY_DELETE = "database.discovery.delete";
+
+    public static final String DATABASE_DISCOVERY_UPDATE = "database.discovery.update";
 
     public static final String DATABASE_CHECK_NAME = "database.check.name";
+
+    public static final String CREDENTIAL_TABLE = "Credentials";
+
+    public static final String DISCOVERY_NAME = "discovery.name";
+
+    public static final String DISCOVERY_TABLE_NAME = "discoveryName";
+
+    public static final String DISCOVERY_TABLE_ID = "discoveryId";
+
+    public static final String TYPE = "type";
+
+
+    public static final String DISCOVERY_TABLE = "Discovery";
+
+    public static final String INVALID_INPUT = "invalid input";
 
     public static final String IP_ADDRESS = "ip.address";
 

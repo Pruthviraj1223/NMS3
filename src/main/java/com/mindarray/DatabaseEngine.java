@@ -1,25 +1,34 @@
 package com.mindarray;
 
 import io.vertx.core.AbstractVerticle;
+
 import io.vertx.core.Promise;
+
 import io.vertx.core.json.JsonArray;
+
 import io.vertx.core.json.JsonObject;
+
 import org.slf4j.Logger;
+
 import org.slf4j.LoggerFactory;
 
+import javax.print.DocFlavor;
 import java.sql.*;
+
 import java.util.UUID;
 
 public class DatabaseEngine extends AbstractVerticle {
 
-    boolean checkName(JsonObject entries) throws SQLException {
+    boolean checkName(String table,String column,String value) throws SQLException {
 
         Connection connection = null;
 
         boolean isAvailable = false;
 
-        if (!entries.containsKey(Constants.CREDENTIAL_NAME)) {
+        if (table==null || column==null || value==null) {
+
             return false;
+
         }
 
         try {
@@ -28,7 +37,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
-            String query = "select * from Credentials where credentialName='" + entries.getString(Constants.CREDENTIAL_NAME) + "'";
+            String query = "select * from " +  table  + " where " + column  + "='" + value + "'";
 
             ResultSet resultSet = connection.createStatement().executeQuery(query);
 
@@ -52,37 +61,89 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
-    boolean containsAll(JsonObject data) {
+    boolean containsAllCredential(JsonObject data) {
 
         if (!(data.containsKey(Constants.CREDENTIAL_ID) && (!data.getString(Constants.CREDENTIAL_ID).isEmpty()))) {
+
             return false;
+
         }
 
         if (!(data.containsKey(Constants.CREDENTIAL_NAME) && (!data.getString(Constants.CREDENTIAL_NAME).isEmpty()))) {
+
             return false;
+
         }
 
         if (!(data.containsKey(Constants.PROTOCOL) && (!data.getString(Constants.PROTOCOL).isEmpty()))) {
+
             return false;
+
         }
 
 
         if (data.getString(Constants.PROTOCOL).equalsIgnoreCase("ssh") || data.getString(Constants.PROTOCOL).equalsIgnoreCase("winrm")) {
+
             if (!(data.containsKey(Constants.NAME) && (!data.getString(Constants.NAME).isEmpty()))) {
+
                 return false;
+
             }
+
             if (!(data.containsKey(Constants.PASSWORD) && (!data.getString(Constants.PASSWORD).isEmpty()))) {
+
                 return false;
+
             }
         }
 
         if (data.getString(Constants.PROTOCOL).equalsIgnoreCase("snmp")) {
+
             if (!(data.containsKey(Constants.COMMUNITY) && (!data.getString(Constants.COMMUNITY).isEmpty()))) {
+
                 return false;
+
             }
+
             if (!(data.containsKey(Constants.VERSION) && (!data.getString(Constants.VERSION).isEmpty()))) {
+
                 return false;
+
             }
+        }
+
+        return true;
+
+    }
+
+    boolean containsAllDiscovery(JsonObject data){
+
+        if (!(data.containsKey(Constants.CREDENTIAL_ID) && (!data.getString(Constants.CREDENTIAL_ID).isEmpty()))) {
+
+            return false;
+
+        }
+
+        if (!(data.containsKey(Constants.DISCOVERY_TABLE_ID) && (!data.getString(Constants.DISCOVERY_TABLE_ID).isEmpty()))) {
+
+            return false;
+
+        }
+
+        if (!(data.containsKey(Constants.PORT) && (!data.getString(Constants.PORT).isEmpty()))) {
+
+            return false;
+
+        }
+
+        if (!(data.containsKey(Constants.IP_ADDRESS) && (!data.getString(Constants.IP_ADDRESS).isEmpty()))) {
+
+            return false;
+
+        }
+        if (!(data.containsKey(Constants.TYPE) && (!data.getString(Constants.TYPE).isEmpty()))) {
+
+            return false;
 
         }
 
@@ -91,19 +152,21 @@ public class DatabaseEngine extends AbstractVerticle {
     }
 
 
-    JsonObject insert(JsonObject userData) throws SQLException {
+    JsonObject insertCredentials(JsonObject userData) throws SQLException {
 
         Connection connection = null;
 
         JsonObject result = new JsonObject();
 
-        if (!containsAll(userData)) {
+        if (!containsAllCredential(userData)) {
+
             return null;
+
         }
 
         try {
 
-            if (checkName(userData)) {
+            if (checkName(Constants.CREDENTIAL_TABLE,"credentialName",userData.getString(Constants.CREDENTIAL_NAME))) {
 
                 result.put(Constants.STATUS, Constants.FAIL);
 
@@ -180,7 +243,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             if (!resultSet.next()) {
 
-                stmt.executeUpdate("create table Discovery (discoveryName varchar(255),ip varchar(255),type varchar(255),credentialId varchar(255),port int)");
+                stmt.executeUpdate("create table Discovery (discoveryId varchar(255),credentialId varchar(255),discoveryName varchar(255),ip varchar(255),type varchar(255),port int)");
 
             }
 
@@ -272,7 +335,12 @@ public class DatabaseEngine extends AbstractVerticle {
 
         boolean result = false;
 
+        if(id==null || id.isEmpty()){
+            return false;
+        }
+
         try {
+
             Class.forName("com.mysql.cj.jdbc.Driver");
 
             connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
@@ -371,7 +439,9 @@ public class DatabaseEngine extends AbstractVerticle {
                 query = "update Credentials SET version = '" + userData.getString(Constants.VERSION) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
 
             } else {
+
                 return false;
+
             }
 
             PreparedStatement preparedStatement = connection.prepareStatement(query);
@@ -397,6 +467,81 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
+    JsonObject insertDiscovery(JsonObject userData) throws SQLException {
+
+        Connection connection = null;
+
+        JsonObject result = new JsonObject();
+
+        if (!containsAllDiscovery(userData)) {
+
+            return null;
+
+        }
+
+        try {
+
+            if (checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_NAME,userData.getString(Constants.DISCOVERY_NAME))) {
+
+                result.put(Constants.STATUS, Constants.FAIL);
+
+                return result;
+
+            }
+
+            if(!checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,userData.getString(Constants.CREDENTIAL_ID))){
+
+                result.put(Constants.STATUS, Constants.FAIL);
+
+                return result;
+
+            }
+
+
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
+
+            PreparedStatement preparedStatement = connection.prepareStatement("insert into Discovery (discoveryId,credentialId,discoveryName,ip,type,port) values (?,?,?,?,?,?)");
+
+            preparedStatement.setString(1, userData.getString(Constants.DISCOVERY_TABLE_ID));
+
+            preparedStatement.setString(2, userData.getString(Constants.CREDENTIAL_ID));
+
+            preparedStatement.setString(3, userData.getString(Constants.DISCOVERY_TABLE_NAME));
+
+            preparedStatement.setString(4, userData.getString(Constants.IP_ADDRESS));
+
+            preparedStatement.setString(5, userData.getString(Constants.TYPE));
+
+            preparedStatement.setInt(6, userData.getInteger(Constants.PORT));
+
+            preparedStatement.executeUpdate();
+
+            result.put(Constants.STATUS, Constants.SUCCESS);
+
+
+        } catch (Exception exception) {
+
+            LOG.debug("Error : {} ", exception.getMessage());
+
+            result.put(Constants.STATUS, Constants.FAIL);
+
+        } finally {
+
+            if (connection != null) {
+
+                connection.close();
+
+            }
+
+        }
+
+        return result;
+
+    }
+
+
     static final Logger LOG = LoggerFactory.getLogger(DatabaseEngine.class.getName());
 
     @Override
@@ -412,7 +557,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     JsonObject data = dataHandler.body();
 
-                    if (!checkName(data)) {
+                    if (!checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,data.getString(Constants.CREDENTIAL_ID))) {
 
                         handler.complete(data);
 
@@ -447,7 +592,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         });
 
-        vertx.eventBus().<JsonObject>consumer(Constants.DATABASE_INSERT, handler -> {
+        vertx.eventBus().<JsonObject>consumer(Constants.DATABASE_CREDENTIAL_INSERT, handler -> {
 
             JsonObject userData = handler.body();
 
@@ -459,11 +604,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 try {
 
-                    result = insert(userData);
+                    result = insertCredentials(userData);
 
                     if (result == null) {
 
-                        request.fail(Constants.FAIL);
+                        request.fail(Constants.INVALID_INPUT);
 
                     } else if (result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)) {
 
@@ -494,17 +639,19 @@ public class DatabaseEngine extends AbstractVerticle {
                     handler.fail(-1, Constants.FAIL);
 
                 }
+
             });
 
         });
 
-        vertx.eventBus().<JsonArray>consumer(Constants.DATABASE_GET_ALL, consumer -> {
+        vertx.eventBus().<JsonArray>consumer(Constants.DATABASE_CREDENTIAL_GET_ALL, consumer -> {
 
             vertx.executeBlocking(handler -> {
 
                 try {
 
                     String get = "getAll";
+
                     JsonArray jsonArray = getAll(get);
 
                     handler.complete(jsonArray);
@@ -533,7 +680,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         });
 
-        vertx.eventBus().<String>consumer(Constants.DATABASE_DELETE, handler -> {
+        vertx.eventBus().<String>consumer(Constants.DATABASE_CREDENTIAL_DELETE, handler -> {
 
             vertx.executeBlocking(request -> {
 
@@ -577,7 +724,7 @@ public class DatabaseEngine extends AbstractVerticle {
         });
 
 
-        vertx.eventBus().<JsonObject>consumer(Constants.DATABASE_UPDATE, handler -> {
+        vertx.eventBus().<JsonObject>consumer(Constants.DATABASE_CREDENTIAL_UPDATE, handler -> {
 
             vertx.executeBlocking(blockingHandler -> {
 
@@ -625,7 +772,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         });
 
-        vertx.eventBus().<String>consumer(Constants.DATABASE_GET_ID, handler -> {
+        vertx.eventBus().<String>consumer(Constants.DATABASE_CREDENTIAL_GET_ID, handler -> {
 
             vertx.executeBlocking(blockingHandler -> {
 
@@ -669,6 +816,102 @@ public class DatabaseEngine extends AbstractVerticle {
 
         });
 
+        vertx.eventBus().<JsonObject>consumer(Constants.DATABASE_DISCOVERY_CHECK_NAME, dataHandler -> {
+
+            vertx.executeBlocking(blockingHandler -> {
+
+                try {
+
+                    JsonObject data = dataHandler.body();
+
+                    if (checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,data.getString(Constants.CREDENTIAL_ID))) {
+
+                        if(!checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_NAME,data.getString(Constants.DISCOVERY_NAME))) {
+
+                            blockingHandler.complete(data);
+
+                        }
+
+                    } else {
+
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+                } catch (Exception exception) {
+
+                    blockingHandler.fail(exception.getMessage());
+
+                }
+
+
+            }).onComplete(resultHandler -> {
+
+                if (resultHandler.succeeded()) {
+
+                    dataHandler.reply(resultHandler.result());
+
+
+                } else {
+
+                    dataHandler.fail(-1, Constants.FAIL);
+
+                }
+
+            });
+        });
+
+        vertx.eventBus().<JsonObject>consumer(Constants.DATABASE_DISCOVERY_INSERT, handler -> {
+
+            JsonObject userData = handler.body();
+
+            userData.put(Constants.DISCOVERY_TABLE_ID, UUID.randomUUID().toString());
+
+            vertx.executeBlocking(request -> {
+
+                JsonObject result;
+
+                try {
+
+                    result = insertDiscovery(userData);
+
+                    if (result == null) {
+
+                        request.fail(Constants.INVALID_INPUT);
+
+                    } else if (result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)) {
+
+                        request.complete();
+
+                    } else {
+
+                        request.fail(Constants.FAIL);
+
+                    }
+
+
+                } catch (Exception exception) {
+
+                    LOG.debug("Error : {}" + exception.getMessage());
+
+                    request.fail(exception.getMessage());
+
+                }
+
+            }).onComplete(completeHandler -> {
+
+                if (completeHandler.succeeded()) {
+
+                    handler.reply(userData);
+                } else {
+
+                    handler.fail(-1, Constants.FAIL);
+
+                }
+
+            });
+
+        });
 
         startPromise.complete();
 

@@ -22,7 +22,7 @@ public class Bootstrap {
 
                     if (handler.succeeded()) {
 
-                        LOG.debug("Deployed");
+                        LOG.debug("Deployed Successfully");
 
                     } else {
 
