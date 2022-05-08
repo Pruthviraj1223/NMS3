@@ -8,9 +8,8 @@ import org.slf4j.LoggerFactory;
 
 public class Bootstrap {
 
-    public static Vertx vertx = Vertx.vertx();
-
     static final Logger LOG = LoggerFactory.getLogger(Bootstrap.class.getName());
+    public static Vertx vertx = Vertx.vertx();
 
     public static void main(String[] args) {
 

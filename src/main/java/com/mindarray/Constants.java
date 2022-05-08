@@ -48,7 +48,6 @@ public class Constants {
 
     public static final String FAIL = "fail";
 
-
     public static final String VERSION1 = "v1";
 
     public static final String VERSION2 = "v2";

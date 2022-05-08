@@ -1,7 +1,6 @@
 package com.mindarray;
 
 import api.Credentials;
-import api.Discovery;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.ext.web.Router;
@@ -34,8 +33,7 @@ public class ApiRouter extends AbstractVerticle {
 
         credentials.init(credentialRouter);
 
-
-        vertx.createHttpServer().requestHandler(router).listen(8080);
+            vertx.createHttpServer().requestHandler(router).listen(8080);
 
         startPromise.complete();
     }

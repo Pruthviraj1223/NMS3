@@ -207,12 +207,12 @@ public class Credentials {
 
         String id = routingContext.pathParam("id");
 
-        vertx.eventBus().<JsonObject>request(Constants.DATABASE_GET_ID, id, response -> {
+        vertx.eventBus().<JsonArray>request(Constants.DATABASE_GET_ID, id, response -> {
 
             try {
                 if (response.succeeded()) {
 
-                    JsonObject result = response.result().body();
+                    JsonArray result = response.result().body();
 
                     routingContext.response()
 

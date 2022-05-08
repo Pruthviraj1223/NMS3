@@ -8,8 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
-
-import java.util.Objects;
 import java.util.UUID;
 
 public class DatabaseEngine extends AbstractVerticle {
@@ -193,7 +191,7 @@ public class DatabaseEngine extends AbstractVerticle {
         }
     }
 
-    JsonArray getAll() throws SQLException {
+    JsonArray getAll(String get) throws SQLException {
 
         JsonArray jsonArray = null;
 
@@ -207,8 +205,17 @@ public class DatabaseEngine extends AbstractVerticle {
 
             connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
+            String query;
 
-            String query = "select * from Credentials";
+            if(get.equalsIgnoreCase("getall")){
+
+                query = "select * from Credentials";
+
+            }else{
+
+                query = "select * from Credentials where credentialId = '" + get + "'";
+
+            }
 
             ResultSet resultSet = connection.createStatement().executeQuery(query);
 
@@ -223,14 +230,16 @@ public class DatabaseEngine extends AbstractVerticle {
                 result.put(Constants.PROTOCOL, resultSet.getString(3));
 
                 if (resultSet.getString(3).equalsIgnoreCase("ssh") || resultSet.getString(3).equalsIgnoreCase("winrm")) {
+
                     result.put(Constants.NAME, resultSet.getString(4));
 
                     result.put(Constants.PASSWORD, resultSet.getString(5));
+
                 } else if (resultSet.getString(3).equalsIgnoreCase("snmp")) {
 
-                    result.put(Constants.NAME, resultSet.getString(6));
+                    result.put(Constants.COMMUNITY, resultSet.getString(6));
 
-                    result.put(Constants.PASSWORD, resultSet.getString(7));
+                    result.put(Constants.VERSION, resultSet.getString(7));
 
                 }
 
@@ -244,8 +253,11 @@ public class DatabaseEngine extends AbstractVerticle {
             LOG.debug("Error {} ", exception.getMessage());
 
         } finally {
+
             if (connection != null) {
+
                 connection.close();
+
             }
         }
 
@@ -253,65 +265,6 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
-    JsonObject getId(String id) throws SQLException {
-
-
-        Connection connection = null;
-
-        JsonObject result = null;
-
-        try {
-
-            Class.forName("com.mysql.cj.jdbc.Driver");
-
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
-
-            String query = "select * from Credentials where credentialId = '" + id + "'";
-
-            ResultSet resultSet = connection.createStatement().executeQuery(query);
-
-            if (resultSet.next()) {
-
-                result = new JsonObject();
-
-                result.put(Constants.CREDENTIAL_ID, resultSet.getString(1));
-
-                result.put(Constants.CREDENTIAL_NAME, resultSet.getString(2));
-
-                result.put(Constants.PROTOCOL, resultSet.getString(3));
-
-                if (resultSet.getString(3).equalsIgnoreCase("ssh") || resultSet.getString(3).equalsIgnoreCase("winrm")) {
-                    result.put(Constants.NAME, resultSet.getString(4));
-
-                    result.put(Constants.PASSWORD, resultSet.getString(5));
-                } else if (resultSet.getString(3).equalsIgnoreCase("snmp")) {
-
-                    result.put(Constants.COMMUNITY, resultSet.getString(6));
-
-                    result.put(Constants.VERSION, resultSet.getString(7));
-
-                }
-
-            }
-
-
-        } catch (Exception exception) {
-
-            LOG.debug("Error {} ", exception.getMessage());
-
-        } finally {
-
-            if (connection != null) {
-
-                connection.close();
-
-            }
-
-        }
-
-        return result;
-
-    }
 
     boolean delete(String id) throws SQLException {
 
@@ -331,7 +284,9 @@ public class DatabaseEngine extends AbstractVerticle {
             int a = preparedStatement.executeUpdate();
 
             if (a > 0) {
+
                 result = true;
+
             }
 
 
@@ -360,7 +315,9 @@ public class DatabaseEngine extends AbstractVerticle {
         boolean result = true;
 
         if (!userData.containsKey(Constants.CREDENTIAL_ID)) {
+
             return false;
+
         }
 
         try {
@@ -378,10 +335,13 @@ public class DatabaseEngine extends AbstractVerticle {
             if (resultSet.next()) {
 
                 protocol = resultSet.getString(1);
+
             }
 
             if (protocol == null) {
+
                 return false;
+
             }
 
             String query;
@@ -436,7 +396,6 @@ public class DatabaseEngine extends AbstractVerticle {
         return result;
 
     }
-
 
     static final Logger LOG = LoggerFactory.getLogger(DatabaseEngine.class.getName());
 
@@ -505,6 +464,7 @@ public class DatabaseEngine extends AbstractVerticle {
                     if (result == null) {
 
                         request.fail(Constants.FAIL);
+
                     } else if (result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)) {
 
                         request.complete();
@@ -543,7 +503,9 @@ public class DatabaseEngine extends AbstractVerticle {
             vertx.executeBlocking(handler -> {
 
                 try {
-                    JsonArray jsonArray = getAll();
+
+                    String get = "getAll";
+                    JsonArray jsonArray = getAll(get);
 
                     handler.complete(jsonArray);
 
@@ -630,12 +592,12 @@ public class DatabaseEngine extends AbstractVerticle {
                     if (result) {
 
                         blockingHandler.complete();
-                    } else {
+                    }
+                    else {
 
                         blockingHandler.fail(Constants.FAIL);
 
                     }
-
 
                 } catch (Exception exception) {
 
@@ -671,7 +633,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 try {
 
-                    JsonObject result = getId(id);
+                    JsonArray result = getAll(id);
 
                     if (result != null) {
 
@@ -704,7 +666,6 @@ public class DatabaseEngine extends AbstractVerticle {
                 }
 
             });
-
 
         });
 
