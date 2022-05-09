@@ -4,6 +4,7 @@ import io.vertx.core.AbstractVerticle;
 
 import io.vertx.core.Promise;
 
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 
 import io.vertx.core.json.JsonObject;
@@ -12,7 +13,6 @@ import org.slf4j.Logger;
 
 import org.slf4j.LoggerFactory;
 
-import javax.print.DocFlavor;
 import java.sql.*;
 
 import java.util.UUID;
@@ -254,7 +254,7 @@ public class DatabaseEngine extends AbstractVerticle {
         }
     }
 
-    JsonArray getAll(String get) throws SQLException {
+    JsonArray getAll(String tableName,String column,String id) throws SQLException {
 
         JsonArray jsonArray = null;
 
@@ -270,13 +270,13 @@ public class DatabaseEngine extends AbstractVerticle {
 
             String query;
 
-            if(get.equalsIgnoreCase("getall")){
+            if(id.equalsIgnoreCase("getall")){
 
-                query = "select * from Credentials";
+                query = "select * from " + tableName;
 
             }else{
 
-                query = "select * from Credentials where credentialId = '" + get + "'";
+                query = "select * from "+   tableName  + " where "  +    column  +   " = '" + id + "'";
 
             }
 
@@ -286,25 +286,44 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 JsonObject result = new JsonObject();
 
-                result.put(Constants.CREDENTIAL_ID, resultSet.getString(1));
+                if(tableName.equalsIgnoreCase(Constants.CREDENTIAL_TABLE)){
 
-                result.put(Constants.CREDENTIAL_NAME, resultSet.getString(2));
+                    result.put(Constants.CREDENTIAL_ID, resultSet.getString(1));
 
-                result.put(Constants.PROTOCOL, resultSet.getString(3));
+                    result.put(Constants.CREDENTIAL_NAME, resultSet.getString(2));
 
-                if (resultSet.getString(3).equalsIgnoreCase("ssh") || resultSet.getString(3).equalsIgnoreCase("winrm")) {
+                    result.put(Constants.PROTOCOL, resultSet.getString(3));
 
-                    result.put(Constants.NAME, resultSet.getString(4));
+                    if (resultSet.getString(3).equalsIgnoreCase("ssh") || resultSet.getString(3).equalsIgnoreCase("winrm")) {
 
-                    result.put(Constants.PASSWORD, resultSet.getString(5));
+                        result.put(Constants.NAME, resultSet.getString(4));
 
-                } else if (resultSet.getString(3).equalsIgnoreCase("snmp")) {
+                        result.put(Constants.PASSWORD, resultSet.getString(5));
 
-                    result.put(Constants.COMMUNITY, resultSet.getString(6));
+                    } else if (resultSet.getString(3).equalsIgnoreCase("snmp")) {
 
-                    result.put(Constants.VERSION, resultSet.getString(7));
+                        result.put(Constants.COMMUNITY, resultSet.getString(6));
+
+                        result.put(Constants.VERSION, resultSet.getString(7));
+
+                    }
+                } else{
+
+                    result.put(Constants.DISCOVERY_TABLE_ID, resultSet.getString(1));
+
+                    result.put(Constants.CREDENTIAL_ID, resultSet.getString(2));
+
+                    result.put(Constants.DISCOVERY_NAME, resultSet.getString(3));
+
+                    result.put(Constants.IP_ADDRESS, resultSet.getString(4));
+
+                    result.put(Constants.TYPE, resultSet.getString(5));
+
+                    result.put(Constants.PROTOCOL, resultSet.getInt(6));
 
                 }
+
+
 
                 jsonArray.add(result);
 
@@ -378,7 +397,7 @@ public class DatabaseEngine extends AbstractVerticle {
     }
 
 
-    boolean update(JsonObject userData) throws SQLException {
+    boolean updateCredentials(JsonObject userData) throws SQLException {
 
         Connection connection = null;
 
@@ -415,16 +434,15 @@ public class DatabaseEngine extends AbstractVerticle {
             }
 
             String query;
-
-            if (userData.containsKey(Constants.NAME) && userData.containsKey(Constants.PASSWORD) && protocol.equalsIgnoreCase("linux") || protocol.equalsIgnoreCase("windows")) {
+            if (userData.containsKey(Constants.NAME) && userData.containsKey(Constants.PASSWORD) && protocol.equalsIgnoreCase("ssh") || protocol.equalsIgnoreCase("winrm")) {
 
                 query = "update Credentials SET name = '" + userData.getString(Constants.NAME) + "' , password = '" + userData.getString(Constants.PASSWORD) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
 
-            } else if (userData.containsKey(Constants.NAME) && protocol.equalsIgnoreCase("linux") || protocol.equalsIgnoreCase("windows")) {
+            } else if (userData.containsKey(Constants.NAME) && protocol.equalsIgnoreCase("ssh") || protocol.equalsIgnoreCase("winrm")) {
 
                 query = "update Credentials SET name = '" + userData.getString(Constants.NAME) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
 
-            } else if (userData.containsKey(Constants.PASSWORD) && protocol.equalsIgnoreCase("linux") || protocol.equalsIgnoreCase("windows")) {
+            } else if (userData.containsKey(Constants.PASSWORD) && protocol.equalsIgnoreCase("ssh") || protocol.equalsIgnoreCase("winrm")) {
 
                 query = "update Credentials SET password = '" + userData.getString(Constants.PASSWORD) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
 
@@ -445,6 +463,7 @@ public class DatabaseEngine extends AbstractVerticle {
                 return false;
 
             }
+
 
             PreparedStatement preparedStatement = connection.prepareStatement(query);
 
@@ -467,6 +486,63 @@ public class DatabaseEngine extends AbstractVerticle {
 
         return result;
 
+    }
+
+    boolean updateDiscovery( JsonObject userData) throws SQLException {
+
+        Connection connection = null;
+
+        boolean result = true;
+
+        if (!userData.containsKey(Constants.DISCOVERY_TABLE_ID)) {
+
+            return false;
+
+        }
+
+        try {
+
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
+
+            String query = null;
+
+            if(userData.containsKey(Constants.TYPE)){
+
+                query = "update Discovery set type = '" + userData.getString(Constants.TYPE) + "' where discoveryId = '" + userData.getString(Constants.DISCOVERY_TABLE_ID) + "'";
+
+            } else if(userData.containsKey(Constants.PORT)){
+
+                query = "update Discovery set port = '" + userData.getString(Constants.PORT) + "' where discoveryId = '" + userData.getString(Constants.DISCOVERY_TABLE_ID) + "'";
+
+            } else if(userData.containsKey(Constants.IP_ADDRESS)){
+
+                query = "update Discovery set ip = '" + userData.getString(Constants.IP_ADDRESS) + "' where discoveryId = '" + userData.getString(Constants.DISCOVERY_TABLE_ID) + "'";
+
+            }
+
+            PreparedStatement preparedStatement = connection.prepareStatement(query);
+
+            preparedStatement.execute();
+
+
+        }catch (Exception exception) {
+
+            LOG.debug("Error {} ", exception.getMessage());
+
+            return false;
+
+        } finally {
+
+            if (connection != null) {
+
+                connection.close();
+
+            }
+        }
+
+        return result;
     }
 
     JsonObject insertDiscovery(JsonObject userData) throws SQLException {
@@ -510,7 +586,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             preparedStatement.setString(2, userData.getString(Constants.CREDENTIAL_ID));
 
-            preparedStatement.setString(3, userData.getString(Constants.DISCOVERY_TABLE_NAME));
+            preparedStatement.setString(3, userData.getString(Constants.DISCOVERY_NAME));
 
             preparedStatement.setString(4, userData.getString(Constants.IP_ADDRESS));
 
@@ -559,7 +635,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     JsonObject data = dataHandler.body();
 
-                    if (!checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,data.getString(Constants.CREDENTIAL_ID))) {
+                    if (!checkName(Constants.CREDENTIAL_TABLE,"credentialName",data.getString(Constants.CREDENTIAL_NAME))) {
 
                         handler.complete(data);
 
@@ -654,7 +730,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     String get = "getAll";
 
-                    JsonArray jsonArray = getAll(get);
+                    JsonArray jsonArray = getAll(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,get);
 
                     handler.complete(jsonArray);
 
@@ -736,7 +812,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 try {
 
-                    result = update(userData);
+                    result = updateCredentials(userData);
 
                     if (result) {
 
@@ -782,7 +858,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 try {
 
-                    JsonArray result = getAll(id);
+                    JsonArray result = getAll(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,id);
 
                     if (result != null) {
 
@@ -834,6 +910,10 @@ public class DatabaseEngine extends AbstractVerticle {
                         if(!checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_NAME,data.getString(Constants.DISCOVERY_NAME))) {
 
                             blockingHandler.complete(data);
+
+                        }else{
+
+                            blockingHandler.fail(Constants.FAIL);
 
                         }
 
@@ -960,6 +1040,136 @@ public class DatabaseEngine extends AbstractVerticle {
             });
 
         });
+
+        vertx.eventBus().<JsonArray>consumer(Constants.DATABASE_DISCOVERY_GET_ALL, consumer -> {
+
+            vertx.executeBlocking(handler -> {
+
+                try {
+
+                    String id = "getAll";
+
+                    JsonArray jsonArray = getAll(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id);
+
+                    handler.complete(jsonArray);
+
+                } catch (SQLException exception) {
+
+                    LOG.debug("Error {} ", exception.getMessage());
+
+                    handler.fail(Constants.FAIL);
+
+                }
+
+            }).onComplete(completionHandler -> {
+
+                if (completionHandler.succeeded()) {
+
+                    consumer.reply(completionHandler.result());
+
+                } else {
+
+                    consumer.fail(-1, Constants.FAIL);
+
+                }
+
+            });
+
+        });
+
+        vertx.eventBus().<String>consumer(Constants.DATABASE_DISCOVERY_GET_ID, handler -> {
+
+            vertx.executeBlocking(blockingHandler -> {
+
+                String id = handler.body();
+
+                try {
+
+                    JsonArray result = getAll(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id);
+
+                    if (result != null) {
+
+                        blockingHandler.complete(result);
+
+                    } else {
+
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+                } catch (Exception exception) {
+
+                    blockingHandler.fail(exception.getMessage());
+
+                }
+
+
+            }).onComplete(resultHandler -> {
+
+                if (resultHandler.succeeded()) {
+
+                    handler.reply(resultHandler.result());
+
+
+                } else {
+
+                    handler.fail(-1, resultHandler.cause().toString());
+
+                }
+
+            });
+
+        });
+
+        vertx.eventBus().<JsonObject>consumer(Constants.DATABASE_DISCOVERY_UPDATE, handler -> {
+
+            vertx.executeBlocking(blockingHandler -> {
+
+                JsonObject userData = handler.body();
+
+                boolean result;
+
+                try {
+
+                    result = updateDiscovery(userData);
+
+                    if (result) {
+
+                        blockingHandler.complete();
+                    }
+                    else {
+
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+                } catch (Exception exception) {
+
+                    LOG.debug("Error {} ", exception.getMessage());
+
+                    blockingHandler.fail(Constants.FAIL);
+
+                }
+
+            }).onComplete(resultHandler -> {
+
+
+                if (resultHandler.succeeded()) {
+
+                    handler.reply(Constants.SUCCESS);
+
+
+                } else {
+
+                    handler.fail(-1, Constants.FAIL);
+
+                }
+
+            });
+
+        });
+
+
 
         startPromise.complete();
 

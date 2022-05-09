@@ -6,6 +6,7 @@ import com.mindarray.Constants;
 import io.vertx.core.Vertx;
 
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import io.vertx.ext.web.Router;
@@ -130,7 +131,7 @@ public class Discovery {
 
                             .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.CREDENTIAL_ID, result.getString(Constants.CREDENTIAL_ID)).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.DISCOVERY_TABLE_ID, result.getString(Constants.DISCOVERY_TABLE_ID)).encodePrettily());
 
                 } else {
 
@@ -160,9 +161,131 @@ public class Discovery {
 
     }
 
-    void get(RoutingContext rx){
+    void get(RoutingContext routingContext) {
+
+        vertx.eventBus().<JsonArray>request(Constants.DATABASE_DISCOVERY_GET_ALL, "", response -> {
+
+            try {
+                if (response.succeeded()) {
+
+                    JsonArray jsonArray = response.result().body();
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(jsonArray.encodePrettily());
+
+                } else {
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+                }
+
+            } catch (Exception exception) {
+
+                routingContext.response()
+
+                        .setStatusCode(400)
+
+                        .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+            }
+
+        });
 
 
+    }
+
+    void getId(RoutingContext routingContext) {
+
+        String id = routingContext.pathParam("id");
+
+        vertx.eventBus().<JsonArray>request(Constants.DATABASE_DISCOVERY_GET_ID, id, response -> {
+
+            try {
+                if (response.succeeded()) {
+
+                    JsonArray result = response.result().body();
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(result.encodePrettily());
+
+                } else {
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+                }
+
+            } catch (Exception exception) {
+
+                routingContext.response()
+
+                        .setStatusCode(400)
+
+                        .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+            }
+
+        });
+
+
+    }
+
+
+    void update(RoutingContext routingContext) {
+
+        JsonObject userData = routingContext.getBodyAsJson();
+
+        vertx.eventBus().<JsonObject>request(Constants.DATABASE_DISCOVERY_UPDATE, userData, response -> {
+
+            try {
+                if (response.succeeded()) {
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).encodePrettily());
+
+                } else {
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+                }
+
+            } catch (Exception exception) {
+
+                routingContext.response()
+
+                        .setStatusCode(400)
+
+                        .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+            }
+
+        });
 
     }
 
@@ -210,12 +333,5 @@ public class Discovery {
 
     }
 
-    void update(RoutingContext rx){
-
-    }
-
-    void getId(RoutingContext rx){
-
-    }
 
 }

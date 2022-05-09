@@ -64,29 +64,37 @@ public class Credentials {
 
                     userData = new JsonObject(result);
 
-                    vertx.eventBus().<JsonObject>request(Constants.DATABASE_CHECK_NAME, userData, handler -> {
+                    if(routingContext.request().method() == HttpMethod.POST){
+                        vertx.eventBus().<JsonObject>request(Constants.DATABASE_CHECK_NAME, userData, handler -> {
 
-                        if (handler.succeeded()) {
+                            if (handler.succeeded()) {
 
-                            JsonObject response = handler.result().body();
+                                JsonObject response = handler.result().body();
 
-                            routingContext.setBody(response.toBuffer());
+                                routingContext.setBody(response.toBuffer());
 
-                            routingContext.next();
+                                routingContext.next();
 
-                        } else {
+                            } else {
 
-                            routingContext.response()
+                                routingContext.response()
 
-                                    .setStatusCode(400)
+                                        .setStatusCode(400)
 
-                                    .putHeader(Constants.CONTENT_TYPE, "application/json")
+                                        .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, Constants.EXIST).encodePrettily());
+                                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, Constants.EXIST).encodePrettily());
 
-                        }
+                            }
 
-                    });
+                        });
+                    } else{
+
+                        routingContext.next();
+
+                    }
+
+
 
                 } else {
 
