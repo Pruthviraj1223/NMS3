@@ -24,7 +24,7 @@ public class Discovery {
 
         discoveryRouter.post("/discovery").handler(this::validate).handler(this::create);
 
-        discoveryRouter.get("/discovery").handler(this::validate).handler(this::get);
+        discoveryRouter.get("/discovery").handler(this::get);
 
         discoveryRouter.get("/discovery/:id").handler(this::validate).handler(this::getId);
 
@@ -38,7 +38,6 @@ public class Discovery {
 
         try {
 
-            boolean flag = true;
 
             if (routingContext.request().method() == HttpMethod.POST || routingContext.request().method() == HttpMethod.PUT) {
 
@@ -46,13 +45,12 @@ public class Discovery {
 
                 if (userData != null) {
 
-                    if(!(userData.containsKey(Constants.CREDENTIAL_ID) && userData.containsKey(Constants.DISCOVERY_NAME) && userData.containsKey(Constants.PORT) && userData.containsKey(Constants.TYPE) && userData.containsKey(Constants.IP_ADDRESS))){
+//                    if(!(userData.containsKey(Constants.CREDENTIAL_ID) && userData.containsKey(Constants.DISCOVERY_NAME) && userData.containsKey(Constants.PORT) && userData.containsKey(Constants.TYPE) && userData.containsKey(Constants.IP_ADDRESS))){
+//
+//                        flag = false;
+//
+//                    }
 
-                        flag = false;
-
-                    }
-
-                    if(flag){
 
                         HashMap<String, Object> result;
 
@@ -64,14 +62,11 @@ public class Discovery {
 
                             if (val instanceof String) {
 
-                                result.put(key, val.toString().trim());
+                                userData.put(key, val.toString().trim());
 
                             }
 
                         }
-
-
-                        userData = new JsonObject(result);
 
 
                         if(routingContext.request().method() == HttpMethod.POST) {
@@ -102,21 +97,29 @@ public class Discovery {
 
                         }else{
 
-                            routingContext.next();
+                            vertx.eventBus().request(Constants.DISCOVERY_PUT_NAME_CHECK,userData,handler->{
+
+                                if(handler.succeeded()){
+
+                                    routingContext.setBody(userData.toBuffer());
+
+                                    routingContext.next();
+
+                                }else{
+
+                                    routingContext.response()
+
+                                            .putHeader(Constants.CONTENT_TYPE,Constants.CONTENT_VALUE)
+
+                                            .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).put(Constants.ERROR,Constants.INVALID_INPUT).encodePrettily());
+
+                                }
+
+                            });
 
                         }
 
-                    } else{
 
-                        routingContext.response()
-
-                                .setStatusCode(400)
-
-                                .putHeader(Constants.CONTENT_TYPE, "application/json")
-
-                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,Constants.MISSING_DATA).encodePrettily());
-
-                    }
 
                 } else {
 
@@ -130,9 +133,49 @@ public class Discovery {
 
                 }
 
-            } else if (routingContext.request().method() == HttpMethod.GET || routingContext.request().method() == HttpMethod.DELETE) {
+            } else if (routingContext.request().method() == HttpMethod.GET) {
 
-                routingContext.next();
+                String id = routingContext.pathParam("id");
+
+                vertx.eventBus().request(Constants.DISCOVERY_GET_NAME_CHECK,id,handler->{
+
+                    if(handler.succeeded()){
+
+                        routingContext.next();
+
+                    }else{
+
+                        routingContext.response()
+
+                                .putHeader(Constants.CONTENT_TYPE,Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).put(Constants.ERROR,Constants.MISSING_DATA).encodePrettily());
+
+                    }
+
+                });
+
+            } else if(routingContext.request().method() == HttpMethod.DELETE){
+
+                String id = routingContext.pathParam("id");
+
+                vertx.eventBus().request(Constants.DISCOVERY_DELETE_NAME_CHECK,id,handler->{
+
+                    if(handler.succeeded()){
+
+                        routingContext.next();
+
+                    }else{
+
+                        routingContext.response()
+
+                                .putHeader(Constants.CONTENT_TYPE,Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).put(Constants.ERROR,Constants.MISSING_DATA).encodePrettily());
+
+                    }
+
+                });
 
             }
 

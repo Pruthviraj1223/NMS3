@@ -103,14 +103,13 @@ public class Credentials {
 
                                             .putHeader(Constants.CONTENT_TYPE,Constants.CONTENT_VALUE)
 
-                                            .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).put(Constants.ERROR,Constants.EXIST).encodePrettily());
+                                            .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).put(Constants.ERROR,Constants.INVALID_INPUT).encodePrettily());
 
                                 }
 
                             });
 
                         }
-
 
                 } else {
 
@@ -286,7 +285,7 @@ public class Credentials {
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(result.encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS,Constants.SUCCESS).put("result",result).encodePrettily());
 
                 } else {
 

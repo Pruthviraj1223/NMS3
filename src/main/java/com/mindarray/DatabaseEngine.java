@@ -1302,6 +1302,142 @@ public class DatabaseEngine extends AbstractVerticle {
 
         });
 
+        vertx.eventBus().<JsonObject>consumer(Constants.DISCOVERY_PUT_NAME_CHECK,handler -> {
+
+            vertx.executeBlocking(blockingHandler->{
+
+                JsonObject userData = handler.body();
+
+                try {
+
+                    if(checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,userData.getString(Constants.DISCOVERY_TABLE_ID))){
+
+                        blockingHandler.complete();
+
+                    }else{
+
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+                } catch (Exception exception) {
+
+                    LOG.debug("Error {} ", exception.getMessage());
+
+                    blockingHandler.fail(Constants.FAIL);
+
+                }
+
+
+            }).onComplete(resultHandler->{
+
+                if(resultHandler.succeeded()){
+
+                    handler.reply(Constants.SUCCESS);
+
+                }else{
+
+                    handler.fail(-1,Constants.FAIL);
+
+                }
+
+
+            });
+
+        });
+
+        vertx.eventBus().<String>consumer(Constants.DISCOVERY_GET_NAME_CHECK,handler -> {
+
+            vertx.executeBlocking(blockingHandler->{
+
+                String id = handler.body();
+
+                try {
+
+                    if(checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id)){
+
+                        blockingHandler.complete();
+
+                    }else{
+
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+                } catch (Exception exception) {
+
+                    LOG.debug("Error {} ", exception.getMessage());
+
+                    blockingHandler.fail(Constants.FAIL);
+
+                }
+
+
+            }).onComplete(resultHandler->{
+
+                if(resultHandler.succeeded()){
+
+                    handler.reply(Constants.SUCCESS);
+
+                }else{
+
+                    handler.fail(-1,Constants.FAIL);
+
+                }
+
+
+            });
+
+        });
+
+
+
+        vertx.eventBus().<JsonObject>consumer(Constants.DISCOVERY_DELETE_NAME_CHECK,handler -> {
+
+            vertx.executeBlocking(blockingHandler->{
+
+                JsonObject userData = handler.body();
+
+                try {
+
+                    if(checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,userData.getString(Constants.DISCOVERY_TABLE_ID))){
+
+                        blockingHandler.complete();
+
+                    }else{
+
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+                } catch (Exception exception) {
+
+                    LOG.debug("Error {} ", exception.getMessage());
+
+                    blockingHandler.fail(Constants.FAIL);
+
+                }
+
+
+            }).onComplete(resultHandler->{
+
+                if(resultHandler.succeeded()){
+
+                    handler.reply(Constants.SUCCESS);
+
+                }else{
+
+                    handler.fail(-1,Constants.FAIL);
+
+                }
+
+
+            });
+
+        });
+
+
+
 
 
         startPromise.complete();
