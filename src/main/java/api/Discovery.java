@@ -62,29 +62,37 @@ public class Discovery {
 
                     userData = new JsonObject(result);
 
-                    vertx.eventBus().<JsonObject>request(Constants.DATABASE_DISCOVERY_CHECK_NAME, userData, handler -> {
 
-                        if (handler.succeeded()) {
+                    if(routingContext.request().method() == HttpMethod.POST) {
 
-                            JsonObject response = handler.result().body();
+                        vertx.eventBus().<JsonObject>request(Constants.DATABASE_DISCOVERY_CHECK_NAME, userData, handler -> {
 
-                            routingContext.setBody(response.toBuffer());
+                            if (handler.succeeded()) {
 
-                            routingContext.next();
+                                JsonObject response = handler.result().body();
 
-                        } else {
+                                routingContext.setBody(response.toBuffer());
 
-                            routingContext.response()
+                                routingContext.next();
 
-                                    .setStatusCode(400)
+                            } else {
 
-                                    .putHeader(Constants.CONTENT_TYPE, "application/json")
+                                routingContext.response()
 
-                                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+                                        .setStatusCode(400)
 
-                        }
+                                        .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                    });
+                                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
+                            }
+
+                        });
+                    }else{
+
+                        routingContext.next();
+
+                    }
 
                 } else {
 

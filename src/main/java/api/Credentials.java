@@ -65,6 +65,7 @@ public class Credentials {
                     userData = new JsonObject(result);
 
                     if(routingContext.request().method() == HttpMethod.POST){
+
                         vertx.eventBus().<JsonObject>request(Constants.DATABASE_CHECK_NAME, userData, handler -> {
 
                             if (handler.succeeded()) {
