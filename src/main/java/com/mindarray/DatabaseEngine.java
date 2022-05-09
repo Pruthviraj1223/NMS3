@@ -4,7 +4,6 @@ import io.vertx.core.AbstractVerticle;
 
 import io.vertx.core.Promise;
 
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 
 import io.vertx.core.json.JsonObject;
@@ -670,8 +669,139 @@ public class DatabaseEngine extends AbstractVerticle {
 
             });
 
+        });
+
+
+        vertx.eventBus().<JsonObject>consumer(Constants.CREDENTIAL_PUT_NAME_CHECK,handler -> {
+
+            vertx.executeBlocking(blockingHandler->{
+
+                JsonObject userData = handler.body();
+
+                try {
+
+                    if(checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,userData.getString(Constants.CREDENTIAL_ID))){
+
+                        blockingHandler.complete();
+
+                    }else{
+
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+                } catch (Exception exception) {
+
+                    LOG.debug("Error {} ", exception.getMessage());
+
+                    blockingHandler.fail(Constants.FAIL);
+
+                }
+
+
+            }).onComplete(resultHandler->{
+
+                if(resultHandler.succeeded()){
+
+                    handler.reply(Constants.SUCCESS);
+
+                }else{
+
+                    handler.fail(-1,Constants.FAIL);
+
+                }
+
+
+            });
 
         });
+
+        vertx.eventBus().<String>consumer(Constants.CREDENTIAL_GET_NAME_CHECK,handler -> {
+
+                    vertx.executeBlocking(blockingHandler -> {
+
+                        String id = handler.body();
+
+                        try {
+
+                            if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id)) {
+
+                                blockingHandler.complete();
+
+                            } else {
+
+                                blockingHandler.fail(Constants.FAIL);
+
+                            }
+
+                        } catch (Exception exception) {
+
+                            LOG.debug("Error {} ", exception.getMessage());
+
+                            blockingHandler.fail(Constants.FAIL);
+
+                        }
+
+
+                    }).onComplete(resultHandler -> {
+
+                        if (resultHandler.succeeded()) {
+
+                            handler.reply(Constants.SUCCESS);
+
+                        } else {
+
+                            handler.fail(-1, Constants.FAIL);
+
+                        }
+
+
+                    });
+                });
+
+        vertx.eventBus().<String>consumer(Constants.CREDENTIAL_DELETE_NAME_CHECK,handler -> {
+
+            vertx.executeBlocking(blockingHandler -> {
+
+                String id = handler.body();
+
+                try {
+
+                    if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id)) {
+
+                        blockingHandler.complete();
+
+                    } else {
+
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+                } catch (Exception exception) {
+
+                    LOG.debug("Error {} ", exception.getMessage());
+
+                    blockingHandler.fail(Constants.FAIL);
+
+                }
+
+
+            }).onComplete(resultHandler -> {
+
+                if (resultHandler.succeeded()) {
+
+                    handler.reply(Constants.SUCCESS);
+
+                } else {
+
+                    handler.fail(-1, Constants.FAIL);
+
+                }
+
+            });
+
+        });
+
 
         vertx.eventBus().<JsonObject>consumer(Constants.DATABASE_CREDENTIAL_INSERT, handler -> {
 

@@ -40,6 +40,16 @@ public class Constants {
 
     public static final String DISCOVERY_TABLE_ID = "discoveryId";
 
+    public static final String CREDENTIAL_PUT_NAME_CHECK = "credentials.put.name.check";
+
+    public static final String DISCOVERY_PUT_NAME_CHECK = "discovery.put.name.check";
+
+    public static final String DISCOVERY_DELETE_NAME_CHECK = "discovery.delete.name.check";
+
+    public static final String CREDENTIAL_DELETE_NAME_CHECK = "credentials.delete.name.check";
+
+    public static final String CREDENTIAL_GET_NAME_CHECK = "credentials.get.name.check";
+
     public static final String TYPE = "type";
 
 
