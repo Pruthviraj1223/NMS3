@@ -40,62 +40,107 @@ public class Credentials {
 
         try {
 
-            if (routingContext.request().method() == HttpMethod.POST || routingContext.request().method() == HttpMethod.PUT) {
+            boolean flag = true;
 
-                HashMap<String, Object> result;
+            if (routingContext.request().method() == HttpMethod.POST || routingContext.request().method() == HttpMethod.PUT) {
 
                 JsonObject userData = routingContext.getBodyAsJson();
 
                 if (userData != null) {
 
-                    result = new HashMap<>(userData.getMap());
+                    if(userData.containsKey(Constants.CREDENTIAL_NAME) && userData.containsKey(Constants.PROTOCOL)){
 
-                    for (String key : result.keySet()) {
+                        if(userData.getString(Constants.PROTOCOL).equalsIgnoreCase(Constants.SSH) || userData.getString(Constants.PROTOCOL).equalsIgnoreCase(Constants.WINRM)){
 
-                        Object val = result.get(key);
+                            if(!(userData.containsKey(Constants.NAME) && userData.containsKey(Constants.PASSWORD))){
 
-                        if (val instanceof String) {
-
-                            result.put(key, val.toString().trim());
-
-                        }
-
-                    }
-
-                    userData = new JsonObject(result);
-
-                    if(routingContext.request().method() == HttpMethod.POST){
-
-                        vertx.eventBus().<JsonObject>request(Constants.DATABASE_CHECK_NAME, userData, handler -> {
-
-                            if (handler.succeeded()) {
-
-                                JsonObject response = handler.result().body();
-
-                                routingContext.setBody(response.toBuffer());
-
-                                routingContext.next();
-
-                            } else {
-
-                                routingContext.response()
-
-                                        .setStatusCode(400)
-
-                                        .putHeader(Constants.CONTENT_TYPE, "application/json")
-
-                                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, Constants.EXIST).encodePrettily());
+                                flag = false;
 
                             }
 
-                        });
-                    } else{
+                        }else if(userData.getString(Constants.PROTOCOL).equalsIgnoreCase(Constants.SNMP)){
 
-                        routingContext.next();
+                            if(!(userData.containsKey(Constants.COMMUNITY) && userData.containsKey(Constants.VERSION))){
+
+                                flag = false;
+
+                            }
+
+                        } else {
+
+                            flag = false;
+
+                        }
+
+                    }else{
+
+                        flag =false;
 
                     }
 
+                    if(flag){
 
+                        HashMap<String, Object> result;
+
+                        result = new HashMap<>(userData.getMap());
+
+                        for (String key : result.keySet()) {
+
+                            Object val = result.get(key);
+
+                            if (val instanceof String) {
+
+                                result.put(key, val.toString().trim());
+
+                            }
+
+                        }
+
+                        userData = new JsonObject(result);
+
+                        if(routingContext.request().method() == HttpMethod.POST){
+
+                            vertx.eventBus().<JsonObject>request(Constants.DATABASE_CHECK_NAME, userData, handler -> {
+
+                                if (handler.succeeded()) {
+
+                                    JsonObject response = handler.result().body();
+
+                                    routingContext.setBody(response.toBuffer());
+
+                                    routingContext.next();
+
+                                } else {
+
+                                    routingContext.response()
+
+                                            .setStatusCode(400)
+
+                                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, Constants.EXIST).encodePrettily());
+
+                                }
+
+                            });
+                        } else{
+
+                            routingContext.next();
+
+                        }
+
+
+                    }else{
+
+                        routingContext.response()
+
+                                .setStatusCode(400)
+
+                                .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,Constants.MISSING_DATA).encodePrettily());
+
+                    }
 
                 } else {
 
@@ -105,7 +150,7 @@ public class Credentials {
 
                             .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,Constants.MISSING_DATA).encodePrettily());
 
                 }
             } else if (routingContext.request().method() == HttpMethod.GET || routingContext.request().method() == HttpMethod.DELETE) {

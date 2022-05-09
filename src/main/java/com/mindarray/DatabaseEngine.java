@@ -31,6 +31,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
+
         try {
 
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -360,6 +361,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
+
         try {
 
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -434,6 +436,7 @@ public class DatabaseEngine extends AbstractVerticle {
             }
 
             String query;
+
             if (userData.containsKey(Constants.NAME) && userData.containsKey(Constants.PASSWORD) && protocol.equalsIgnoreCase("ssh") || protocol.equalsIgnoreCase("winrm")) {
 
                 query = "update Credentials SET name = '" + userData.getString(Constants.NAME) + "' , password = '" + userData.getString(Constants.PASSWORD) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";

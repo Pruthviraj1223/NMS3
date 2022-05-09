@@ -81,6 +81,14 @@ public class Constants {
 
     public static final String INSERT = "insertion";
 
+    public static final String SSH = "ssh";
+
+    public static final String WINRM = "winrm";
+
+    public static final String SNMP = "snmp";
+
+    public static final String MISSING_DATA = "data is missing";
+
     public static final String CREDENTIAL_ID = "credentialId";
 
     public static final String CREDENTIAL_NAME = "credential.name";
