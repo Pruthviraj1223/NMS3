@@ -16,6 +16,16 @@ public class Bootstrap {
 
         start(ApiRouter.class.getName())
 
+                .compose(future -> start(ApiRouter.class.getName()))
+
+                .compose(future -> start(DatabaseEngine.class.getName()))
+
+                .compose(future -> start(DatabaseEngine.class.getName()))
+
+                .compose(future -> start(DatabaseEngine.class.getName()))
+
+                .compose(future -> start(DatabaseEngine.class.getName()))
+
                 .compose(future -> start(DatabaseEngine.class.getName()))
 
                 .onComplete(handler -> {

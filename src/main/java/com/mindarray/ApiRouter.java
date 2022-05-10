@@ -41,5 +41,6 @@ public class ApiRouter extends AbstractVerticle {
         vertx.createHttpServer().requestHandler(router).listen(8080);
 
         startPromise.complete();
+
     }
 }

@@ -14,6 +14,9 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.UUID;
 
 public class DatabaseEngine extends AbstractVerticle {
@@ -398,7 +401,7 @@ public class DatabaseEngine extends AbstractVerticle {
     }
 
 
-    boolean updateCredentials(JsonObject userData) throws SQLException {
+    boolean updateCredentials(String tableName,String columnName,String id,JsonObject userData) throws SQLException {
 
         Connection connection = null;
 
@@ -434,42 +437,65 @@ public class DatabaseEngine extends AbstractVerticle {
 
             }
 
-            String query;
+            if(protocol.equalsIgnoreCase("ssh") || protocol.equalsIgnoreCase("winrm")){
 
-            if (userData.containsKey(Constants.NAME) && userData.containsKey(Constants.PASSWORD) && protocol.equalsIgnoreCase("ssh") || protocol.equalsIgnoreCase("winrm")) {
+                if(!(userData.containsKey(Constants.CREDENTIAL_NAME) || userData.containsKey(Constants.NAME) || userData.containsKey(Constants.PASSWORD))){
 
-                query = "update Credentials SET name = '" + userData.getString(Constants.NAME) + "' , password = '" + userData.getString(Constants.PASSWORD) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
+                    return false;
 
-            } else if (userData.containsKey(Constants.NAME) && protocol.equalsIgnoreCase("ssh") || protocol.equalsIgnoreCase("winrm")) {
+                }
 
-                query = "update Credentials SET name = '" + userData.getString(Constants.NAME) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
+            }else {
 
-            } else if (userData.containsKey(Constants.PASSWORD) && protocol.equalsIgnoreCase("ssh") || protocol.equalsIgnoreCase("winrm")) {
+                if(!(userData.containsKey(Constants.CREDENTIAL_NAME) || userData.containsKey(Constants.COMMUNITY) || userData.containsKey(Constants.VERSION))){
 
-                query = "update Credentials SET password = '" + userData.getString(Constants.PASSWORD) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
+                    return false;
 
-            } else if (userData.containsKey(Constants.COMMUNITY) && userData.containsKey(Constants.VERSION) && protocol.equalsIgnoreCase("snmp")) {
-
-                query = "update Credentials SET community = '" + userData.getString(Constants.COMMUNITY) + "' , version = '" + userData.getString(Constants.VERSION) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
-
-            } else if (userData.containsKey(Constants.COMMUNITY) && protocol.equalsIgnoreCase("snmp")) {
-
-                query = "update Credentials SET community = '" + userData.getString(Constants.COMMUNITY) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
-
-            } else if (userData.containsKey(Constants.VERSION) && protocol.equalsIgnoreCase("snmp")) {
-
-                query = "update Credentials SET version = '" + userData.getString(Constants.VERSION) + "' where credentialId= '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
-
-            } else {
-
-                return false;
+                }
 
             }
 
 
-            PreparedStatement preparedStatement = connection.prepareStatement(query);
+            HashMap<String,Object> data = new HashMap<>(userData.getMap());
 
-            preparedStatement.execute();
+            data.put("credentialName",data.get("credential.name"));
+
+            data.remove("credential.name");
+
+            data.remove("credentialId");
+
+            data.remove("protocol");
+
+            String query;
+
+            StringBuilder update = new StringBuilder("");
+
+            query = "UPDATE " + tableName + " SET ";
+
+            int count=0;
+
+            for(Map.Entry<String,Object> map:data.entrySet()){
+
+                if(count!=data.size()-1){
+
+                    update.append(map.getKey()).append(" = ").append("'").append(map.getValue()).append("'").append(", ");
+
+                }else{
+
+                    update.append(map.getKey()).append(" = ").append("'").append(map.getValue()).append("'").append(" ");
+
+                }
+
+                count++;
+
+            }
+
+            String updatedQuery=  query + update + " where " + columnName + " = '" + id + "' ;";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(updatedQuery);
+
+             preparedStatement.execute();
+
 
         } catch (Exception exception) {
 
@@ -490,7 +516,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
-    boolean updateDiscovery( JsonObject userData) throws SQLException {
+    boolean updateDiscovery(String tableName,String columnName,String id, JsonObject userData) throws SQLException {
 
         Connection connection = null;
 
@@ -502,29 +528,72 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
+        if(userData.containsKey(Constants.CREDENTIAL_ID)){
+
+            if(!checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,userData.getString(Constants.CREDENTIAL_ID))){
+
+                return false;
+
+            }
+
+        }
+
         try {
 
             Class.forName("com.mysql.cj.jdbc.Driver");
 
             connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
-            String query = null;
 
-            if(userData.containsKey(Constants.TYPE)){
+                if(!(userData.containsKey(Constants.IP_ADDRESS) || userData.containsKey(Constants.DISCOVERY_NAME) || userData.containsKey(Constants.CREDENTIAL_ID)) ){
 
-                query = "update Discovery set type = '" + userData.getString(Constants.TYPE) + "' where discoveryId = '" + userData.getString(Constants.DISCOVERY_TABLE_ID) + "'";
+                    return false;
 
-            } else if(userData.containsKey(Constants.PORT)){
+                }
 
-                query = "update Discovery set port = '" + userData.getString(Constants.PORT) + "' where discoveryId = '" + userData.getString(Constants.DISCOVERY_TABLE_ID) + "'";
+            HashMap<String,Object> data = new HashMap<>(userData.getMap());
 
-            } else if(userData.containsKey(Constants.IP_ADDRESS)){
+            data.put("discoveryName",data.get("discovery.name"));
 
-                query = "update Discovery set ip = '" + userData.getString(Constants.IP_ADDRESS) + "' where discoveryId = '" + userData.getString(Constants.DISCOVERY_TABLE_ID) + "'";
+            data.put("ip",data.get("ip.address"));
+
+            data.remove("ip.address");
+
+            data.remove("discovery.name");
+
+            data.remove("discoveryId");
+
+            data.remove("type");
+
+            data.remove("port");
+
+            String query;
+
+            StringBuilder update = new StringBuilder("");
+
+            query = "UPDATE " + tableName + " SET ";
+
+            int count=0;
+
+            for(Map.Entry<String,Object> map:data.entrySet()){
+
+                if(count!=data.size()-1){
+
+                    update.append(map.getKey()).append(" = ").append("'").append(map.getValue()).append("'").append(", ");
+
+                }else{
+
+                    update.append(map.getKey()).append(" = ").append("'").append(map.getValue()).append("'").append(" ");
+
+                }
+
+                count++;
 
             }
 
-            PreparedStatement preparedStatement = connection.prepareStatement(query);
+            String updatedQuery=  query + update + " where " + columnName + " = '" + id + "' ;";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(updatedQuery);
 
             preparedStatement.execute();
 
@@ -945,7 +1014,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 try {
 
-                    result = updateCredentials(userData);
+                    result = updateCredentials(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,userData.getString(Constants.CREDENTIAL_ID),userData);
 
                     if (result) {
 
@@ -1259,7 +1328,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 try {
 
-                    result = updateDiscovery(userData);
+                    result = updateDiscovery(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,userData.getString(Constants.DISCOVERY_TABLE_ID),userData);
 
                     if (result) {
 
@@ -1349,6 +1418,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 try {
 
+
                     if(checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id)){
 
                         blockingHandler.complete();
@@ -1394,6 +1464,8 @@ public class DatabaseEngine extends AbstractVerticle {
                 String id = handler.body();
 
                 try {
+
+
 
                     if(checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id)){
 
