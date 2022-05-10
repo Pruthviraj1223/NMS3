@@ -89,7 +89,7 @@ public class Discovery {
 
                                             .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,Constants.EXIST).encodePrettily());
+                                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,handler.cause().getMessage()).encodePrettily());
 
                                 }
 
@@ -129,7 +129,7 @@ public class Discovery {
 
                             .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,Constants.MISSING_DATA).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,Constants.INVALID_INPUT).encodePrettily());
 
                 }
 
@@ -149,7 +149,7 @@ public class Discovery {
 
                                 .putHeader(Constants.CONTENT_TYPE,Constants.CONTENT_VALUE)
 
-                                .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).put(Constants.ERROR,Constants.MISSING_DATA).encodePrettily());
+                                .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).put(Constants.ERROR,handler.cause().getMessage()).encodePrettily());
 
                     }
 
@@ -171,7 +171,7 @@ public class Discovery {
 
                                 .putHeader(Constants.CONTENT_TYPE,Constants.CONTENT_VALUE)
 
-                                .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).put(Constants.ERROR,Constants.MISSING_DATA).encodePrettily());
+                                .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).put(Constants.ERROR,Constants.NOT_PRESENT).encodePrettily());
 
                     }
 
@@ -213,9 +213,9 @@ public class Discovery {
 
                     routingContext.response()
 
-                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,Constants.INVALID_INPUT).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,response.cause().getMessage()).encodePrettily());
 
                 }
 
@@ -225,15 +225,13 @@ public class Discovery {
 
                         .setStatusCode(400)
 
-                        .putHeader(Constants.CONTENT_TYPE, "application/json")
+                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                         .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
             }
 
         });
-
-
 
     }
 
@@ -246,11 +244,23 @@ public class Discovery {
 
                     JsonArray jsonArray = response.result().body();
 
-                    routingContext.response()
+                    if(!jsonArray.isEmpty()){
 
-                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+                        routingContext.response()
 
-                            .end(jsonArray.encodePrettily());
+                                .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                                .end(jsonArray.encodePrettily());
+                    }else{
+
+                        routingContext.response()
+
+                                .putHeader(Constants.CONTENT_TYPE, "application/json")
+
+                                .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.MESSAGE,Constants.UNAVAILABLE).encodePrettily());
+
+                    }
+
 
                 } else {
 
@@ -290,11 +300,12 @@ public class Discovery {
 
                     JsonArray result = response.result().body();
 
-                    routingContext.response()
+                        routingContext.response()
 
-                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+                                .putHeader(Constants.CONTENT_TYPE, "application/json")
 
-                            .end(result.encodePrettily());
+                                .end(result.encodePrettily());
+
 
                 } else {
 
@@ -372,13 +383,12 @@ public class Discovery {
         vertx.eventBus().request(Constants.DATABASE_DISCOVERY_DELETE, id, response -> {
 
             try {
-                if (response.succeeded()) {
 
-//                    JsonArray jsonArray = response.result().body();
+                if (response.succeeded()) {
 
                     routingContext.response()
 
-                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                             .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).encodePrettily());
 
@@ -386,7 +396,7 @@ public class Discovery {
 
                     routingContext.response()
 
-                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                             .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
@@ -398,7 +408,7 @@ public class Discovery {
 
                         .setStatusCode(400)
 
-                        .putHeader(Constants.CONTENT_TYPE, "application/json")
+                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                         .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 

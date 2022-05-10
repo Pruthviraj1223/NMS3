@@ -88,6 +88,18 @@ public class Constants {
 
     public static final String FAIL = "fail";
 
+    public static final String MESSAGE = "message";
+
+    public static final String NOT_PRESENT = "data is not present in database";
+
+    public static final String DISCOVERY_NAME_NOT_UNIQUE = "discovery name is not unique";
+
+    public static final String INVALID_CREDENTIAL_ID = "invalid credential id";
+
+    public static final String RESULT = "result";
+
+    public static final String UNAVAILABLE = "data is unavailable";
+
     public static final String VERSION1 = "v1";
 
     public static final String VERSION2 = "v2";

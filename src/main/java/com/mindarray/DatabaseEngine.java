@@ -1046,19 +1046,19 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         }else{
 
-                            blockingHandler.fail(Constants.FAIL);
+                            blockingHandler.fail(Constants.DISCOVERY_NAME_NOT_UNIQUE);
 
                         }
 
                     } else {
 
-                        blockingHandler.fail(Constants.FAIL);
+                        blockingHandler.fail(Constants.INVALID_CREDENTIAL_ID);
 
                     }
 
                 } catch (Exception exception) {
 
-                    blockingHandler.fail(exception.getMessage());
+                    blockingHandler.fail(Constants.FAIL);
 
                 }
 
@@ -1072,7 +1072,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 } else {
 
-                    dataHandler.fail(-1, Constants.FAIL);
+                    dataHandler.fail(-1, resultHandler.cause().getMessage());
 
                 }
 
@@ -1121,9 +1121,10 @@ public class DatabaseEngine extends AbstractVerticle {
                 if (completeHandler.succeeded()) {
 
                     handler.reply(userData);
+
                 } else {
 
-                    handler.fail(-1, Constants.FAIL);
+                    handler.fail(-1, completeHandler.cause().getMessage());
 
                 }
 
@@ -1139,7 +1140,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 try {
 
-                    result = delete(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,handler.body());
+                    String id = handler.body();
+
+                    result = delete(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id);
 
                     if (result) {
 
@@ -1220,15 +1223,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     JsonArray result = getAll(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id);
 
-                    if (result != null) {
-
-                        blockingHandler.complete(result);
-
-                    } else {
-
-                        blockingHandler.fail(Constants.FAIL);
-
-                    }
+                    blockingHandler.complete(result);
 
                 } catch (Exception exception) {
 
@@ -1360,7 +1355,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     }else{
 
-                        blockingHandler.fail(Constants.FAIL);
+                        blockingHandler.fail(Constants.NOT_PRESENT);
 
                     }
 
@@ -1381,7 +1376,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }else{
 
-                    handler.fail(-1,Constants.FAIL);
+                    handler.fail(-1,resultHandler.cause().getMessage());
 
                 }
 
@@ -1392,21 +1387,21 @@ public class DatabaseEngine extends AbstractVerticle {
 
 
 
-        vertx.eventBus().<JsonObject>consumer(Constants.DISCOVERY_DELETE_NAME_CHECK,handler -> {
+        vertx.eventBus().<String>consumer(Constants.DISCOVERY_DELETE_NAME_CHECK,handler -> {
 
             vertx.executeBlocking(blockingHandler->{
 
-                JsonObject userData = handler.body();
+                String id = handler.body();
 
                 try {
 
-                    if(checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,userData.getString(Constants.DISCOVERY_TABLE_ID))){
+                    if(checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id)){
 
                         blockingHandler.complete();
 
                     }else{
 
-                        blockingHandler.fail(Constants.FAIL);
+                        blockingHandler.fail(Constants.NOT_PRESENT);
 
                     }
 
@@ -1427,7 +1422,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }else{
 
-                    handler.fail(-1,Constants.FAIL);
+                    handler.fail(-1,resultHandler.cause().getMessage());
 
                 }
 
