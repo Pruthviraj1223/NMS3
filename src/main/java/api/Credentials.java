@@ -78,7 +78,7 @@ public class Credentials {
 
                                             .setStatusCode(400)
 
-                                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+                                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                                             .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, Constants.EXIST).encodePrettily());
 
@@ -117,7 +117,7 @@ public class Credentials {
 
                             .setStatusCode(400)
 
-                            .putHeader(Constants.CONTENT_TYPE, "application/json")
+                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                             .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,Constants.MISSING_DATA).encodePrettily());
 
@@ -161,7 +161,7 @@ public class Credentials {
 
                                 .putHeader(Constants.CONTENT_TYPE,Constants.CONTENT_VALUE)
 
-                                .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).put(Constants.ERROR,Constants.MISSING_DATA).encodePrettily());
+                                .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).put(Constants.ERROR,handler.cause().getMessage()).encodePrettily());
 
                     }
 
@@ -176,7 +176,7 @@ public class Credentials {
 
                     .setStatusCode(400)
 
-                    .putHeader(Constants.CONTENT_TYPE, "application/json")
+                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                     .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
         }
@@ -217,7 +217,7 @@ public class Credentials {
 
                         .setStatusCode(400)
 
-                        .putHeader(Constants.CONTENT_TYPE, "application/json")
+                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                         .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
@@ -322,8 +322,6 @@ public class Credentials {
 
             try {
                 if (response.succeeded()) {
-
-//                    JsonArray jsonArray = response.result().body();
 
                     routingContext.response()
 

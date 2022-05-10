@@ -169,7 +169,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         try {
 
-            if (checkName(Constants.CREDENTIAL_TABLE,"credentialName",userData.getString(Constants.CREDENTIAL_NAME))) {
+            if (checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_TABLE_NAME,userData.getString(Constants.CREDENTIAL_NAME))) {
 
                 result.put(Constants.STATUS, Constants.FAIL);
 
@@ -437,6 +437,16 @@ public class DatabaseEngine extends AbstractVerticle {
 
             }
 
+            if(userData.containsKey(Constants.CREDENTIAL_NAME)){
+
+                if(checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_TABLE_NAME,userData.getString(Constants.CREDENTIAL_NAME))){
+
+                    return false;
+
+                }
+
+            }
+
             if(protocol.equalsIgnoreCase("ssh") || protocol.equalsIgnoreCase("winrm")){
 
                 if(!(userData.containsKey(Constants.CREDENTIAL_NAME) || userData.containsKey(Constants.NAME) || userData.containsKey(Constants.PASSWORD))){
@@ -445,7 +455,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }
 
-            }else {
+            }else if(protocol.equalsIgnoreCase("snmp")){
 
                 if(!(userData.containsKey(Constants.CREDENTIAL_NAME) || userData.containsKey(Constants.COMMUNITY) || userData.containsKey(Constants.VERSION))){
 
@@ -458,9 +468,12 @@ public class DatabaseEngine extends AbstractVerticle {
 
             HashMap<String,Object> data = new HashMap<>(userData.getMap());
 
-            data.put("credentialName",data.get("credential.name"));
+            if(userData.containsKey(Constants.CREDENTIAL_NAME))
+            {
+                data.put("credentialName",data.get("credential.name"));
 
-            data.remove("credential.name");
+                data.remove("credential.name");
+            }
 
             data.remove("credentialId");
 
@@ -551,15 +564,35 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }
 
+                if(userData.containsKey(Constants.DISCOVERY_NAME)){
+
+                    if(checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_NAME,userData.getString(Constants.DISCOVERY_NAME))){
+
+                        return false;
+
+                    }
+
+                }
+
+
             HashMap<String,Object> data = new HashMap<>(userData.getMap());
 
-            data.put("discoveryName",data.get("discovery.name"));
 
-            data.put("ip",data.get("ip.address"));
+            if(userData.containsKey(Constants.DISCOVERY_NAME)){
 
-            data.remove("ip.address");
+                data.put("discoveryName",data.get("discovery.name"));
 
-            data.remove("discovery.name");
+                data.remove("discovery.name");
+
+            }
+
+            if(userData.containsKey(Constants.IP_ADDRESS)){
+
+                data.put("ip",data.get("ip.address"));
+
+                data.remove("ip.address");
+            }
+
 
             data.remove("discoveryId");
 
@@ -579,11 +612,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 if(count!=data.size()-1){
 
-                    update.append(map.getKey()).append(" = ").append("'").append(map.getValue()).append("'").append(", ");
+                    update.append(map.getKey()).append(" = '").append(map.getValue()).append("', ");
 
                 }else{
 
-                    update.append(map.getKey()).append(" = ").append("'").append(map.getValue()).append("'").append(" ");
+                    update.append(map.getKey()).append(" = '").append(map.getValue()).append("', ");
 
                 }
 
@@ -706,7 +739,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     JsonObject data = dataHandler.body();
 
-                    if (!checkName(Constants.CREDENTIAL_TABLE,"credentialName",data.getString(Constants.CREDENTIAL_NAME))) {
+                    if (!checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_TABLE_NAME,data.getString(Constants.CREDENTIAL_NAME))) {
 
                         handler.complete(data);
 
@@ -836,13 +869,20 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 try {
 
-                    if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id)) {
+                    if(!checkName(Constants.DISCOVERY_TABLE,Constants.CREDENTIAL_ID,id)) {
 
-                        blockingHandler.complete();
+                        if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id)) {
 
-                    } else {
+                            blockingHandler.complete();
 
-                        blockingHandler.fail(Constants.FAIL);
+                        } else {
+
+                            blockingHandler.fail(Constants.NOT_PRESENT);
+
+                        }
+                    }else{
+
+                        blockingHandler.fail(Constants.IN_USE);
 
                     }
 
@@ -863,7 +903,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 } else {
 
-                    handler.fail(-1, Constants.FAIL);
+                    handler.fail(-1, resultHandler.cause().getMessage());
 
                 }
 
@@ -1502,10 +1542,6 @@ public class DatabaseEngine extends AbstractVerticle {
             });
 
         });
-
-
-
-
 
         startPromise.complete();
 

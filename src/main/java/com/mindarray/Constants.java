@@ -52,6 +52,7 @@ public class Constants {
 
     public static final String DISCOVERY_GET_NAME_CHECK = "discovery.get.name.check";
 
+    public static final String CREDENTIAL_TABLE_NAME = "credentialName";
 
     public static final String TYPE = "type";
 
@@ -97,6 +98,9 @@ public class Constants {
     public static final String INVALID_CREDENTIAL_ID = "invalid credential id";
 
     public static final String RESULT = "result";
+
+    public static final String IN_USE = "Already in use";
+
 
     public static final String UNAVAILABLE = "data is unavailable";
 
