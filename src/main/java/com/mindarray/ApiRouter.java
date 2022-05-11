@@ -1,7 +1,7 @@
 package com.mindarray;
 
-import api.Credentials;
-import api.Discovery;
+import com.mindarray.api.Credentials;
+import com.mindarray.api.Discovery;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.ext.web.Router;

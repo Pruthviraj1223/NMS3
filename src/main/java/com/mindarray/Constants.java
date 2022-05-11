@@ -18,7 +18,7 @@ public class Constants {
 
     public static final String DATABASE_CREDENTIAL_UPDATE = "database.credential.update";
 
-    public static final String DATABASE_DISCOVERY_CHECK_NAME = "database.discovery.check.name";
+    public static final String DISCOVERY_POST_CHECK_NAME = "discovery.post.name.check";
 
     public static final String DATABASE_DISCOVERY_INSERT = "database.discovery.insert";
 
@@ -30,7 +30,7 @@ public class Constants {
 
     public static final String DATABASE_DISCOVERY_UPDATE = "database.discovery.update";
 
-    public static final String DATABASE_CHECK_NAME = "database.check.name";
+    public static final String DATABASE_CREDENTIAL_POST_CHECK_NAME = "database.credential.check.name";
 
     public static final String CREDENTIAL_TABLE = "Credentials";
 
@@ -56,6 +56,11 @@ public class Constants {
 
     public static final String TYPE = "type";
 
+    public static final String DISCOVERY_GENERAL = "discovery.general.address";
+
+    public static final String CREDENTIAL_GENERAL = "credential.general.address";
+
+    public static final String METHOD = "method";
 
     public static final String DISCOVERY_TABLE = "Discovery";
 

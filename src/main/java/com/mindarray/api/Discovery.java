@@ -1,4 +1,4 @@
-package api;
+package com.mindarray.api;
 
 import com.mindarray.Bootstrap;
 
@@ -13,7 +13,9 @@ import io.vertx.ext.web.Router;
 
 import io.vertx.ext.web.RoutingContext;
 
+import java.net.UnknownServiceException;
 import java.util.HashMap;
+import java.util.zip.CheckedOutputStream;
 
 
 public class Discovery {
@@ -45,8 +47,6 @@ public class Discovery {
 
                 if (userData != null) {
 
-
-
                         HashMap<String, Object> result;
 
                         result = new HashMap<>(userData.getMap());
@@ -68,7 +68,9 @@ public class Discovery {
 
                             if ((userData.containsKey(Constants.CREDENTIAL_ID) && userData.containsKey(Constants.DISCOVERY_NAME) && userData.containsKey(Constants.PORT) && userData.containsKey(Constants.TYPE) && userData.containsKey(Constants.IP_ADDRESS))) {
 
-                                vertx.eventBus().<JsonObject>request(Constants.DATABASE_DISCOVERY_CHECK_NAME, userData, handler -> {
+                                userData.put(Constants.METHOD,Constants.DISCOVERY_POST_CHECK_NAME);
+
+                                vertx.eventBus().<JsonObject>request(Constants.DISCOVERY_GENERAL, userData, handler -> {
 
                                     if (handler.succeeded()) {
 
@@ -106,7 +108,9 @@ public class Discovery {
 
                         } else {
 
-                            vertx.eventBus().request(Constants.DISCOVERY_PUT_NAME_CHECK, userData, handler -> {
+                            userData.put(Constants.METHOD,Constants.DISCOVERY_PUT_NAME_CHECK);
+
+                            vertx.eventBus().request(Constants.DISCOVERY_GENERAL, userData, handler -> {
 
                                 if (handler.succeeded()) {
 
@@ -132,9 +136,11 @@ public class Discovery {
 
                 } else if (routingContext.request().method() == HttpMethod.GET) {
 
-                    String id = routingContext.pathParam("id");
+                    userData.put(Constants.METHOD,Constants.DISCOVERY_GET_NAME_CHECK);
 
-                    vertx.eventBus().request(Constants.DISCOVERY_GET_NAME_CHECK, id, handler -> {
+                    userData.put("id",routingContext.pathParam("id"));
+
+                    vertx.eventBus().request(Constants.DISCOVERY_GENERAL, userData, handler -> {
 
                         if (handler.succeeded()) {
 
@@ -154,9 +160,11 @@ public class Discovery {
 
                 } else if (routingContext.request().method() == HttpMethod.DELETE) {
 
-                    String id = routingContext.pathParam("id");
+                    userData.put(Constants.METHOD,Constants.DISCOVERY_DELETE_NAME_CHECK);
 
-                    vertx.eventBus().request(Constants.DISCOVERY_DELETE_NAME_CHECK, id, handler -> {
+                    userData.put("id",routingContext.pathParam("id"));
+
+                    vertx.eventBus().request(Constants.DISCOVERY_GENERAL, userData, handler -> {
 
                         if (handler.succeeded()) {
 
@@ -205,7 +213,9 @@ public class Discovery {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
-        vertx.eventBus().<JsonObject>request(Constants.DATABASE_DISCOVERY_INSERT, userData, response -> {
+        userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_INSERT);
+
+        vertx.eventBus().<JsonObject>request(Constants.DISCOVERY_GENERAL, userData, response -> {
 
             try {
                 if (response.succeeded()) {
@@ -246,9 +256,14 @@ public class Discovery {
 
     void get(RoutingContext routingContext) {
 
-        vertx.eventBus().<JsonArray>request(Constants.DATABASE_DISCOVERY_GET_ALL, "", response -> {
+        JsonObject userData = new JsonObject();
+
+        userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_GET_ALL);
+
+        vertx.eventBus().<JsonArray>request(Constants.DISCOVERY_GENERAL, userData, response -> {
 
             try {
+
                 if (response.succeeded()) {
 
                     JsonArray jsonArray = response.result().body();
@@ -300,9 +315,13 @@ public class Discovery {
 
     void getId(RoutingContext routingContext) {
 
-        String id = routingContext.pathParam("id");
+        JsonObject userData = new JsonObject();
 
-        vertx.eventBus().<JsonArray>request(Constants.DATABASE_DISCOVERY_GET_ID, id, response -> {
+        userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_GET_ID);
+
+        userData.put("id",routingContext.pathParam("id"));
+
+        vertx.eventBus().<JsonArray>request(Constants.DISCOVERY_GENERAL, userData, response -> {
 
             try {
                 if (response.succeeded()) {
@@ -348,7 +367,9 @@ public class Discovery {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
-        vertx.eventBus().<JsonObject>request(Constants.DATABASE_DISCOVERY_UPDATE, userData, response -> {
+        userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_UPDATE);
+
+        vertx.eventBus().<JsonObject>request(Constants.DISCOVERY_GENERAL, userData, response -> {
 
             try {
                 if (response.succeeded()) {
@@ -387,9 +408,13 @@ public class Discovery {
 
     void delete(RoutingContext routingContext) {
 
-        String id = routingContext.pathParam("id");
+        JsonObject userData = new JsonObject();
 
-        vertx.eventBus().request(Constants.DATABASE_DISCOVERY_DELETE, id, response -> {
+        userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_DELETE);
+
+        userData.put("id",routingContext.pathParam("id"));
+
+        vertx.eventBus().request(Constants.DISCOVERY_GENERAL, userData, response -> {
 
             try {
 
