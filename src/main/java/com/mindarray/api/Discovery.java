@@ -1,21 +1,23 @@
 package com.mindarray.api;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.mindarray.Bootstrap;
 
 import com.mindarray.Constants;
+
 import io.vertx.core.Vertx;
 
 import io.vertx.core.http.HttpMethod;
+
 import io.vertx.core.json.JsonArray;
+
 import io.vertx.core.json.JsonObject;
 
 import io.vertx.ext.web.Router;
 
 import io.vertx.ext.web.RoutingContext;
 
-import java.net.UnknownServiceException;
 import java.util.HashMap;
-import java.util.zip.CheckedOutputStream;
 
 
 public class Discovery {
@@ -66,7 +68,7 @@ public class Discovery {
 
                         if (routingContext.request().method() == HttpMethod.POST) {
 
-                            if ((userData.containsKey(Constants.CREDENTIAL_ID) && userData.containsKey(Constants.DISCOVERY_NAME) && userData.containsKey(Constants.PORT) && userData.containsKey(Constants.TYPE) && userData.containsKey(Constants.IP_ADDRESS))) {
+                                if ((userData.containsKey(Constants.CREDENTIAL_ID) && userData.containsKey(Constants.DISCOVERY_NAME) && userData.containsKey(Constants.PORT) && userData.containsKey(Constants.TYPE) && userData.containsKey(Constants.IP_ADDRESS))) {
 
                                 userData.put(Constants.METHOD,Constants.DISCOVERY_POST_CHECK_NAME);
 
@@ -96,7 +98,7 @@ public class Discovery {
 
                             }else{
 
-                                routingContext.response()
+                                    routingContext.response()
 
                                         .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -134,67 +136,75 @@ public class Discovery {
 
 
 
-                } else if (routingContext.request().method() == HttpMethod.GET) {
+                }else{
 
-                    userData.put(Constants.METHOD,Constants.DISCOVERY_GET_NAME_CHECK);
+                    routingContext.response()
 
-                    userData.put("id",routingContext.pathParam("id"));
+                            .setStatusCode(400)
 
-                    vertx.eventBus().request(Constants.DISCOVERY_GENERAL, userData, handler -> {
+                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                        if (handler.succeeded()) {
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,Constants.INVALID_INPUT).encodePrettily());
 
-                            routingContext.next();
-
-                        } else {
-
-                            routingContext.response()
-
-                                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
-
-                                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
-
-                        }
-
-                    });
-
-                } else if (routingContext.request().method() == HttpMethod.DELETE) {
-
-                    userData.put(Constants.METHOD,Constants.DISCOVERY_DELETE_NAME_CHECK);
-
-                    userData.put("id",routingContext.pathParam("id"));
-
-                    vertx.eventBus().request(Constants.DISCOVERY_GENERAL, userData, handler -> {
-
-                        if (handler.succeeded()) {
-
-                            routingContext.next();
-
-                        } else {
-
-                            routingContext.response()
-
-                                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
-
-                                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, Constants.NOT_PRESENT).encodePrettily());
-
-                        }
-
-                    });
 
                 }
-            }else{
 
-                routingContext.response()
+            }else if (routingContext.request().method() == HttpMethod.DELETE) {
 
-                        .setStatusCode(400)
+                JsonObject userData = new JsonObject();
 
-                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                userData.put(Constants.METHOD,Constants.DISCOVERY_DELETE_NAME_CHECK);
 
-                        .end(new JsonObject().put(Constants.STATUS, Constants.INVALID_INPUT).encodePrettily());
+                userData.put("id",routingContext.pathParam("id"));
 
+                vertx.eventBus().request(Constants.DISCOVERY_GENERAL, userData, handler -> {
+
+                    if (handler.succeeded()) {
+
+                        routingContext.next();
+
+                    } else {
+
+                        routingContext.response()
+
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, Constants.NOT_PRESENT).encodePrettily());
+
+                    }
+
+                });
 
             }
+            else if (routingContext.request().method() == HttpMethod.GET) {
+
+                JsonObject userData = new JsonObject();
+
+                userData.put(Constants.METHOD,Constants.DISCOVERY_GET_NAME_CHECK);
+
+                userData.put("id",routingContext.pathParam("id"));
+
+                vertx.eventBus().request(Constants.DISCOVERY_GENERAL, userData, handler -> {
+
+                    if (handler.succeeded()) {
+
+                        routingContext.next();
+
+                    } else {
+
+                        routingContext.response()
+
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
+
+                    }
+
+                });
+
+            }
+
+
 
         } catch (Exception exception) {
 
@@ -292,7 +302,7 @@ public class Discovery {
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, response.cause().getMessage()).encodePrettily());
 
                 }
 
@@ -341,7 +351,7 @@ public class Discovery {
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, response.cause().getMessage()).encodePrettily());
 
                 }
 
@@ -361,7 +371,6 @@ public class Discovery {
 
 
     }
-
 
     void update(RoutingContext routingContext) {
 
@@ -450,8 +459,6 @@ public class Discovery {
 
         });
 
-
     }
-
 
 }

@@ -4,13 +4,10 @@ import io.vertx.core.AbstractVerticle;
 
 import io.vertx.core.Promise;
 
-import static com.mindarray.Constants.*;
-
 import io.vertx.core.json.JsonArray;
 
 import io.vertx.core.json.JsonObject;
 
-import io.vertx.core.json.impl.JsonUtil;
 import org.slf4j.Logger;
 
 import org.slf4j.LoggerFactory;
@@ -18,32 +15,34 @@ import org.slf4j.LoggerFactory;
 import java.sql.*;
 
 import java.util.HashMap;
-import java.util.Iterator;
+
 import java.util.Map;
+
 import java.util.UUID;
+
+import static com.mindarray.Constants.*;
 
 public class DatabaseEngine extends AbstractVerticle {
 
-    boolean checkName(String table,String column,String value) throws SQLException {
+    static final Logger LOG = LoggerFactory.getLogger(DatabaseEngine.class.getName());
+
+    boolean checkName(String table, String column, String value) throws SQLException {
 
         Connection connection = null;
 
         boolean isAvailable = false;
 
-        if (table==null || column==null || value==null) {
+        if (table == null || column == null || value == null) {
 
             return false;
 
         }
 
-
         try {
-
-            Class.forName("com.mysql.cj.jdbc.Driver");
 
             connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
-            String query = "select * from " +  table  + " where " + column  + "='" + value + "'";
+            String query = "select * from " + table + " where " + column + "='" + value + "'";
 
             ResultSet resultSet = connection.createStatement().executeQuery(query);
 
@@ -64,6 +63,70 @@ public class DatabaseEngine extends AbstractVerticle {
         }
 
         return isAvailable;
+
+    }
+
+    Map<String,String> transform(){
+
+        Map<String,String> map = new HashMap<>();
+
+        map.put("credential.name","credentialName");
+
+        map.put("name","name");
+
+        map.put("password","password");
+
+        map.put("credentialId","credentialId");
+
+        map.put("discovery.name","discoveryName");
+
+        map.put("ip.address","ip");
+
+        map.put("discoveryId","discoveryId");
+
+        map.put("protocol","protocol");
+
+        map.put("port","port");
+
+        map.put("type","type");
+
+        map.put("community","community");
+
+        map.put("version","version");
+
+        return map;
+
+    }
+
+    Map<String,String> reverse(){
+
+        Map<String,String> map = new HashMap<>();
+
+        map.put("credential.name","credentialName");
+
+        map.put("name","name");
+
+        map.put("password","password");
+
+        map.put("credentialId","credentialId");
+
+        map.put("discovery.name","discoveryName");
+
+        map.put("ip.address","ip");
+
+        map.put("discoveryId","discoveryId");
+
+        map.put("protocol","protocol");
+
+        map.put("port","port");
+
+        map.put("type","type");
+
+        map.put("community","community");
+
+        map.put("version","version");
+
+        return map;
 
     }
 
@@ -122,7 +185,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
-    boolean containsAllDiscovery(JsonObject data){
+    boolean containsAllDiscovery(JsonObject data) {
 
         if (!(data.containsKey(Constants.CREDENTIAL_ID) && (!data.getString(Constants.CREDENTIAL_ID).isEmpty()))) {
 
@@ -157,22 +220,53 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
+    void createTable() {
 
-    JsonObject insertCredentials(JsonObject userData) throws SQLException {
+        try {
+
+            Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
+
+            Statement stmt = con.createStatement();
+
+            stmt.executeUpdate("create table if not exists Credentials (credentialId varchar(255),credentialName varchar(255) PRIMARY KEY,protocol varchar(255),name varchar(255),password varchar(255),community varchar(255),version varchar(255))");
+
+            stmt.executeUpdate("create table if not exists Discovery (discoveryId varchar(255),credentialId varchar(255),discoveryName varchar(255),ip varchar(255),type varchar(255),port int)");
+
+
+        } catch (Exception exception) {
+
+            LOG.debug("Error : {} ", exception.getMessage());
+
+        }
+    }
+
+    JsonObject insert(String tableName, JsonObject userData) throws SQLException {
 
         Connection connection = null;
 
         JsonObject result = new JsonObject();
 
-        if (!containsAllCredential(userData)) {
+        if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) && !containsAllCredential(userData)) {
+
+            return null;
+
+        }else if(tableName.equalsIgnoreCase(DISCOVERY_TABLE) && !containsAllDiscovery(userData)){
 
             return null;
 
         }
 
-        try {
+        if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) && checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_TABLE_NAME, userData.getString(Constants.CREDENTIAL_NAME))) {
 
-            if (checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_TABLE_NAME,userData.getString(Constants.CREDENTIAL_NAME))) {
+            result.put(Constants.STATUS, Constants.FAIL);
+
+            return result;
+
+        }
+
+        if(tableName.equalsIgnoreCase(DISCOVERY_TABLE)) {
+
+            if (checkName(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_NAME, userData.getString(Constants.DISCOVERY_NAME))) {
 
                 result.put(Constants.STATUS, Constants.FAIL);
 
@@ -180,27 +274,55 @@ public class DatabaseEngine extends AbstractVerticle {
 
             }
 
-            Class.forName("com.mysql.cj.jdbc.Driver");
+            if (!checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, userData.getString(Constants.CREDENTIAL_ID))) {
+
+                result.put(Constants.STATUS, Constants.FAIL);
+
+                return result;
+
+            }
+        }
+
+
+        try {
 
             connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
-            PreparedStatement preparedStatement = connection.prepareStatement("insert into Credentials (credentialId,credentialName,protocol,name,password,community,version) values (?,?,?,?,?,?,?)");
+            StringBuilder column = new StringBuilder("insert into ").append(tableName).append("(");
 
-            preparedStatement.setString(1, userData.getString(Constants.CREDENTIAL_ID));
+            StringBuilder values = new StringBuilder(" values (");
 
-            preparedStatement.setString(2, userData.getString(Constants.CREDENTIAL_NAME));
+            // insert into tableName (  c1,c2,c3....)
+            // values ( v1,v2,v3....);
 
-            preparedStatement.setString(3, userData.getString(Constants.PROTOCOL));
+            Map<String,Object> userMap = userData.getMap();
 
-            preparedStatement.setString(4, userData.getString(Constants.NAME));
+            Map<String,String> dataMap = transform();
 
-            preparedStatement.setString(5, userData.getString(Constants.PASSWORD));
+            for(Map.Entry<String,Object> entry : userMap.entrySet()){
 
-            preparedStatement.setString(6, userData.getString(Constants.COMMUNITY));
+                column.append(dataMap.get(entry.getKey())).append(",");
 
-            preparedStatement.setString(7, userData.getString(Constants.VERSION));
+                if(entry.getValue() instanceof String){
 
-            preparedStatement.executeUpdate();
+                    values.append("'").append(entry.getValue()).append("'").append(",");
+
+                }else{
+
+                    values.append(entry.getValue()).append(",");
+
+                }
+            }
+
+            column.deleteCharAt(column.length()-1).append(")");
+
+            values.deleteCharAt(values.length()-1).append(")");
+
+            column.append(values);
+
+            PreparedStatement preparedStatement = connection.prepareStatement(column.toString());
+
+            preparedStatement.execute();
 
             result.put(Constants.STATUS, Constants.SUCCESS);
 
@@ -225,42 +347,127 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
-    void createTable() {
+    boolean update(String tableName, String columnName, String id, JsonObject userData) throws SQLException {
+
+        Connection connection = null;
+
+        boolean result = true;
+
+        if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) &&  !userData.containsKey(Constants.CREDENTIAL_ID)) {
+
+            return false;
+
+        }
+
+        if (tableName.equalsIgnoreCase(DISCOVERY_TABLE) && !userData.containsKey(Constants.DISCOVERY_TABLE_ID)) {
+
+            return false;
+
+        }
 
         try {
 
-            Class.forName("com.mysql.cj.jdbc.Driver");
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
-            Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
-            Statement stmt = con.createStatement();
+            if (userData.containsKey(Constants.CREDENTIAL_NAME)) {
 
-            DatabaseMetaData dbm = con.getMetaData();
+                if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_TABLE_NAME, userData.getString(Constants.CREDENTIAL_NAME))) {
 
-            ResultSet tables = dbm.getTables(null, null, "Credentials", null);
+                    return false;
 
-            ResultSet resultSet = dbm.getTables(null, null, "Discovery", null);
+                }
 
-            if (!tables.next()) {
+                if (!(userData.containsKey(Constants.IP_ADDRESS) || userData.containsKey(Constants.DISCOVERY_NAME) || userData.containsKey(Constants.CREDENTIAL_ID))) {
 
-                stmt.executeUpdate("create table Credentials (credentialId varchar(255),credentialName varchar(255) PRIMARY KEY,protocol varchar(255),name varchar(255),password varchar(255),community varchar(255),version varchar(255))");
+                    return false;
+
+                }
+
+            }else if (userData.containsKey(Constants.DISCOVERY_NAME)) {
+
+                if (checkName(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_NAME, userData.getString(Constants.DISCOVERY_NAME))) {
+
+                    return false;
+
+                }
+            }
+
+            if(tableName.equalsIgnoreCase(DISCOVERY_TABLE) && userData.containsKey(CREDENTIAL_ID) && !checkName(CREDENTIAL_TABLE, CREDENTIAL_ID,userData.getString(CREDENTIAL_ID))){
+
+                return false;
 
             }
 
-            if (!resultSet.next()) {
 
-                stmt.executeUpdate("create table Discovery (discoveryId varchar(255),credentialId varchar(255),discoveryName varchar(255),ip varchar(255),type varchar(255),port int)");
+            Map<String, Object> data = userData.getMap();
+
+            if(tableName.equalsIgnoreCase(CREDENTIAL_TABLE)){
+
+                data.remove(CREDENTIAL_ID);
+
+                data.remove(PROTOCOL);
 
             }
+
+            if(tableName.equalsIgnoreCase(DISCOVERY_TABLE)){
+
+                data.remove(TYPE);
+
+                data.remove(IP_ADDRESS);
+
+                data.remove(PORT);
+
+                data.remove(DISCOVERY_TABLE_ID);
+
+            }
+
+            Map<String,String> map = transform();
+
+            String query;
+
+            StringBuilder update = new StringBuilder();
+
+            query = "UPDATE " + tableName + " SET ";
+
+            // UPDATE Credentials SET column1 = 'value1', column2 = 'value2' ..... where id = idvalue;
+
+
+            for (Map.Entry<String, Object> entry : data.entrySet()) {
+
+                update.append(map.get(entry.getKey())).append(" = ").append("'").append(entry.getValue()).append("'").append(",");
+
+            }
+
+            update.deleteCharAt(update.length()-1);
+
+            String updatedQuery = query + update + " where " + columnName + " = '" + id + "' ;";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(updatedQuery);
+
+            preparedStatement.execute();
+
 
         } catch (Exception exception) {
 
-            LOG.debug("Error : {} ", exception.getMessage());
+            LOG.debug("Error {} ", exception.getMessage());
 
+            return false;
+
+        } finally {
+
+            if (connection != null) {
+
+                connection.close();
+
+            }
         }
+
+        return result;
+
     }
 
-    JsonArray getAll(String tableName,String column,String id) throws SQLException {
+    JsonArray getAll(String tableName, String column, String id) throws SQLException {
 
         JsonArray jsonArray = null;
 
@@ -270,67 +477,34 @@ public class DatabaseEngine extends AbstractVerticle {
 
             jsonArray = new JsonArray();
 
-            Class.forName("com.mysql.cj.jdbc.Driver");
-
             connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
             String query;
 
-            if(id.equalsIgnoreCase("getall")){
+            if (id.equalsIgnoreCase("getall")) {
 
                 query = "select * from " + tableName;
 
-            }else{
+            } else {
 
-                query = "select * from " +  tableName  + " where "  +   column  +   " = '" + id + "'";
+                query = "select * from " + tableName + " where " + column + " = '" + id + "'";
 
             }
 
             ResultSet resultSet = connection.createStatement().executeQuery(query);
 
+
             while (resultSet.next()) {
 
                 JsonObject result = new JsonObject();
 
-                if(tableName.equalsIgnoreCase(Constants.CREDENTIAL_TABLE)){
+                for(int i=1;i<=resultSet.getMetaData().getColumnCount();i++){
 
-                    result.put(Constants.CREDENTIAL_ID, resultSet.getString(1));
-
-                    result.put(Constants.CREDENTIAL_NAME, resultSet.getString(2));
-
-                    result.put(Constants.PROTOCOL, resultSet.getString(3));
-
-                    if (resultSet.getString(3).equalsIgnoreCase("ssh") || resultSet.getString(3).equalsIgnoreCase("winrm")) {
-
-                        result.put(Constants.NAME, resultSet.getString(4));
-
-                        result.put(Constants.PASSWORD, resultSet.getString(5));
-
-                    } else if (resultSet.getString(3).equalsIgnoreCase("snmp")) {
-
-                        result.put(Constants.COMMUNITY, resultSet.getString(6));
-
-                        result.put(Constants.VERSION, resultSet.getString(7));
-
-                    }
-                } else{
-
-                    result.put(Constants.DISCOVERY_TABLE_ID, resultSet.getString(1));
-
-                    result.put(Constants.CREDENTIAL_ID, resultSet.getString(2));
-
-                    result.put(Constants.DISCOVERY_NAME, resultSet.getString(3));
-
-                    result.put(Constants.IP_ADDRESS, resultSet.getString(4));
-
-                    result.put(Constants.TYPE, resultSet.getString(5));
-
-                    result.put(Constants.PROTOCOL, resultSet.getInt(6));
+                    result.put(resultSet.getMetaData().getColumnName(i),resultSet.getString(i));
 
                 }
 
                 jsonArray.add(result);
-
             }
 
 
@@ -351,14 +525,13 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
-
-    boolean delete(String tableName, String column,String id) throws SQLException {
+    boolean delete(String tableName, String column, String id) throws SQLException {
 
         Connection connection = null;
 
         boolean result = false;
 
-        if(id==null || tableName==null || column==null){
+        if (id == null || tableName == null || column == null) {
 
             return false;
 
@@ -367,11 +540,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
         try {
 
-            Class.forName("com.mysql.cj.jdbc.Driver");
-
             connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
-            String query = "delete from " + tableName + " where " + column  + " ='" + id + "'";
+            String query = "delete from " + tableName + " where " + column + " ='" + id + "'";
 
             PreparedStatement preparedStatement = connection.prepareStatement(query);
 
@@ -401,446 +572,145 @@ public class DatabaseEngine extends AbstractVerticle {
         return result;
     }
 
-
-    boolean updateCredentials(String tableName,String columnName,String id,JsonObject userData) throws SQLException {
-
-        Connection connection = null;
-
-        boolean result = true;
-
-        if (!userData.containsKey(Constants.CREDENTIAL_ID)) {
-
-            return false;
-
-        }
-
-        try {
-
-            Class.forName("com.mysql.cj.jdbc.Driver");
-
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
-
-            String protocolQuery = "select protocol from Credentials where credentialId = '" + userData.getString(Constants.CREDENTIAL_ID) + "'";
-
-            ResultSet resultSet = connection.createStatement().executeQuery(protocolQuery);
-
-            String protocol = null;
-
-            if (resultSet.next()) {
-
-                protocol = resultSet.getString(1);
-
-            }
-
-            if (protocol == null) {
-
-                return false;
-
-            }
-
-            if(userData.containsKey(Constants.CREDENTIAL_NAME)){
-
-                if(checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_TABLE_NAME,userData.getString(Constants.CREDENTIAL_NAME))){
-
-                    return false;
-
-                }
-
-            }
-
-            if(protocol.equalsIgnoreCase("ssh") || protocol.equalsIgnoreCase("winrm")){
-
-                if(!(userData.containsKey(Constants.CREDENTIAL_NAME) || userData.containsKey(Constants.NAME) || userData.containsKey(Constants.PASSWORD))){
-
-                    return false;
-
-                }
-
-            }else if(protocol.equalsIgnoreCase("snmp")){
-
-                if(!(userData.containsKey(Constants.CREDENTIAL_NAME) || userData.containsKey(Constants.COMMUNITY) || userData.containsKey(Constants.VERSION))){
-
-                    return false;
-
-                }
-
-            }else{
-
-                return false;
-
-            }
-
-
-            HashMap<String,Object> data = new HashMap<>(userData.getMap());
-
-            if(userData.containsKey(Constants.CREDENTIAL_NAME))
-            {
-                data.put(Constants.CREDENTIAL_TABLE_NAME,data.get(Constants.CREDENTIAL_NAME));
-
-                data.remove(Constants.CREDENTIAL_NAME);
-            }
-
-            data.remove(Constants.CREDENTIAL_ID);
-
-            data.remove(Constants.PROTOCOL);
-
-            String query;
-
-            StringBuilder update = new StringBuilder();
-
-            query = "UPDATE " + tableName + " SET ";
-
-
-            // UPDATE Credentials SET column1 = 'value1', column2 = 'value2' ..... where id = idvalue;
-
-            int count=0;
-
-            for(Map.Entry<String,Object> map:data.entrySet()){
-
-                update.append(map.getKey()).append(" = ").append("'").append(map.getValue()).append("'");
-
-                if(count!=data.size()-1){
-
-                    update.append(", ");
-
-                }else{
-
-                    update.append(" ");
-
-                }
-
-                count++;
-
-            }
-
-            String updatedQuery=  query + update + " where " + columnName + " = '" + id + "' ;";
-
-            PreparedStatement preparedStatement = connection.prepareStatement(updatedQuery);
-
-             preparedStatement.execute();
-
-
-        } catch (Exception exception) {
-
-            LOG.debug("Error {} ", exception.getMessage());
-
-            return false;
-
-        } finally {
-
-            if (connection != null) {
-
-                connection.close();
-
-            }
-        }
-
-        return result;
-
-    }
-
-    boolean updateDiscovery(String tableName,String columnName,String id, JsonObject userData) throws SQLException {
-
-        Connection connection = null;
-
-        boolean result = true;
-
-        if (!userData.containsKey(Constants.DISCOVERY_TABLE_ID)) {
-
-            return false;
-
-        }
-
-        if(userData.containsKey(Constants.CREDENTIAL_ID)){
-
-            if(!checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,userData.getString(Constants.CREDENTIAL_ID))){
-
-                return false;
-
-            }
-
-        }
-
-        try {
-
-            Class.forName("com.mysql.cj.jdbc.Driver");
-
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
-
-
-                if(!(userData.containsKey(Constants.IP_ADDRESS) || userData.containsKey(Constants.DISCOVERY_NAME) || userData.containsKey(Constants.CREDENTIAL_ID)) ){
-
-                    return false;
-
-                }
-
-                if(userData.containsKey(Constants.DISCOVERY_NAME)){
-
-                    if(checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_NAME,userData.getString(Constants.DISCOVERY_NAME))){
-
-                        return false;
-
-                    }
-
-                }
-
-
-            HashMap<String,Object> data = new HashMap<>(userData.getMap());
-
-
-            if(userData.containsKey(Constants.DISCOVERY_NAME)){
-
-                data.put("discoveryName",data.get("discovery.name"));
-
-                data.remove("discovery.name");
-
-            }
-
-            if(userData.containsKey(Constants.IP_ADDRESS)){
-
-                data.put("ip",data.get("ip.address"));
-
-                data.remove("ip.address");
-            }
-
-
-            data.remove("discoveryId");
-
-            data.remove("type");
-
-            data.remove("port");
-
-            String query;
-
-            StringBuilder update = new StringBuilder("");
-
-            query = "UPDATE " + tableName + " SET ";
-
-            int count=0;
-
-            for(Map.Entry<String,Object> map:data.entrySet()){
-
-                if(count!=data.size()-1){
-
-                    update.append(map.getKey()).append(" = '").append(map.getValue()).append("', ");
-
-                }else{
-
-                    update.append(map.getKey()).append(" = '").append(map.getValue()).append("', ");
-
-                }
-
-                count++;
-
-            }
-
-            String updatedQuery=  query + update + " where " + columnName + " = '" + id + "' ;";
-
-            PreparedStatement preparedStatement = connection.prepareStatement(updatedQuery);
-
-            preparedStatement.execute();
-
-
-        }catch (Exception exception) {
-
-            LOG.debug("Error {} ", exception.getMessage());
-
-            return false;
-
-        } finally {
-
-            if (connection != null) {
-
-                connection.close();
-
-            }
-        }
-
-        return result;
-    }
-
-    JsonObject insertDiscovery(JsonObject userData) throws SQLException {
-
-        Connection connection = null;
-
-        JsonObject result = new JsonObject();
-
-        if (!containsAllDiscovery(userData)) {
-
-            return null;
-
-        }
-
-        try {
-
-            if (checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_NAME,userData.getString(Constants.DISCOVERY_NAME))) {
-
-                result.put(Constants.STATUS, Constants.FAIL);
-
-                return result;
-
-            }
-
-            if(!checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,userData.getString(Constants.CREDENTIAL_ID))){
-
-                result.put(Constants.STATUS, Constants.FAIL);
-
-                return result;
-
-            }
-
-
-            Class.forName("com.mysql.cj.jdbc.Driver");
-
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
-
-            PreparedStatement preparedStatement = connection.prepareStatement("insert into Discovery (discoveryId,credentialId,discoveryName,ip,type,port) values (?,?,?,?,?,?)");
-
-            preparedStatement.setString(1, userData.getString(Constants.DISCOVERY_TABLE_ID));
-
-            preparedStatement.setString(2, userData.getString(Constants.CREDENTIAL_ID));
-
-            preparedStatement.setString(3, userData.getString(Constants.DISCOVERY_NAME));
-
-            preparedStatement.setString(4, userData.getString(Constants.IP_ADDRESS));
-
-            preparedStatement.setString(5, userData.getString(Constants.TYPE));
-
-            preparedStatement.setInt(6, userData.getInteger(Constants.PORT));
-
-            preparedStatement.executeUpdate();
-
-            result.put(Constants.STATUS, Constants.SUCCESS);
-
-
-        } catch (Exception exception) {
-
-            LOG.debug("Error : {} ", exception.getMessage());
-
-            result.put(Constants.STATUS, Constants.FAIL);
-
-        } finally {
-
-            if (connection != null) {
-
-                connection.close();
-
-            }
-
-        }
-
-        return result;
-
-    }
-
-
-    static final Logger LOG = LoggerFactory.getLogger(DatabaseEngine.class.getName());
-
     @Override
     public void start(Promise<Void> startPromise) {
 
         createTable();
 
-        vertx.eventBus().<JsonObject>consumer(CREDENTIAL_GENERAL, handler->{
+        vertx.eventBus().<JsonObject>consumer(CREDENTIAL_GENERAL, handler -> {
 
-            switch (handler.body().getString(Constants.METHOD)){
+            switch (handler.body().getString(Constants.METHOD)) {
 
-                case DATABASE_CREDENTIAL_POST_CHECK_NAME->{
+                case CREDENTIAL_POST_CHECK_NAME -> vertx.executeBlocking(blockingHandler -> {
 
-                    vertx.executeBlocking(blockingHandler -> {
+                    try {
 
-                        try {
+                        JsonObject data = handler.body();
 
-                            JsonObject data = handler.body();
+                        data.remove(METHOD);
 
-                            data.remove(METHOD);
+                        if (!checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_TABLE_NAME, data.getString(Constants.CREDENTIAL_NAME))) {
 
-                            if (!checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_TABLE_NAME,data.getString(Constants.CREDENTIAL_NAME))) {
-
-                                blockingHandler.complete(data);
-
-                            } else {
-
-                                blockingHandler.fail(Constants.FAIL);
-
-                            }
-
-                        } catch (Exception exception) {
-
-                            blockingHandler.fail(exception.getMessage());
-
-                        }
-
-
-                    }).onComplete(resultHandler -> {
-
-                        if (resultHandler.succeeded()) {
-
-                            handler.reply(resultHandler.result());
-
+                            blockingHandler.complete(data);
 
                         } else {
 
-                            handler.fail(-1, Constants.FAIL);
+                            blockingHandler.fail(CREDENTIAL_NAME_NOT_UNIQUE);
 
                         }
 
-                    });
-                }
+                    } catch (Exception exception) {
 
-                case CREDENTIAL_PUT_NAME_CHECK->{
+                        blockingHandler.fail(exception.getMessage());
 
-                    vertx.executeBlocking(blockingHandler->{
-
-                        JsonObject userData = handler.body();
-
-                        userData.remove(METHOD);
-
-                        try {
-
-                            if(checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,userData.getString(Constants.CREDENTIAL_ID))){
-
-                                blockingHandler.complete();
-
-                            }else{
-
-                                blockingHandler.fail(Constants.FAIL);
-
-                            }
-
-                        } catch (Exception exception) {
-
-                            LOG.debug("Error {} ", exception.getMessage());
-
-                            blockingHandler.fail(Constants.FAIL);
-
-                        }
+                    }
 
 
-                    }).onComplete(resultHandler->{
+                }).onComplete(resultHandler -> {
 
-                        if(resultHandler.succeeded()){
+                    if (resultHandler.succeeded()) {
 
-                            handler.reply(Constants.SUCCESS);
+                        handler.reply(resultHandler.result());
 
-                        }else{
 
-                            handler.fail(-1,Constants.FAIL);
+                    } else {
+
+                        handler.fail(-1, resultHandler.cause().getMessage());
+
+                    }
+
+                });
+
+                case CREDENTIAL_PUT_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
+
+                    JsonObject userData = handler.body();
+
+                    userData.remove(METHOD);
+
+                    try {
+
+                        if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, userData.getString(Constants.CREDENTIAL_ID))) {
+
+                            blockingHandler.complete();
+
+                        } else {
+
+                            blockingHandler.fail(NOT_PRESENT);
 
                         }
 
+                    } catch (Exception exception) {
 
-                    });
-                }
+                        LOG.debug("Error {} ", exception.getMessage());
 
-                case CREDENTIAL_GET_NAME_CHECK->{
+                        blockingHandler.fail(Constants.FAIL);
 
-                    vertx.executeBlocking(blockingHandler -> {
+                    }
 
-                        String id = handler.body().getString("id");
 
-                        try {
+                }).onComplete(resultHandler -> {
 
+                    if (resultHandler.succeeded()) {
+
+                        handler.reply(Constants.SUCCESS);
+
+                    } else {
+
+                        handler.fail(-1, resultHandler.cause().getMessage());
+
+                    }
+
+
+                });
+
+                case CREDENTIAL_GET_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
+
+                    String id = handler.body().getString("id");
+
+                    try {
+
+
+                        if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id)) {
+
+                            blockingHandler.complete();
+
+                        } else {
+
+                            blockingHandler.fail(NOT_PRESENT);
+
+                        }
+
+                    } catch (Exception exception) {
+
+                        LOG.debug("Error {} ", exception.getMessage());
+
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+
+                }).onComplete(resultHandler -> {
+
+                    if (resultHandler.succeeded()) {
+
+                        handler.reply(Constants.SUCCESS);
+
+                    } else {
+
+                        handler.fail(-1, resultHandler.cause().getMessage());
+
+                    }
+
+
+                });
+
+                case CREDENTIAL_DELETE_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
+
+                    String id = handler.body().getString("id");
+
+                    try {
+
+                        if (!checkName(Constants.DISCOVERY_TABLE, Constants.CREDENTIAL_ID, id)) {
 
                             if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id)) {
 
@@ -848,89 +718,39 @@ public class DatabaseEngine extends AbstractVerticle {
 
                             } else {
 
-                                blockingHandler.fail(Constants.FAIL);
+                                blockingHandler.fail(Constants.NOT_PRESENT);
 
                             }
-
-                        } catch (Exception exception) {
-
-                            LOG.debug("Error {} ", exception.getMessage());
-
-                            blockingHandler.fail(Constants.FAIL);
-
-                        }
-
-
-                    }).onComplete(resultHandler -> {
-
-                        if (resultHandler.succeeded()) {
-
-                            handler.reply(Constants.SUCCESS);
-
                         } else {
 
-                            handler.fail(-1, Constants.FAIL);
+                            blockingHandler.fail(Constants.IN_USE);
 
                         }
 
+                    } catch (Exception exception) {
 
-                    });
+                        LOG.debug("Error {} ", exception.getMessage());
 
+                        blockingHandler.fail(Constants.FAIL);
 
-                }
-
-                case CREDENTIAL_DELETE_NAME_CHECK->{
-
-                    vertx.executeBlocking(blockingHandler -> {
-
-                        String id = handler.body().getString("id");
-
-                        try {
-
-                            if(!checkName(Constants.DISCOVERY_TABLE,Constants.CREDENTIAL_ID,id)) {
-
-                                if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id)) {
-
-                                    blockingHandler.complete();
-
-                                } else {
-
-                                    blockingHandler.fail(Constants.NOT_PRESENT);
-
-                                }
-                            }else{
-
-                                blockingHandler.fail(Constants.IN_USE);
-
-                            }
-
-                        } catch (Exception exception) {
-
-                            LOG.debug("Error {} ", exception.getMessage());
-
-                            blockingHandler.fail(Constants.FAIL);
-
-                        }
+                    }
 
 
-                    }).onComplete(resultHandler -> {
+                }).onComplete(resultHandler -> {
 
-                        if (resultHandler.succeeded()) {
+                    if (resultHandler.succeeded()) {
 
-                            handler.reply(Constants.SUCCESS);
+                        handler.reply(Constants.SUCCESS);
 
-                        } else {
+                    } else {
 
-                            handler.fail(-1, resultHandler.cause().getMessage());
+                        handler.fail(-1, resultHandler.cause().getMessage());
 
-                        }
+                    }
 
-                    });
+                });
 
-
-                }
-
-                case DATABASE_CREDENTIAL_INSERT->{
+                case DATABASE_CREDENTIAL_INSERT -> {
 
                     JsonObject userData = handler.body();
 
@@ -944,7 +764,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         try {
 
-                            result = insertCredentials(userData);
+                            result = insert(CREDENTIAL_TABLE,userData);
 
                             if (result == null) {
 
@@ -976,7 +796,7 @@ public class DatabaseEngine extends AbstractVerticle {
                             handler.reply(userData);
                         } else {
 
-                            handler.fail(-1, Constants.FAIL);
+                            handler.fail(-1, completeHandler.cause().getMessage());
 
                         }
 
@@ -984,376 +804,299 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }
 
-                case DATABASE_CREDENTIAL_GET_ALL->{
+                case DATABASE_CREDENTIAL_GET_ALL -> vertx.executeBlocking(blockingHandler -> {
 
-                    vertx.executeBlocking(blockingHandler -> {
+                    try {
 
-                        try {
+                        String get = "getAll";
 
-                            String get = "getAll";
+                        JsonArray jsonArray = getAll(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, get);
 
-                            JsonArray jsonArray = getAll(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,get);
+                        blockingHandler.complete(jsonArray);
 
-                            blockingHandler.complete(jsonArray);
+                    } catch (SQLException exception) {
 
-                        } catch (SQLException exception) {
+                        LOG.debug("Error {} ", exception.getMessage());
 
-                            LOG.debug("Error {} ", exception.getMessage());
+                        blockingHandler.fail(Constants.FAIL);
 
-                            blockingHandler.fail(Constants.FAIL);
+                    }
 
-                        }
+                }).onComplete(completionHandler -> {
 
-                    }).onComplete(completionHandler -> {
+                    if (completionHandler.succeeded()) {
 
-                        if (completionHandler.succeeded()) {
+                        handler.reply(completionHandler.result());
 
-                            handler.reply(completionHandler.result());
+                    } else {
 
-                        } else {
+                        handler.fail(-1, completionHandler.cause().getMessage());
 
-                            handler.fail(-1, Constants.FAIL);
+                    }
 
-                        }
+                });
 
-                    });
+                case DATABASE_CREDENTIAL_DELETE -> vertx.executeBlocking(blockingHandler -> {
 
-                }
+                    boolean result;
 
-                case DATABASE_CREDENTIAL_DELETE ->{
-
-                    vertx.executeBlocking(blockingHandler -> {
-
-                        boolean result;
-
-                        try {
-
-                            String id = handler.body().getString("id");
-
-                            result = delete(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,id);
-
-                            if (result) {
-
-                                blockingHandler.complete();
-
-                            } else {
-
-                                blockingHandler.fail(Constants.FAIL);
-
-                            }
-
-
-                        } catch (Exception exception) {
-
-                            LOG.debug("Error : {}" + exception.getMessage());
-
-                            blockingHandler.fail(exception.getMessage());
-
-                        }
-
-                    }).onComplete(completeHandler -> {
-
-                        if (completeHandler.succeeded()) {
-
-                            handler.reply(Constants.SUCCESS);
-                        } else {
-
-                            handler.fail(-1, Constants.FAIL);
-
-                        }
-                    });
-
-
-                }
-
-                case DATABASE_CREDENTIAL_UPDATE ->{
-
-                    vertx.executeBlocking(blockingHandler -> {
-
-                        JsonObject userData = handler.body();
-
-                        userData.remove(METHOD);
-
-                        boolean result;
-
-                        try {
-
-                            result = updateCredentials(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,userData.getString(Constants.CREDENTIAL_ID),userData);
-
-                            if (result) {
-
-                                blockingHandler.complete();
-                            }
-                            else {
-
-                                blockingHandler.fail(Constants.FAIL);
-
-                            }
-
-                        } catch (Exception exception) {
-
-                            LOG.debug("Error {} ", exception.getMessage());
-
-                            blockingHandler.fail(Constants.FAIL);
-
-                        }
-
-                    }).onComplete(resultHandler -> {
-
-
-                        if (resultHandler.succeeded()) {
-
-                            handler.reply(Constants.SUCCESS);
-
-
-                        } else {
-
-                            handler.fail(-1, Constants.FAIL);
-
-                        }
-
-                    });
-
-
-                }
-
-                case DATABASE_CREDENTIAL_GET_ID -> {
-
-                    vertx.executeBlocking(blockingHandler -> {
+                    try {
 
                         String id = handler.body().getString("id");
 
-                        try {
+                        result = delete(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id);
 
-                            JsonArray result = getAll(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,id);
+                        if (result) {
 
-                            if (result != null) {
-
-                                blockingHandler.complete(result);
-
-                            } else {
-
-                                blockingHandler.fail(Constants.FAIL);
-
-                            }
-
-                        } catch (Exception exception) {
-
-                            blockingHandler.fail(exception.getMessage());
-
-                        }
-
-
-                    }).onComplete(resultHandler -> {
-
-                        if (resultHandler.succeeded()) {
-
-                            handler.reply(resultHandler.result());
-
+                            blockingHandler.complete();
 
                         } else {
 
-                            handler.fail(-1, resultHandler.cause().toString());
+                            blockingHandler.fail(Constants.FAIL);
 
                         }
 
-                    });
 
-                }
+                    } catch (Exception exception) {
+
+                        LOG.debug("Error : {}" + exception.getMessage());
+
+                        blockingHandler.fail(exception.getMessage());
+
+                    }
+
+                }).onComplete(completeHandler -> {
+
+                    if (completeHandler.succeeded()) {
+
+                        handler.reply(Constants.SUCCESS);
+                    } else {
+
+                        handler.fail(-1, completeHandler.cause().getMessage());
+
+                    }
+                });
+
+                case DATABASE_CREDENTIAL_UPDATE -> vertx.executeBlocking(blockingHandler -> {
+
+                    JsonObject userData = handler.body();
+
+                    userData.remove(METHOD);
+
+                    boolean result;
+
+                    try {
+
+                        result = update(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, userData.getString(Constants.CREDENTIAL_ID), userData);
+
+                        if (result) {
+
+                            blockingHandler.complete();
+                        } else {
+
+                            blockingHandler.fail(Constants.FAIL);
+
+                        }
+
+                    } catch (Exception exception) {
+
+                        LOG.debug("Error {} ", exception.getMessage());
+
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+                }).onComplete(resultHandler -> {
+
+
+                    if (resultHandler.succeeded()) {
+
+                        handler.reply(Constants.SUCCESS);
+
+
+                    } else {
+
+                        handler.fail(-1, resultHandler.cause().getMessage());
+
+                    }
+
+                });
+
+                case DATABASE_CREDENTIAL_GET_ID -> vertx.executeBlocking(blockingHandler -> {
+
+                    String id = handler.body().getString("id");
+
+                    try {
+
+                        JsonArray result = getAll(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id);
+
+                        if (result != null) {
+
+                            blockingHandler.complete(result);
+
+                        } else {
+
+                            blockingHandler.fail(Constants.FAIL);
+
+                        }
+
+                    } catch (Exception exception) {
+
+                        blockingHandler.fail(exception.getMessage());
+
+                    }
+
+
+                }).onComplete(resultHandler -> {
+
+                    if (resultHandler.succeeded()) {
+
+                        handler.reply(resultHandler.result());
+
+
+                    } else {
+
+                        handler.fail(-1, resultHandler.cause().toString());
+
+                    }
+
+                });
 
             }
         });
 
-        vertx.eventBus().<JsonObject>consumer(DISCOVERY_GENERAL,handler-> {
+        vertx.eventBus().<JsonObject>consumer(DISCOVERY_GENERAL, handler -> {
 
-            switch (handler.body().getString(METHOD)){
+            switch (handler.body().getString(METHOD)) {
 
-                case DISCOVERY_POST_CHECK_NAME -> {
+                case DISCOVERY_POST_CHECK_NAME -> vertx.executeBlocking(blockingHandler -> {
 
-                    vertx.executeBlocking(blockingHandler -> {
+                    try {
 
-                        try {
+                        JsonObject data = handler.body();
 
-                            JsonObject data = handler.body();
+                        if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, data.getString(Constants.CREDENTIAL_ID))) {
 
-                            if (checkName(Constants.CREDENTIAL_TABLE,Constants.CREDENTIAL_ID,data.getString(Constants.CREDENTIAL_ID))) {
+                            if (!checkName(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_NAME, data.getString(Constants.DISCOVERY_NAME))) {
 
-                                if(!checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_NAME,data.getString(Constants.DISCOVERY_NAME))) {
-
-                                    blockingHandler.complete(data);
-
-                                }else{
-
-                                    blockingHandler.fail(Constants.DISCOVERY_NAME_NOT_UNIQUE);
-
-                                }
+                                blockingHandler.complete(data);
 
                             } else {
 
-                                blockingHandler.fail(Constants.INVALID_CREDENTIAL_ID);
+                                blockingHandler.fail(Constants.DISCOVERY_NAME_NOT_UNIQUE);
 
                             }
-
-                        } catch (Exception exception) {
-
-                            blockingHandler.fail(Constants.FAIL);
-
-                        }
-
-
-                    }).onComplete(resultHandler -> {
-
-                        if (resultHandler.succeeded()) {
-
-                            handler.reply(resultHandler.result());
-
 
                         } else {
 
-                            handler.fail(-1, resultHandler.cause().getMessage());
+                            blockingHandler.fail(Constants.INVALID_CREDENTIAL_ID);
 
                         }
 
-                    });
+                    } catch (Exception exception) {
 
-                }
+                        blockingHandler.fail(Constants.FAIL);
 
-                case DISCOVERY_GET_NAME_CHECK -> {
-
-                    vertx.executeBlocking(blockingHandler->{
-
-                        String id = handler.body();
-
-                        try {
+                    }
 
 
-                            if(checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id)){
+                }).onComplete(resultHandler -> {
 
-                                blockingHandler.complete();
+                    if (resultHandler.succeeded()) {
 
-                            }else{
-
-                                blockingHandler.fail(Constants.NOT_PRESENT);
-
-                            }
-
-                        } catch (Exception exception) {
-
-                            LOG.debug("Error {} ", exception.getMessage());
-
-                            blockingHandler.fail(Constants.FAIL);
-
-                        }
+                        handler.reply(resultHandler.result());
 
 
-                    }).onComplete(resultHandler->{
+                    } else {
 
-                        if(resultHandler.succeeded()){
+                        handler.fail(-1, resultHandler.cause().getMessage());
 
-                            handler.reply(Constants.SUCCESS);
+                    }
 
-                        }else{
+                });
 
-                            handler.fail(-1,resultHandler.cause().getMessage());
+                case DISCOVERY_GET_NAME_CHECK, DISCOVERY_DELETE_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
+
+                    String id = handler.body().getString("id");
+
+                    try {
+
+
+                        if (checkName(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_ID, id)) {
+
+                            blockingHandler.complete();
+
+                        } else {
+
+                            blockingHandler.fail(Constants.NOT_PRESENT);
 
                         }
 
+                    } catch (Exception exception) {
 
-                    });
+                        LOG.debug("Error {} ", exception.getMessage());
 
-                }
+                        blockingHandler.fail(Constants.FAIL);
 
-                case DISCOVERY_DELETE_NAME_CHECK -> {
-
-                    vertx.executeBlocking(blockingHandler->{
-
-                        String id = handler.body();
-
-                        try {
+                    }
 
 
+                }).onComplete(resultHandler -> {
 
-                            if(checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id)){
+                    if (resultHandler.succeeded()) {
 
-                                blockingHandler.complete();
+                        handler.reply(Constants.SUCCESS);
 
-                            }else{
+                    } else {
 
-                                blockingHandler.fail(Constants.NOT_PRESENT);
+                        handler.fail(-1, resultHandler.cause().getMessage());
 
-                            }
-
-                        } catch (Exception exception) {
-
-                            LOG.debug("Error {} ", exception.getMessage());
-
-                            blockingHandler.fail(Constants.FAIL);
-
-                        }
+                    }
 
 
-                    }).onComplete(resultHandler->{
+                });
 
-                        if(resultHandler.succeeded()){
+                case DISCOVERY_PUT_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
 
-                            handler.reply(Constants.SUCCESS);
+                    JsonObject userData = handler.body();
 
-                        }else{
+                    userData.remove(METHOD);
 
-                            handler.fail(-1,resultHandler.cause().getMessage());
+                    try {
+
+                        if (checkName(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_ID, userData.getString(Constants.DISCOVERY_TABLE_ID))) {
+
+                            blockingHandler.complete();
+
+                        } else {
+
+                            blockingHandler.fail(NOT_PRESENT);
 
                         }
 
+                    } catch (Exception exception) {
 
-                    });
+                        LOG.debug("Error {} ", exception.getMessage());
 
+                        blockingHandler.fail(Constants.FAIL);
 
-                }
-
-                case DISCOVERY_PUT_NAME_CHECK -> {
-
-                    vertx.executeBlocking(blockingHandler->{
-
-                        JsonObject userData = handler.body();
-
-                        try {
-
-                            if(checkName(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,userData.getString(Constants.DISCOVERY_TABLE_ID))){
-
-                                blockingHandler.complete();
-
-                            }else{
-
-                                blockingHandler.fail(Constants.FAIL);
-
-                            }
-
-                        } catch (Exception exception) {
-
-                            LOG.debug("Error {} ", exception.getMessage());
-
-                            blockingHandler.fail(Constants.FAIL);
-
-                        }
+                    }
 
 
-                    }).onComplete(resultHandler->{
+                }).onComplete(resultHandler -> {
 
-                        if(resultHandler.succeeded()){
+                    if (resultHandler.succeeded()) {
 
-                            handler.reply(Constants.SUCCESS);
+                        handler.reply(Constants.SUCCESS);
 
-                        }else{
+                    } else {
 
-                            handler.fail(-1,Constants.FAIL);
+                        handler.fail(-1, resultHandler.cause().getMessage());
 
-                        }
-
-
-                    });
+                    }
 
 
-                }
+                });
 
                 case DATABASE_DISCOVERY_INSERT -> {
 
@@ -1361,13 +1104,15 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     userData.put(Constants.DISCOVERY_TABLE_ID, UUID.randomUUID().toString());
 
+                    userData.remove(METHOD);
+
                     vertx.executeBlocking(request -> {
 
                         JsonObject result;
 
                         try {
 
-                            result = insertDiscovery(userData);
+                            result = insert(DISCOVERY_TABLE,userData);
 
                             if (result == null) {
 
@@ -1409,227 +1154,161 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }
 
-                case DATABASE_DISCOVERY_GET_ALL -> {
+                case DATABASE_DISCOVERY_GET_ALL -> vertx.executeBlocking(blockingHandler -> {
 
-                    vertx.executeBlocking(blockingHandler -> {
+                    try {
 
-                        try {
+                        String id = "getAll";
 
-                            String id = "getAll";
+                        JsonArray jsonArray = getAll(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_ID, id);
 
-                            JsonArray jsonArray = getAll(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id);
+                        blockingHandler.complete(jsonArray);
 
-                            blockingHandler.complete(jsonArray);
+                    } catch (SQLException exception) {
 
-                        } catch (SQLException exception) {
+                        LOG.debug("Error {} ", exception.getMessage());
 
-                            LOG.debug("Error {} ", exception.getMessage());
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+                }).onComplete(completionHandler -> {
+
+                    if (completionHandler.succeeded()) {
+
+                        handler.reply(completionHandler.result());
+
+                    } else {
+
+                        handler.fail(-1, completionHandler.cause().getMessage());
+
+                    }
+
+                });
+
+                case DATABASE_DISCOVERY_GET_ID -> vertx.executeBlocking(blockingHandler -> {
+
+                    String id = handler.body().getString("id");
+
+                    try {
+
+                        JsonArray result = getAll(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_ID, id);
+
+                        blockingHandler.complete(result);
+
+                    } catch (Exception exception) {
+
+                        blockingHandler.fail(exception.getMessage());
+
+                    }
+
+
+                }).onComplete(resultHandler -> {
+
+                    if (resultHandler.succeeded()) {
+
+                        handler.reply(resultHandler.result());
+
+
+                    } else {
+
+                        handler.fail(-1, resultHandler.cause().toString());
+
+                    }
+
+                });
+
+                case DATABASE_DISCOVERY_DELETE -> vertx.executeBlocking(blockingHandler -> {
+
+                    boolean result;
+
+                    try {
+
+                        String id = handler.body().getString("id");
+
+                        result = delete(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_ID, id);
+
+                        if (result) {
+
+                            blockingHandler.complete();
+
+                        } else {
 
                             blockingHandler.fail(Constants.FAIL);
 
                         }
 
-                    }).onComplete(completionHandler -> {
 
-                        if (completionHandler.succeeded()) {
+                    } catch (Exception exception) {
 
-                            handler.reply(completionHandler.result());
+                        LOG.debug("Error : {}" + exception.getMessage());
 
-                        } else {
+                        blockingHandler.fail(exception.getMessage());
 
-                            handler.fail(-1, Constants.FAIL);
+                    }
 
-                        }
+                }).onComplete(completeHandler -> {
 
-                    });
+                    if (completeHandler.succeeded()) {
 
+                        handler.reply(Constants.SUCCESS);
+                    } else {
 
-                }
+                        handler.fail(-1, completeHandler.cause().getMessage());
 
-                case DATABASE_DISCOVERY_GET_ID -> {
+                    }
+                });
 
-                    vertx.executeBlocking(blockingHandler -> {
+                case DATABASE_DISCOVERY_UPDATE -> vertx.executeBlocking(blockingHandler -> {
 
-                        String id = handler.body();
+                    JsonObject userData = handler.body();
 
-                        try {
+                    userData.remove(METHOD);
 
-                            JsonArray result = getAll(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id);
+                    boolean result;
 
-                            blockingHandler.complete(result);
+                    try {
 
-                        } catch (Exception exception) {
+                        result = update(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_ID, userData.getString(Constants.DISCOVERY_TABLE_ID), userData);
 
-                            blockingHandler.fail(exception.getMessage());
+                        if (result) {
 
-                        }
-
-
-                    }).onComplete(resultHandler -> {
-
-                        if (resultHandler.succeeded()) {
-
-                            handler.reply(resultHandler.result());
-
+                            blockingHandler.complete();
 
                         } else {
-
-                            handler.fail(-1, resultHandler.cause().toString());
-
-                        }
-
-                    });
-                }
-
-                case DATABASE_DISCOVERY_DELETE -> {
-                    vertx.executeBlocking(request -> {
-
-                        boolean result;
-
-                        try {
-
-                            String id = handler.body();
-
-                            result = delete(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,id);
-
-                            if (result) {
-
-                                request.complete();
-
-                            } else {
-
-                                request.fail(Constants.FAIL);
-
-                            }
-
-
-                        } catch (Exception exception) {
-
-                            LOG.debug("Error : {}" + exception.getMessage());
-
-                            request.fail(exception.getMessage());
-
-                        }
-
-                    }).onComplete(completeHandler -> {
-
-                        if (completeHandler.succeeded()) {
-
-                            handler.reply(Constants.SUCCESS);
-                        } else {
-
-                            handler.fail(-1, Constants.FAIL);
-
-                        }
-                    });
-
-
-                }
-
-                case DATABASE_DISCOVERY_UPDATE -> {
-                    vertx.executeBlocking(blockingHandler -> {
-
-                        JsonObject userData = handler.body();
-
-                        boolean result;
-
-                        try {
-
-                            result = updateDiscovery(Constants.DISCOVERY_TABLE,Constants.DISCOVERY_TABLE_ID,userData.getString(Constants.DISCOVERY_TABLE_ID),userData);
-
-                            if (result) {
-
-                                blockingHandler.complete();
-                            }
-                            else {
-
-                                blockingHandler.fail(Constants.FAIL);
-
-                            }
-
-                        } catch (Exception exception) {
-
-                            LOG.debug("Error {} ", exception.getMessage());
 
                             blockingHandler.fail(Constants.FAIL);
 
                         }
 
-                    }).onComplete(resultHandler -> {
+                    } catch (Exception exception) {
+
+                        LOG.debug("Error {} ", exception.getMessage());
+
+                        blockingHandler.fail(Constants.FAIL);
+
+                    }
+
+                }).onComplete(resultHandler -> {
 
 
-                        if (resultHandler.succeeded()) {
+                    if (resultHandler.succeeded()) {
 
-                            handler.reply(Constants.SUCCESS);
+                        handler.reply(Constants.SUCCESS);
 
 
-                        } else {
+                    } else {
 
-                            handler.fail(-1, Constants.FAIL);
+                        handler.fail(-1, resultHandler.cause().getMessage());
 
-                        }
+                    }
 
-                    });
-
-                }
+                });
 
             }
 
         });
 
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-//        vertx.eventBus().<JsonObject>consumer(DISCOVERY_POST_CHECK_NAME, dataHandler -> {
-//
-//
-//        });
-//
-//        vertx.eventBus().<JsonObject>consumer(Constants.DATABASE_DISCOVERY_INSERT, handler -> {
-//
-//
-//        });
-//
-//        vertx.eventBus().<String>consumer(Constants.DATABASE_DISCOVERY_DELETE, handler -> {
-//
-//
-//        });
-//
-//        vertx.eventBus().<JsonArray>consumer(Constants.DATABASE_DISCOVERY_GET_ALL, consumer -> {
-//
-//
-//        });
-//
-//        vertx.eventBus().<String>consumer(Constants.DATABASE_DISCOVERY_GET_ID, handler -> {
-//
-//
-//
-//        });
-//
-//        vertx.eventBus().<JsonObject>consumer(Constants.DATABASE_DISCOVERY_UPDATE, handler -> {
-//
-//
-//
-//        });
-//
-//        vertx.eventBus().<JsonObject>consumer(Constants.DISCOVERY_PUT_NAME_CHECK,handler -> {
-//
-//
-//
-//        });
-//
-//        vertx.eventBus().<String>consumer(Constants.DISCOVERY_GET_NAME_CHECK,handler -> {
-//
-//
-//
-//        });
-//
-//
-//
-//        vertx.eventBus().<String>consumer(Constants.DISCOVERY_DELETE_NAME_CHECK,handler -> {
-//
-//
-//        });
 
         startPromise.complete();
 

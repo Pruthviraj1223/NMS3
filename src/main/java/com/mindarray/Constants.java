@@ -1,12 +1,6 @@
 package com.mindarray;
 
-import java.net.StandardProtocolFamily;
-
 public class Constants {
-
-    public static final String DISCOVERY = "/discovery";
-
-    public static final String DISCOVERY_ADDRESS = "discovery";
 
     public static final String DATABASE_CREDENTIAL_INSERT = "database.credential.insert";
 
@@ -30,7 +24,7 @@ public class Constants {
 
     public static final String DATABASE_DISCOVERY_UPDATE = "database.discovery.update";
 
-    public static final String DATABASE_CREDENTIAL_POST_CHECK_NAME = "database.credential.check.name";
+    public static final String CREDENTIAL_POST_CHECK_NAME = "database.credential.check.name";
 
     public static final String CREDENTIAL_TABLE = "Credentials";
 
@@ -69,10 +63,10 @@ public class Constants {
     public static final String IP_ADDRESS = "ip.address";
 
     public static final String PORT = "port";
-    public static final String NAME = "name";
-    public static final String PASSWORD = "password";
 
-    public static final String METRIC_TYPE = "metricType";
+    public static final String NAME = "name";
+
+    public static final String PASSWORD = "password";
 
     public static final String COMMUNITY = "community";
 
@@ -100,24 +94,31 @@ public class Constants {
 
     public static final String DISCOVERY_NAME_NOT_UNIQUE = "discovery name is not unique";
 
+    public static final String CREDENTIAL_NAME_NOT_UNIQUE = "credential name is not unique";
+
     public static final String INVALID_CREDENTIAL_ID = "invalid credential id";
 
     public static final String RESULT = "result";
 
     public static final String IN_USE = "Already in use";
 
-
     public static final String UNAVAILABLE = "data is unavailable";
+
 
     public static final String VERSION1 = "v1";
 
+
     public static final String VERSION2 = "v2";
+
 
     public static final String INSERT = "insertion";
 
+
     public static final String SSH = "ssh";
 
+
     public static final String WINRM = "winrm";
+
 
     public static final String SNMP = "snmp";
 
@@ -126,4 +127,5 @@ public class Constants {
     public static final String CREDENTIAL_ID = "credentialId";
 
     public static final String CREDENTIAL_NAME = "credential.name";
+
 }

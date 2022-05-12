@@ -1,9 +1,13 @@
 package com.mindarray;
 
 import io.vertx.core.Future;
+
 import io.vertx.core.Promise;
+
 import io.vertx.core.Vertx;
+
 import org.slf4j.Logger;
+
 import org.slf4j.LoggerFactory;
 
 public class Bootstrap {
@@ -15,16 +19,6 @@ public class Bootstrap {
 
 
         start(ApiRouter.class.getName())
-
-                .compose(future -> start(ApiRouter.class.getName()))
-
-                .compose(future -> start(DatabaseEngine.class.getName()))
-
-                .compose(future -> start(DatabaseEngine.class.getName()))
-
-                .compose(future -> start(DatabaseEngine.class.getName()))
-
-                .compose(future -> start(DatabaseEngine.class.getName()))
 
                 .compose(future -> start(DatabaseEngine.class.getName()))
 
