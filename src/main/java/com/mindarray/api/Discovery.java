@@ -1,20 +1,12 @@
 package com.mindarray.api;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.mindarray.Bootstrap;
-
 import com.mindarray.Constants;
-
 import io.vertx.core.Vertx;
-
 import io.vertx.core.http.HttpMethod;
-
 import io.vertx.core.json.JsonArray;
-
 import io.vertx.core.json.JsonObject;
-
 import io.vertx.ext.web.Router;
-
 import io.vertx.ext.web.RoutingContext;
 
 import java.util.HashMap;
@@ -72,7 +64,7 @@ public class Discovery {
 
                                 userData.put(Constants.METHOD,Constants.DISCOVERY_POST_CHECK_NAME);
 
-                                vertx.eventBus().<JsonObject>request(Constants.DISCOVERY_GENERAL, userData, handler -> {
+                                vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
                                     if (handler.succeeded()) {
 
@@ -112,7 +104,7 @@ public class Discovery {
 
                             userData.put(Constants.METHOD,Constants.DISCOVERY_PUT_NAME_CHECK);
 
-                            vertx.eventBus().request(Constants.DISCOVERY_GENERAL, userData, handler -> {
+                            vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
                                 if (handler.succeeded()) {
 
@@ -157,7 +149,7 @@ public class Discovery {
 
                 userData.put("id",routingContext.pathParam("id"));
 
-                vertx.eventBus().request(Constants.DISCOVERY_GENERAL, userData, handler -> {
+                vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
                     if (handler.succeeded()) {
 
@@ -184,7 +176,7 @@ public class Discovery {
 
                 userData.put("id",routingContext.pathParam("id"));
 
-                vertx.eventBus().request(Constants.DISCOVERY_GENERAL, userData, handler -> {
+                vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
                     if (handler.succeeded()) {
 
@@ -214,7 +206,7 @@ public class Discovery {
 
                     .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+                    .end(new JsonObject().put(Constants.STATUS, Constants.INVALID_INPUT).encodePrettily());
         }
 
     }
@@ -225,7 +217,9 @@ public class Discovery {
 
         userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_INSERT);
 
-        vertx.eventBus().<JsonObject>request(Constants.DISCOVERY_GENERAL, userData, response -> {
+        userData.put(Constants.TABLE_NAME,Constants.DISCOVERY_TABLE);
+
+        vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
                 if (response.succeeded()) {
@@ -270,7 +264,13 @@ public class Discovery {
 
         userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_GET_ALL);
 
-        vertx.eventBus().<JsonArray>request(Constants.DISCOVERY_GENERAL, userData, response -> {
+        userData.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
+
+        userData.put(Constants.TABLE_COLUMN,Constants.DISCOVERY_TABLE_ID);
+
+        userData.put(Constants.TABLE_ID,"getall");
+
+        vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
 
@@ -291,7 +291,7 @@ public class Discovery {
 
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.MESSAGE,Constants.UNAVAILABLE).encodePrettily());
+                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.MESSAGE,Constants.NOT_PRESENT).encodePrettily());
 
                     }
 
@@ -329,9 +329,13 @@ public class Discovery {
 
         userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_GET_ID);
 
-        userData.put("id",routingContext.pathParam("id"));
+        userData.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
 
-        vertx.eventBus().<JsonArray>request(Constants.DISCOVERY_GENERAL, userData, response -> {
+        userData.put(Constants.TABLE_COLUMN,Constants.DISCOVERY_TABLE_ID);
+
+        userData.put(Constants.TABLE_ID,routingContext.pathParam("id"));
+
+        vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
                 if (response.succeeded()) {
@@ -378,7 +382,12 @@ public class Discovery {
 
         userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_UPDATE);
 
-        vertx.eventBus().<JsonObject>request(Constants.DISCOVERY_GENERAL, userData, response -> {
+        userData.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
+
+        userData.put(Constants.TABLE_COLUMN,Constants.DISCOVERY_TABLE_ID);
+
+
+        vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
                 if (response.succeeded()) {
@@ -421,9 +430,13 @@ public class Discovery {
 
         userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_DELETE);
 
-        userData.put("id",routingContext.pathParam("id"));
+        userData.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
 
-        vertx.eventBus().request(Constants.DISCOVERY_GENERAL, userData, response -> {
+        userData.put(Constants.TABLE_COLUMN,Constants.DISCOVERY_TABLE_ID);
+
+        userData.put(Constants.TABLE_ID,routingContext.pathParam("id"));
+
+        vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
 

@@ -100,6 +100,12 @@ public class Constants {
 
     public static final String RESULT = "result";
 
+    public static final String TABLE_NAME = "tableName";
+
+    public static final String TABLE_COLUMN = "tableColumn";
+
+    public static final String TABLE_ID = "tableId";
+
     public static final String IN_USE = "Already in use";
 
     public static final String UNAVAILABLE = "data is unavailable";

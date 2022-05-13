@@ -1,23 +1,14 @@
 package com.mindarray;
 
 import io.vertx.core.AbstractVerticle;
-
 import io.vertx.core.Promise;
-
 import io.vertx.core.json.JsonArray;
-
 import io.vertx.core.json.JsonObject;
-
 import org.slf4j.Logger;
-
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
-
-import java.util.HashMap;
-
 import java.util.Map;
-
 import java.util.UUID;
 
 import static com.mindarray.Constants.*;
@@ -26,9 +17,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
     static final Logger LOG = LoggerFactory.getLogger(DatabaseEngine.class.getName());
 
-    boolean checkName(String table, String column, String value) throws SQLException {
-
-        Connection connection = null;
+    boolean checkName(String table, String column, String value) {
 
         boolean isAvailable = false;
 
@@ -38,9 +27,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        try {
-
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");) {
 
             String query = "select * from " + table + " where " + column + "='" + value + "'";
 
@@ -52,53 +39,15 @@ public class DatabaseEngine extends AbstractVerticle {
 
             LOG.debug("Error : {}", exception.getMessage());
 
-        } finally {
-
-            if (connection != null) {
-
-                connection.close();
-
-            }
-
         }
 
         return isAvailable;
 
     }
 
-    Map<String,String> transform(){
-
-        Map<String,String> map = new HashMap<>();
-
-        map.put("credential.name","credential_name");
-
-        map.put("name","name");
-
-        map.put("password","password");
-
-        map.put("credentialId","credentialId");
-
-        map.put("discovery.name","discovery_name");
-
-        map.put("ip","ip");
-
-        map.put("discoveryId","discoveryId");
-
-        map.put("protocol","protocol");
-
-        map.put("port","port");
-
-        map.put("type","type");
-
-        map.put("community","community");
-
-        map.put("version","version");
-
-        return map;
-
-    }
-
     boolean containsAllCredential(JsonObject data) {
+
+        data.put(CREDENTIAL_ID, UUID.randomUUID().toString());
 
         if (!(data.containsKey(Constants.CREDENTIAL_ID) && (!data.getString(Constants.CREDENTIAL_ID).isEmpty()))) {
 
@@ -155,6 +104,8 @@ public class DatabaseEngine extends AbstractVerticle {
 
     boolean containsAllDiscovery(JsonObject data) {
 
+        data.put(DISCOVERY_TABLE_ID, UUID.randomUUID().toString());
+
         if (!(data.containsKey(Constants.CREDENTIAL_ID) && (!data.getString(Constants.CREDENTIAL_ID).isEmpty()))) {
 
             return false;
@@ -190,11 +141,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
     void createTable() {
 
-        try {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
-            Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
-
-            Statement stmt = con.createStatement();
+            Statement stmt = connection.createStatement();
 
             stmt.executeUpdate("create table if not exists Credentials (credentialId varchar(255),credential_name varchar(255) PRIMARY KEY,protocol varchar(255),name varchar(255),password varchar(255),community varchar(255),version varchar(255))");
 
@@ -208,9 +157,7 @@ public class DatabaseEngine extends AbstractVerticle {
         }
     }
 
-    JsonObject insert(String tableName, JsonObject userData) throws SQLException {
-
-        Connection connection = null;
+    JsonObject insert(String tableName, JsonObject userData) {
 
         JsonObject result = new JsonObject();
 
@@ -218,23 +165,15 @@ public class DatabaseEngine extends AbstractVerticle {
 
             return null;
 
-        }else if(tableName.equalsIgnoreCase(DISCOVERY_TABLE) && !containsAllDiscovery(userData)){
+        } else if (tableName.equalsIgnoreCase(DISCOVERY_TABLE) && !containsAllDiscovery(userData)) {
 
             return null;
 
         }
 
-        if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) && checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_TABLE_NAME, userData.getString(Constants.CREDENTIAL_NAME))) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
-            result.put(Constants.STATUS, Constants.FAIL);
-
-            return result;
-
-        }
-
-        if(tableName.equalsIgnoreCase(DISCOVERY_TABLE)) {
-
-            if (checkName(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_NAME, userData.getString(Constants.DISCOVERY_NAME))) {
+            if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) && checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_TABLE_NAME, userData.getString(Constants.CREDENTIAL_NAME))) {
 
                 result.put(Constants.STATUS, Constants.FAIL);
 
@@ -242,19 +181,27 @@ public class DatabaseEngine extends AbstractVerticle {
 
             }
 
-            if (!checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, userData.getString(Constants.CREDENTIAL_ID))) {
+            if (tableName.equalsIgnoreCase(DISCOVERY_TABLE)) {
 
-                result.put(Constants.STATUS, Constants.FAIL);
+                if (checkName(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_NAME, userData.getString(Constants.DISCOVERY_NAME))) {
 
-                return result;
+                    result.put(Constants.STATUS, Constants.FAIL);
+
+                    return result;
+
+                }
+
+                if (!checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, userData.getString(Constants.CREDENTIAL_ID))) {
+
+                    result.put(Constants.STATUS, Constants.FAIL);
+
+                    return result;
+
+                }
 
             }
-        }
 
-
-        try {
-
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
+            userData.remove(TABLE_NAME);
 
             StringBuilder column = new StringBuilder("insert into ").append(tableName).append("(");
 
@@ -263,28 +210,28 @@ public class DatabaseEngine extends AbstractVerticle {
             // insert into tableName (  c1,c2,c3....)
             // values ( v1,v2,v3....);
 
-            Map<String,Object> userMap = userData.getMap();
+            Map<String, Object> userMap = userData.getMap();
 
 //            Map<String,String> dataMap = transform();
 
-            for(Map.Entry<String,Object> entry : userMap.entrySet()){
+            for (Map.Entry<String, Object> entry : userMap.entrySet()) {
 
-                column.append(entry.getKey().replace(".","_")).append(",");
+                column.append(entry.getKey().replace(".", "_")).append(",");
 
-                if(entry.getValue() instanceof String){
+                if (entry.getValue() instanceof String) {
 
                     values.append("'").append(entry.getValue()).append("'").append(",");
 
-                }else{
+                } else {
 
                     values.append(entry.getValue()).append(",");
 
                 }
             }
 
-            column.deleteCharAt(column.length()-1).append(")");
+            column.deleteCharAt(column.length() - 1).append(")");
 
-            values.deleteCharAt(values.length()-1).append(")");
+            values.deleteCharAt(values.length() - 1).append(")");
 
             column.append(values);
 
@@ -301,27 +248,19 @@ public class DatabaseEngine extends AbstractVerticle {
 
             result.put(Constants.STATUS, Constants.FAIL);
 
-        } finally {
-
-            if (connection != null) {
-
-                connection.close();
-
-            }
-
         }
 
         return result;
 
     }
 
-    boolean update(String tableName, String columnName, String id, JsonObject userData) throws SQLException {
-
-        Connection connection = null;
+    boolean update(String tableName, String columnName, JsonObject userData) {
 
         boolean result = true;
 
-        if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) &&  !userData.containsKey(Constants.CREDENTIAL_ID)) {
+        String id = userData.getString(columnName);
+
+        if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) && !userData.containsKey(Constants.CREDENTIAL_ID)) {
 
             return false;
 
@@ -333,10 +272,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        try {
-
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
-
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
             if (userData.containsKey(Constants.CREDENTIAL_NAME)) {
 
@@ -352,7 +288,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }
 
-            }else if (userData.containsKey(Constants.DISCOVERY_NAME)) {
+            } else if (userData.containsKey(Constants.DISCOVERY_NAME)) {
 
                 if (checkName(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_NAME, userData.getString(Constants.DISCOVERY_NAME))) {
 
@@ -361,7 +297,7 @@ public class DatabaseEngine extends AbstractVerticle {
                 }
             }
 
-            if(tableName.equalsIgnoreCase(DISCOVERY_TABLE) && userData.containsKey(CREDENTIAL_ID) && !checkName(CREDENTIAL_TABLE, CREDENTIAL_ID,userData.getString(CREDENTIAL_ID))){
+            if (tableName.equalsIgnoreCase(DISCOVERY_TABLE) && userData.containsKey(CREDENTIAL_ID) && !checkName(CREDENTIAL_TABLE, CREDENTIAL_ID, userData.getString(CREDENTIAL_ID))) {
 
                 return false;
 
@@ -370,7 +306,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             Map<String, Object> data = userData.getMap();
 
-            if(tableName.equalsIgnoreCase(CREDENTIAL_TABLE)){
+            if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE)) {
 
                 data.remove(CREDENTIAL_ID);
 
@@ -378,7 +314,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             }
 
-            if(tableName.equalsIgnoreCase(DISCOVERY_TABLE)){
+            if (tableName.equalsIgnoreCase(DISCOVERY_TABLE)) {
 
                 data.remove(TYPE);
 
@@ -388,7 +324,10 @@ public class DatabaseEngine extends AbstractVerticle {
 
             }
 
-//            Map<String,String> map = transform();
+            data.remove(TABLE_COLUMN, columnName);
+
+            data.remove(TABLE_NAME);
+
 
             String query;
 
@@ -396,17 +335,18 @@ public class DatabaseEngine extends AbstractVerticle {
 
             query = "UPDATE " + tableName + " SET ";
 
-            // UPDATE Credentials SET column1 = 'value1', column2 = 'value2' ..... where id = idValue;
+            // UPDATE Credentials SET column1 = 'value1', column2 = 'value2' ..... where columnValue = idValue;
 
             for (Map.Entry<String, Object> entry : data.entrySet()) {
 
-                update.append(entry.getKey().replace(".","_")).append(" = ").append("'").append(entry.getValue()).append("'").append(",");
+                update.append(entry.getKey().replace(".", "_")).append(" = ").append("'").append(entry.getValue()).append("'").append(",");
 
             }
 
-            update.deleteCharAt(update.length()-1);
+            update.deleteCharAt(update.length() - 1);
 
             String updatedQuery = query + update + " where " + columnName + " = '" + id + "' ;";
+
 
             PreparedStatement preparedStatement = connection.prepareStatement(updatedQuery);
 
@@ -417,32 +357,21 @@ public class DatabaseEngine extends AbstractVerticle {
 
             LOG.debug("Error {} ", exception.getMessage());
 
-            return false;
+            result = false;
 
-        } finally {
-
-            if (connection != null) {
-
-                connection.close();
-
-            }
         }
 
         return result;
 
     }
 
-    JsonArray getAll(String tableName, String column, String id) throws SQLException {
+    JsonArray getAll(String tableName, String column, String id) {
 
         JsonArray jsonArray = null;
 
-        Connection connection = null;
-
-        try {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
             jsonArray = new JsonArray();
-
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
 
             String query;
 
@@ -458,28 +387,27 @@ public class DatabaseEngine extends AbstractVerticle {
 
             ResultSet resultSet = connection.createStatement().executeQuery(query);
 
-
             while (resultSet.next()) {
 
                 JsonObject result = new JsonObject();
 
                 int columnCount = resultSet.getMetaData().getColumnCount();
 
-                for(int i=1;i<=columnCount;i++){
+                for (int i = 1; i <= columnCount; i++) {
 
                     String columnName = resultSet.getMetaData().getColumnName(i);
 
-                    columnName = columnName.replace("_",".");
+                    columnName = columnName.replace("_", ".");
 
-                    result.put(columnName,resultSet.getString(i));
+                    result.put(columnName, resultSet.getObject(i));
 
-                    if(columnName.equalsIgnoreCase(PROTOCOL)){
+                    if (columnName.equalsIgnoreCase(PROTOCOL)) {
 
-                        if(resultSet.getString(i).equalsIgnoreCase(SSH) || resultSet.getString(i).equalsIgnoreCase(WINRM)){
+                        if (resultSet.getString(i).equalsIgnoreCase(SSH) || resultSet.getString(i).equalsIgnoreCase(WINRM)) {
 
                             columnCount = columnCount - 2;
 
-                        }else{
+                        } else {
 
                             i = i + 2;
 
@@ -495,22 +423,13 @@ public class DatabaseEngine extends AbstractVerticle {
 
             LOG.debug("Error {} ", exception.getMessage());
 
-        } finally {
-
-            if (connection != null) {
-
-                connection.close();
-
-            }
         }
 
         return jsonArray;
 
     }
 
-    boolean delete(String tableName, String column, String id) throws SQLException {
-
-        Connection connection = null;
+    boolean delete(String tableName, String column, String id) {
 
         boolean result = false;
 
@@ -521,9 +440,7 @@ public class DatabaseEngine extends AbstractVerticle {
         }
 
 
-        try {
-
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
             String query = "delete from " + tableName + " where " + column + " ='" + id + "'";
 
@@ -542,14 +459,6 @@ public class DatabaseEngine extends AbstractVerticle {
 
             LOG.debug("Error {} ", exception.getMessage());
 
-        } finally {
-
-            if (connection != null) {
-
-                connection.close();
-
-            }
-
         }
 
         return result;
@@ -560,7 +469,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         createTable();
 
-        vertx.eventBus().<JsonObject>consumer(CREDENTIAL_GENERAL, handler -> {
+        vertx.eventBus().<JsonObject>consumer(EVENTBUS_DATABASE, handler -> {
 
             switch (handler.body().getString(Constants.METHOD)) {
 
@@ -646,47 +555,6 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 });
 
-                case CREDENTIAL_GET_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
-
-                    String id = handler.body().getString("id");
-
-                    try {
-
-
-                        if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id)) {
-
-                            blockingHandler.complete();
-
-                        } else {
-
-                            blockingHandler.fail(NOT_PRESENT);
-
-                        }
-
-                    } catch (Exception exception) {
-
-                        LOG.debug("Error {} ", exception.getMessage());
-
-                        blockingHandler.fail(Constants.FAIL);
-
-                    }
-
-
-                }).onComplete(resultHandler -> {
-
-                    if (resultHandler.succeeded()) {
-
-                        handler.reply(Constants.SUCCESS);
-
-                    } else {
-
-                        handler.fail(-1, resultHandler.cause().getMessage());
-
-                    }
-
-
-                });
-
                 case CREDENTIAL_DELETE_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
 
                     String id = handler.body().getString("id");
@@ -704,6 +572,7 @@ public class DatabaseEngine extends AbstractVerticle {
                                 blockingHandler.fail(Constants.NOT_PRESENT);
 
                             }
+
                         } else {
 
                             blockingHandler.fail(Constants.IN_USE);
@@ -732,225 +601,6 @@ public class DatabaseEngine extends AbstractVerticle {
                     }
 
                 });
-
-                case DATABASE_CREDENTIAL_INSERT -> {
-
-                    JsonObject userData = handler.body();
-
-                    userData.put(Constants.CREDENTIAL_ID, UUID.randomUUID().toString());
-
-                    userData.remove(METHOD);
-
-                    vertx.executeBlocking(request -> {
-
-                        JsonObject result;
-
-                        try {
-
-                            result = insert(CREDENTIAL_TABLE,userData);
-
-                            if (result == null) {
-
-                                request.fail(Constants.INVALID_INPUT);
-
-                            } else if (result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)) {
-
-                                request.complete();
-
-                            } else {
-
-                                request.fail(Constants.FAIL);
-
-                            }
-
-
-                        } catch (Exception exception) {
-
-                            LOG.debug("Error : {}" + exception.getMessage());
-
-                            request.fail(exception.getMessage());
-
-                        }
-
-                    }).onComplete(completeHandler -> {
-
-                        if (completeHandler.succeeded()) {
-
-                            handler.reply(userData);
-                        } else {
-
-                            handler.fail(-1, completeHandler.cause().getMessage());
-
-                        }
-
-                    });
-
-                }
-
-                case DATABASE_CREDENTIAL_GET_ALL -> vertx.executeBlocking(blockingHandler -> {
-
-                    try {
-
-                        String get = "getAll";
-
-                        JsonArray jsonArray = getAll(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, get);
-
-                        blockingHandler.complete(jsonArray);
-
-                    } catch (SQLException exception) {
-
-                        LOG.debug("Error {} ", exception.getMessage());
-
-                        blockingHandler.fail(Constants.FAIL);
-
-                    }
-
-                }).onComplete(completionHandler -> {
-
-                    if (completionHandler.succeeded()) {
-
-                        handler.reply(completionHandler.result());
-
-                    } else {
-
-                        handler.fail(-1, completionHandler.cause().getMessage());
-
-                    }
-
-                });
-
-                case DATABASE_CREDENTIAL_DELETE -> vertx.executeBlocking(blockingHandler -> {
-
-                    boolean result;
-
-                    try {
-
-                        String id = handler.body().getString("id");
-
-                        result = delete(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id);
-
-                        if (result) {
-
-                            blockingHandler.complete();
-
-                        } else {
-
-                            blockingHandler.fail(Constants.FAIL);
-
-                        }
-
-
-                    } catch (Exception exception) {
-
-                        LOG.debug("Error : {}" + exception.getMessage());
-
-                        blockingHandler.fail(exception.getMessage());
-
-                    }
-
-                }).onComplete(completeHandler -> {
-
-                    if (completeHandler.succeeded()) {
-
-                        handler.reply(Constants.SUCCESS);
-                    } else {
-
-                        handler.fail(-1, completeHandler.cause().getMessage());
-
-                    }
-                });
-
-                case DATABASE_CREDENTIAL_UPDATE -> vertx.executeBlocking(blockingHandler -> {
-
-                    JsonObject userData = handler.body();
-
-                    userData.remove(METHOD);
-
-                    boolean result;
-
-                    try {
-
-                        result = update(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, userData.getString(Constants.CREDENTIAL_ID), userData);
-
-                        if (result) {
-
-                            blockingHandler.complete();
-                        } else {
-
-                            blockingHandler.fail(Constants.FAIL);
-
-                        }
-
-                    } catch (Exception exception) {
-
-                        LOG.debug("Error {} ", exception.getMessage());
-
-                        blockingHandler.fail(Constants.FAIL);
-
-                    }
-
-                }).onComplete(resultHandler -> {
-
-
-                    if (resultHandler.succeeded()) {
-
-                        handler.reply(Constants.SUCCESS);
-
-
-                    } else {
-
-                        handler.fail(-1, resultHandler.cause().getMessage());
-
-                    }
-
-                });
-
-                case DATABASE_CREDENTIAL_GET_ID -> vertx.executeBlocking(blockingHandler -> {
-
-                    String id = handler.body().getString("id");
-
-                    try {
-
-                        JsonArray result = getAll(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id);
-
-                        if (result != null) {
-
-                            blockingHandler.complete(result);
-
-                        } else {
-
-                            blockingHandler.fail(Constants.FAIL);
-
-                        }
-
-                    } catch (Exception exception) {
-
-                        blockingHandler.fail(exception.getMessage());
-
-                    }
-
-
-                }).onComplete(resultHandler -> {
-
-                    if (resultHandler.succeeded()) {
-
-                        handler.reply(resultHandler.result());
-
-
-                    } else {
-
-                        handler.fail(-1, resultHandler.cause().toString());
-
-                    }
-
-                });
-
-            }
-        });
-
-        vertx.eventBus().<JsonObject>consumer(DISCOVERY_GENERAL, handler -> {
-
-            switch (handler.body().getString(METHOD)) {
 
                 case DISCOVERY_POST_CHECK_NAME -> vertx.executeBlocking(blockingHandler -> {
 
@@ -998,7 +648,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 });
 
-                case DISCOVERY_GET_NAME_CHECK, DISCOVERY_DELETE_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
+                case DISCOVERY_GET_NAME_CHECK, DISCOVERY_DELETE_NAME_CHECK,CREDENTIAL_GET_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
 
                     String id = handler.body().getString("id");
 
@@ -1081,11 +731,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 });
 
-                case DATABASE_DISCOVERY_INSERT -> {
+                case DATABASE_CREDENTIAL_INSERT, DATABASE_DISCOVERY_INSERT -> {
 
                     JsonObject userData = handler.body();
-
-                    userData.put(Constants.DISCOVERY_TABLE_ID, UUID.randomUUID().toString());
 
                     userData.remove(METHOD);
 
@@ -1095,7 +743,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         try {
 
-                            result = insert(DISCOVERY_TABLE,userData);
+                            result = insert(userData.getString(TABLE_NAME), userData);
 
                             if (result == null) {
 
@@ -1125,7 +773,6 @@ public class DatabaseEngine extends AbstractVerticle {
                         if (completeHandler.succeeded()) {
 
                             handler.reply(userData);
-
                         } else {
 
                             handler.fail(-1, completeHandler.cause().getMessage());
@@ -1134,82 +781,54 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     });
 
-
                 }
 
-                case DATABASE_DISCOVERY_GET_ALL -> vertx.executeBlocking(blockingHandler -> {
+                case DATABASE_CREDENTIAL_GET_ALL, DATABASE_DISCOVERY_GET_ALL, DATABASE_CREDENTIAL_GET_ID, DATABASE_DISCOVERY_GET_ID ->
+                        vertx.executeBlocking(blockingHandler -> {
 
-                    try {
+                            try {
 
-                        String id = "getAll";
+                                JsonArray result = getAll(handler.body().getString(TABLE_NAME), handler.body().getString(TABLE_COLUMN), handler.body().getString(TABLE_ID));
 
-                        JsonArray jsonArray = getAll(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_ID, id);
+                                if (result != null) {
 
-                        blockingHandler.complete(jsonArray);
+                                    blockingHandler.complete(result);
 
-                    } catch (SQLException exception) {
+                                } else {
 
-                        LOG.debug("Error {} ", exception.getMessage());
+                                    blockingHandler.fail(Constants.FAIL);
 
-                        blockingHandler.fail(Constants.FAIL);
+                                }
 
-                    }
+                            } catch (Exception exception) {
 
-                }).onComplete(completionHandler -> {
+                                LOG.debug("Error {} ", exception.getMessage());
 
-                    if (completionHandler.succeeded()) {
+                                blockingHandler.fail(Constants.FAIL);
 
-                        handler.reply(completionHandler.result());
+                            }
 
-                    } else {
+                        }).onComplete(completionHandler -> {
 
-                        handler.fail(-1, completionHandler.cause().getMessage());
+                            if (completionHandler.succeeded()) {
 
-                    }
+                                handler.reply(completionHandler.result());
 
-                });
+                            } else {
 
-                case DATABASE_DISCOVERY_GET_ID -> vertx.executeBlocking(blockingHandler -> {
+                                handler.fail(-1, completionHandler.cause().getMessage());
 
-                    String id = handler.body().getString("id");
+                            }
 
-                    try {
+                        });
 
-                        JsonArray result = getAll(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_ID, id);
-
-                        blockingHandler.complete(result);
-
-                    } catch (Exception exception) {
-
-                        blockingHandler.fail(exception.getMessage());
-
-                    }
-
-
-                }).onComplete(resultHandler -> {
-
-                    if (resultHandler.succeeded()) {
-
-                        handler.reply(resultHandler.result());
-
-
-                    } else {
-
-                        handler.fail(-1, resultHandler.cause().toString());
-
-                    }
-
-                });
-
-                case DATABASE_DISCOVERY_DELETE -> vertx.executeBlocking(blockingHandler -> {
+                case DATABASE_CREDENTIAL_DELETE, DATABASE_DISCOVERY_DELETE -> vertx.executeBlocking(blockingHandler -> {
 
                     boolean result;
 
                     try {
 
-                        String id = handler.body().getString("id");
-
-                        result = delete(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_ID, id);
+                        result = delete(handler.body().getString(TABLE_NAME), handler.body().getString(TABLE_COLUMN), handler.body().getString(TABLE_ID));
 
                         if (result) {
 
@@ -1242,7 +861,7 @@ public class DatabaseEngine extends AbstractVerticle {
                     }
                 });
 
-                case DATABASE_DISCOVERY_UPDATE -> vertx.executeBlocking(blockingHandler -> {
+                case DATABASE_CREDENTIAL_UPDATE, DATABASE_DISCOVERY_UPDATE -> vertx.executeBlocking(blockingHandler -> {
 
                     JsonObject userData = handler.body();
 
@@ -1252,12 +871,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     try {
 
-                        result = update(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_ID, userData.getString(Constants.DISCOVERY_TABLE_ID), userData);
+                        result = update(userData.getString(TABLE_NAME), userData.getString(TABLE_COLUMN), userData);
 
                         if (result) {
 
                             blockingHandler.complete();
-
                         } else {
 
                             blockingHandler.fail(Constants.FAIL);
@@ -1288,10 +906,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 });
 
-            }
 
+            }
         });
 
+        //----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
         startPromise.complete();
 

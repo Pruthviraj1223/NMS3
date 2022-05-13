@@ -1,21 +1,15 @@
 package com.mindarray.api;
 
 import com.mindarray.Bootstrap;
-
 import com.mindarray.Constants;
-
 import io.vertx.core.Vertx;
-
 import io.vertx.core.http.HttpMethod;
-
 import io.vertx.core.json.JsonArray;
-
 import io.vertx.core.json.JsonObject;
-
 import io.vertx.ext.web.Router;
-
 import io.vertx.ext.web.RoutingContext;
 
+import java.net.UnknownServiceException;
 import java.util.HashMap;
 
 public class Credentials {
@@ -66,7 +60,7 @@ public class Credentials {
 
                         userData.put(Constants.METHOD, Constants.CREDENTIAL_POST_CHECK_NAME);
 
-                        vertx.eventBus().<JsonObject>request(Constants.CREDENTIAL_GENERAL, userData, handler -> {
+                        vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
                             if (handler.succeeded()) {
 
@@ -92,7 +86,7 @@ public class Credentials {
 
                         userData.put(Constants.METHOD, Constants.CREDENTIAL_PUT_NAME_CHECK);
 
-                        vertx.eventBus().request(Constants.CREDENTIAL_GENERAL, userData, handler -> {
+                        vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
                             if (handler.succeeded()) {
 
@@ -133,7 +127,7 @@ public class Credentials {
 
                 userData.put("id", routingContext.pathParam("id"));
 
-                vertx.eventBus().request(Constants.CREDENTIAL_GENERAL, userData, handler -> {
+                vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
                     if (handler.succeeded()) {
 
@@ -160,7 +154,7 @@ public class Credentials {
 
                 userData.put("id", routingContext.pathParam("id"));
 
-                vertx.eventBus().request(Constants.CREDENTIAL_GENERAL, userData, handler -> {
+                vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
                     if (handler.succeeded()) {
 
@@ -200,7 +194,9 @@ public class Credentials {
 
         userData.put(Constants.METHOD, Constants.DATABASE_CREDENTIAL_INSERT);
 
-        vertx.eventBus().<JsonObject>request(Constants.CREDENTIAL_GENERAL, userData, response -> {
+        userData.put(Constants.TABLE_NAME, Constants.CREDENTIAL_TABLE);
+
+        vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
                 if (response.succeeded()) {
@@ -245,7 +241,13 @@ public class Credentials {
 
         userData.put(Constants.METHOD, Constants.DATABASE_CREDENTIAL_GET_ALL);
 
-        vertx.eventBus().<JsonArray>request(Constants.CREDENTIAL_GENERAL, userData, response -> {
+        userData.put(Constants.TABLE_NAME, Constants.CREDENTIAL_TABLE);
+
+        userData.put(Constants.TABLE_COLUMN,Constants.CREDENTIAL_ID);
+
+        userData.put(Constants.TABLE_ID,"getall");
+
+        vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
 
@@ -304,9 +306,13 @@ public class Credentials {
 
         userData.put(Constants.METHOD, Constants.DATABASE_CREDENTIAL_GET_ID);
 
-        userData.put("id", routingContext.pathParam("id"));
+        userData.put(Constants.TABLE_NAME, Constants.CREDENTIAL_TABLE);
 
-        vertx.eventBus().<JsonArray>request(Constants.CREDENTIAL_GENERAL, userData, response -> {
+        userData.put(Constants.TABLE_COLUMN,Constants.CREDENTIAL_ID);
+
+        userData.put(Constants.TABLE_ID,routingContext.pathParam("id"));
+
+        vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
 
@@ -353,9 +359,13 @@ public class Credentials {
 
         userData.put(Constants.METHOD, Constants.DATABASE_CREDENTIAL_DELETE);
 
-        userData.put("id", routingContext.pathParam("id"));
+        userData.put(Constants.TABLE_NAME, Constants.CREDENTIAL_TABLE);
 
-        vertx.eventBus().request(Constants.CREDENTIAL_GENERAL, userData, response -> {
+        userData.put(Constants.TABLE_COLUMN,Constants.CREDENTIAL_ID);
+
+        userData.put(Constants.TABLE_ID,routingContext.pathParam("id"));
+
+        vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
 
@@ -400,7 +410,11 @@ public class Credentials {
 
         userData.put(Constants.METHOD, Constants.DATABASE_CREDENTIAL_UPDATE);
 
-        vertx.eventBus().<JsonObject>request(Constants.CREDENTIAL_GENERAL, userData, response -> {
+        userData.put(Constants.TABLE_NAME, Constants.CREDENTIAL_TABLE);
+
+        userData.put(Constants.TABLE_COLUMN,Constants.CREDENTIAL_ID);
+
+        vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
                 if (response.succeeded()) {
