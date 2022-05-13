@@ -70,7 +70,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         Map<String,String> map = new HashMap<>();
 
-        map.put("credential.name","credentialName");
+        map.put("credential.name","credential_name");
 
         map.put("name","name");
 
@@ -78,41 +78,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
         map.put("credentialId","credentialId");
 
-        map.put("discovery.name","discoveryName");
+        map.put("discovery.name","discovery_name");
 
-        map.put("ip.address","ip");
-
-        map.put("discoveryId","discoveryId");
-
-        map.put("protocol","protocol");
-
-        map.put("port","port");
-
-        map.put("type","type");
-
-        map.put("community","community");
-
-        map.put("version","version");
-
-        return map;
-
-    }
-
-    Map<String,String> reverse(){
-
-        Map<String,String> map = new HashMap<>();
-
-        map.put("credential.name","credentialName");
-
-        map.put("name","name");
-
-        map.put("password","password");
-
-        map.put("credentialId","credentialId");
-
-        map.put("discovery.name","discoveryName");
-
-        map.put("ip.address","ip");
+        map.put("ip","ip");
 
         map.put("discoveryId","discoveryId");
 
@@ -228,9 +196,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
             Statement stmt = con.createStatement();
 
-            stmt.executeUpdate("create table if not exists Credentials (credentialId varchar(255),credentialName varchar(255) PRIMARY KEY,protocol varchar(255),name varchar(255),password varchar(255),community varchar(255),version varchar(255))");
+            stmt.executeUpdate("create table if not exists Credentials (credentialId varchar(255),credential_name varchar(255) PRIMARY KEY,protocol varchar(255),name varchar(255),password varchar(255),community varchar(255),version varchar(255))");
 
-            stmt.executeUpdate("create table if not exists Discovery (discoveryId varchar(255),credentialId varchar(255),discoveryName varchar(255),ip varchar(255),type varchar(255),port int)");
+            stmt.executeUpdate("create table if not exists Discovery (discoveryId varchar(255),credentialId varchar(255),discovery_name varchar(255),ip varchar(255),type varchar(255),port int)");
 
 
         } catch (Exception exception) {
@@ -297,11 +265,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
             Map<String,Object> userMap = userData.getMap();
 
-            Map<String,String> dataMap = transform();
+//            Map<String,String> dataMap = transform();
 
             for(Map.Entry<String,Object> entry : userMap.entrySet()){
 
-                column.append(dataMap.get(entry.getKey())).append(",");
+                column.append(entry.getKey().replace(".","_")).append(",");
 
                 if(entry.getValue() instanceof String){
 
@@ -414,15 +382,13 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 data.remove(TYPE);
 
-                data.remove(IP_ADDRESS);
-
                 data.remove(PORT);
 
                 data.remove(DISCOVERY_TABLE_ID);
 
             }
 
-            Map<String,String> map = transform();
+//            Map<String,String> map = transform();
 
             String query;
 
@@ -430,12 +396,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
             query = "UPDATE " + tableName + " SET ";
 
-            // UPDATE Credentials SET column1 = 'value1', column2 = 'value2' ..... where id = idvalue;
-
+            // UPDATE Credentials SET column1 = 'value1', column2 = 'value2' ..... where id = idValue;
 
             for (Map.Entry<String, Object> entry : data.entrySet()) {
 
-                update.append(map.get(entry.getKey())).append(" = ").append("'").append(entry.getValue()).append("'").append(",");
+                update.append(entry.getKey().replace(".","_")).append(" = ").append("'").append(entry.getValue()).append("'").append(",");
 
             }
 
@@ -498,10 +463,28 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 JsonObject result = new JsonObject();
 
-                for(int i=1;i<=resultSet.getMetaData().getColumnCount();i++){
+                int columnCount = resultSet.getMetaData().getColumnCount();
 
-                    result.put(resultSet.getMetaData().getColumnName(i),resultSet.getString(i));
+                for(int i=1;i<=columnCount;i++){
 
+                    String columnName = resultSet.getMetaData().getColumnName(i);
+
+                    columnName = columnName.replace("_",".");
+
+                    result.put(columnName,resultSet.getString(i));
+
+                    if(columnName.equalsIgnoreCase(PROTOCOL)){
+
+                        if(resultSet.getString(i).equalsIgnoreCase(SSH) || resultSet.getString(i).equalsIgnoreCase(WINRM)){
+
+                            columnCount = columnCount - 2;
+
+                        }else{
+
+                            i = i + 2;
+
+                        }
+                    }
                 }
 
                 jsonArray.add(result);

@@ -251,13 +251,26 @@ public class Credentials {
 
                 if (response.succeeded()) {
 
-                    JsonArray jsonArray = response.result().body();
+                    JsonArray result = response.result().body();
 
-                    routingContext.response()
+                    if(!result.isEmpty()){
 
-                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                        routingContext.response()
 
-                            .end(jsonArray.encodePrettily());
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                .end(result.encodePrettily());
+
+                    }else{
+                        routingContext.response()
+
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(Constants.STATUS,Constants.FAIL).put(Constants.MESSAGE,Constants.NOT_PRESENT).encodePrettily());
+
+                    }
+
+
 
                 } else {
 

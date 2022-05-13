@@ -30,7 +30,7 @@ public class Constants {
 
     public static final String DISCOVERY_NAME = "discovery.name";
 
-    public static final String DISCOVERY_TABLE_NAME = "discoveryName";
+    public static final String DISCOVERY_TABLE_NAME = "discovery_name";
 
     public static final String DISCOVERY_TABLE_ID = "discoveryId";
 
@@ -46,7 +46,7 @@ public class Constants {
 
     public static final String DISCOVERY_GET_NAME_CHECK = "discovery.get.name.check";
 
-    public static final String CREDENTIAL_TABLE_NAME = "credentialName";
+    public static final String CREDENTIAL_TABLE_NAME = "credential_name";
 
     public static final String TYPE = "type";
 
@@ -60,7 +60,7 @@ public class Constants {
 
     public static final String INVALID_INPUT = "invalid input";
 
-    public static final String IP_ADDRESS = "ip.address";
+    public static final String IP_ADDRESS = "ip";
 
     public static final String PORT = "port";
 
@@ -103,6 +103,8 @@ public class Constants {
     public static final String IN_USE = "Already in use";
 
     public static final String UNAVAILABLE = "data is unavailable";
+
+    public static final String EVENTBUS_DATABASE = "eventbus.database";
 
 
     public static final String VERSION1 = "v1";
