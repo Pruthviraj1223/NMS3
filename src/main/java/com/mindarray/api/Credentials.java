@@ -84,7 +84,14 @@ public class Credentials {
 
                     } else {
 
-                        userData.put(Constants.METHOD, Constants.CREDENTIAL_PUT_NAME_CHECK);
+                        userData.put(Constants.METHOD, Constants.DATABASE_ID_CHECK);
+
+
+                        userData.put(Constants.TABLE_NAME,Constants.CREDENTIAL_TABLE);
+
+                        userData.put(Constants.TABLE_COLUMN,Constants.CREDENTIAL_ID);
+
+                        userData.put(Constants.TABLE_ID,userData.getString(Constants.CREDENTIAL_ID));
 
                         vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
@@ -123,9 +130,13 @@ public class Credentials {
 
                 JsonObject userData = new JsonObject();
 
-                userData.put(Constants.METHOD, Constants.CREDENTIAL_GET_NAME_CHECK);
+                userData.put(Constants.METHOD, Constants.DATABASE_ID_CHECK);
 
-                userData.put("id", routingContext.pathParam("id"));
+                userData.put(Constants.TABLE_NAME,Constants.CREDENTIAL_TABLE);
+
+                userData.put(Constants.TABLE_COLUMN,Constants.CREDENTIAL_ID);
+
+                userData.put(Constants.TABLE_ID,routingContext.pathParam("id"));
 
                 vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
@@ -192,7 +203,7 @@ public class Credentials {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
-        userData.put(Constants.METHOD, Constants.DATABASE_CREDENTIAL_INSERT);
+        userData.put(Constants.METHOD, Constants.DATABASE_INSERT);
 
         userData.put(Constants.TABLE_NAME, Constants.CREDENTIAL_TABLE);
 
@@ -239,7 +250,7 @@ public class Credentials {
 
         JsonObject userData = new JsonObject();
 
-        userData.put(Constants.METHOD, Constants.DATABASE_CREDENTIAL_GET_ALL);
+        userData.put(Constants.METHOD, Constants.DATABASE_GET);
 
         userData.put(Constants.TABLE_NAME, Constants.CREDENTIAL_TABLE);
 
@@ -304,7 +315,7 @@ public class Credentials {
 
         JsonObject userData = new JsonObject();
 
-        userData.put(Constants.METHOD, Constants.DATABASE_CREDENTIAL_GET_ID);
+        userData.put(Constants.METHOD, Constants.DATABASE_GET);
 
         userData.put(Constants.TABLE_NAME, Constants.CREDENTIAL_TABLE);
 
@@ -357,7 +368,7 @@ public class Credentials {
 
         JsonObject userData = new JsonObject();
 
-        userData.put(Constants.METHOD, Constants.DATABASE_CREDENTIAL_DELETE);
+        userData.put(Constants.METHOD, Constants.DATABASE_DELETE);
 
         userData.put(Constants.TABLE_NAME, Constants.CREDENTIAL_TABLE);
 
@@ -408,7 +419,7 @@ public class Credentials {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
-        userData.put(Constants.METHOD, Constants.DATABASE_CREDENTIAL_UPDATE);
+        userData.put(Constants.METHOD, Constants.DATABASE_UPDATE);
 
         userData.put(Constants.TABLE_NAME, Constants.CREDENTIAL_TABLE);
 

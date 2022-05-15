@@ -27,7 +27,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
             String query = "select * from " + table + " where " + column + "='" + value + "'";
 
@@ -68,7 +68,7 @@ public class DatabaseEngine extends AbstractVerticle {
         }
 
 
-        if (data.getString(Constants.PROTOCOL).equalsIgnoreCase("ssh") || data.getString(Constants.PROTOCOL).equalsIgnoreCase("winrm")) {
+        if (data.getString(Constants.PROTOCOL).equalsIgnoreCase(SSH) || data.getString(Constants.PROTOCOL).equalsIgnoreCase(WINRM)) {
 
             if (!(data.containsKey(Constants.NAME) && (!data.getString(Constants.NAME).isEmpty()))) {
 
@@ -83,7 +83,7 @@ public class DatabaseEngine extends AbstractVerticle {
             }
         }
 
-        if (data.getString(Constants.PROTOCOL).equalsIgnoreCase("snmp")) {
+        if (data.getString(Constants.PROTOCOL).equalsIgnoreCase(SNMP)) {
 
             if (!(data.containsKey(Constants.COMMUNITY) && (!data.getString(Constants.COMMUNITY).isEmpty()))) {
 
@@ -328,6 +328,8 @@ public class DatabaseEngine extends AbstractVerticle {
 
             data.remove(TABLE_NAME);
 
+            data.remove(TABLE_ID);
+
 
             String query;
 
@@ -513,48 +515,6 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 });
 
-                case CREDENTIAL_PUT_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
-
-                    JsonObject userData = handler.body();
-
-                    userData.remove(METHOD);
-
-                    try {
-
-                        if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, userData.getString(Constants.CREDENTIAL_ID))) {
-
-                            blockingHandler.complete();
-
-                        } else {
-
-                            blockingHandler.fail(NOT_PRESENT);
-
-                        }
-
-                    } catch (Exception exception) {
-
-                        LOG.debug("Error {} ", exception.getMessage());
-
-                        blockingHandler.fail(Constants.FAIL);
-
-                    }
-
-
-                }).onComplete(resultHandler -> {
-
-                    if (resultHandler.succeeded()) {
-
-                        handler.reply(Constants.SUCCESS);
-
-                    } else {
-
-                        handler.fail(-1, resultHandler.cause().getMessage());
-
-                    }
-
-
-                });
-
                 case CREDENTIAL_DELETE_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
 
                     String id = handler.body().getString("id");
@@ -648,14 +608,13 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 });
 
-                case DISCOVERY_GET_NAME_CHECK, DISCOVERY_DELETE_NAME_CHECK,CREDENTIAL_GET_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
-
-                    String id = handler.body().getString("id");
+                case DATABASE_ID_CHECK -> vertx.executeBlocking(blockingHandler -> {
 
                     try {
 
+                        JsonObject userData = handler.body();
 
-                        if (checkName(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_ID, id)) {
+                        if (checkName(userData.getString(TABLE_NAME), userData.getString(TABLE_COLUMN), userData.getString(TABLE_ID))) {
 
                             blockingHandler.complete();
 
@@ -689,49 +648,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 });
 
-                case DISCOVERY_PUT_NAME_CHECK -> vertx.executeBlocking(blockingHandler -> {
-
-                    JsonObject userData = handler.body();
-
-                    userData.remove(METHOD);
-
-                    try {
-
-                        if (checkName(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_ID, userData.getString(Constants.DISCOVERY_TABLE_ID))) {
-
-                            blockingHandler.complete();
-
-                        } else {
-
-                            blockingHandler.fail(NOT_PRESENT);
-
-                        }
-
-                    } catch (Exception exception) {
-
-                        LOG.debug("Error {} ", exception.getMessage());
-
-                        blockingHandler.fail(Constants.FAIL);
-
-                    }
-
-
-                }).onComplete(resultHandler -> {
-
-                    if (resultHandler.succeeded()) {
-
-                        handler.reply(Constants.SUCCESS);
-
-                    } else {
-
-                        handler.fail(-1, resultHandler.cause().getMessage());
-
-                    }
-
-
-                });
-
-                case DATABASE_CREDENTIAL_INSERT, DATABASE_DISCOVERY_INSERT -> {
+                case DATABASE_INSERT -> {
 
                     JsonObject userData = handler.body();
 
@@ -783,8 +700,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }
 
-                case DATABASE_CREDENTIAL_GET_ALL, DATABASE_DISCOVERY_GET_ALL, DATABASE_CREDENTIAL_GET_ID, DATABASE_DISCOVERY_GET_ID ->
-                        vertx.executeBlocking(blockingHandler -> {
+                case DATABASE_GET -> vertx.executeBlocking(blockingHandler -> {
 
                             try {
 
@@ -822,7 +738,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         });
 
-                case DATABASE_CREDENTIAL_DELETE, DATABASE_DISCOVERY_DELETE -> vertx.executeBlocking(blockingHandler -> {
+                case DATABASE_DELETE -> vertx.executeBlocking(blockingHandler -> {
 
                     boolean result;
 
@@ -861,7 +777,7 @@ public class DatabaseEngine extends AbstractVerticle {
                     }
                 });
 
-                case DATABASE_CREDENTIAL_UPDATE, DATABASE_DISCOVERY_UPDATE -> vertx.executeBlocking(blockingHandler -> {
+                case DATABASE_UPDATE-> vertx.executeBlocking(blockingHandler -> {
 
                     JsonObject userData = handler.body();
 

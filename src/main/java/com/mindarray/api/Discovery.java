@@ -102,7 +102,13 @@ public class Discovery {
 
                         } else {
 
-                            userData.put(Constants.METHOD,Constants.DISCOVERY_PUT_NAME_CHECK);
+                            userData.put(Constants.METHOD,Constants.DATABASE_ID_CHECK);
+
+                            userData.put(Constants.TABLE_NAME,Constants.DISCOVERY_TABLE);
+
+                            userData.put(Constants.TABLE_COLUMN,Constants.DISCOVERY_TABLE_ID);
+
+                            userData.put(Constants.TABLE_ID,userData.getString(Constants.DISCOVERY_TABLE_ID));
 
                             vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
@@ -145,9 +151,13 @@ public class Discovery {
 
                 JsonObject userData = new JsonObject();
 
-                userData.put(Constants.METHOD,Constants.DISCOVERY_DELETE_NAME_CHECK);
+                userData.put(Constants.METHOD,Constants.DATABASE_ID_CHECK);
 
-                userData.put("id",routingContext.pathParam("id"));
+                userData.put(Constants.TABLE_NAME,Constants.DISCOVERY_TABLE);
+
+                userData.put(Constants.TABLE_COLUMN,Constants.DISCOVERY_TABLE_ID);
+
+                userData.put(Constants.TABLE_ID,routingContext.pathParam("id"));
 
                 vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
@@ -172,9 +182,13 @@ public class Discovery {
 
                 JsonObject userData = new JsonObject();
 
-                userData.put(Constants.METHOD,Constants.DISCOVERY_GET_NAME_CHECK);
+                userData.put(Constants.METHOD,Constants.DATABASE_ID_CHECK);
 
-                userData.put("id",routingContext.pathParam("id"));
+                userData.put(Constants.TABLE_NAME,Constants.DISCOVERY_TABLE);
+
+                userData.put(Constants.TABLE_COLUMN,Constants.DISCOVERY_TABLE_ID);
+
+                userData.put(Constants.TABLE_ID,routingContext.pathParam("id"));
 
                 vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
@@ -215,7 +229,7 @@ public class Discovery {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
-        userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_INSERT);
+        userData.put(Constants.METHOD,Constants.DATABASE_INSERT);
 
         userData.put(Constants.TABLE_NAME,Constants.DISCOVERY_TABLE);
 
@@ -262,7 +276,7 @@ public class Discovery {
 
         JsonObject userData = new JsonObject();
 
-        userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_GET_ALL);
+        userData.put(Constants.METHOD,Constants.DATABASE_GET);
 
         userData.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
 
@@ -327,7 +341,7 @@ public class Discovery {
 
         JsonObject userData = new JsonObject();
 
-        userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_GET_ID);
+        userData.put(Constants.METHOD,Constants.DATABASE_GET);
 
         userData.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
 
@@ -380,7 +394,7 @@ public class Discovery {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
-        userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_UPDATE);
+        userData.put(Constants.METHOD,Constants.DATABASE_UPDATE);
 
         userData.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
 
@@ -428,7 +442,7 @@ public class Discovery {
 
         JsonObject userData = new JsonObject();
 
-        userData.put(Constants.METHOD,Constants.DATABASE_DISCOVERY_DELETE);
+        userData.put(Constants.METHOD,Constants.DATABASE_DELETE);
 
         userData.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
 

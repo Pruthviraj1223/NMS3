@@ -2,27 +2,7 @@ package com.mindarray;
 
 public class Constants {
 
-    public static final String DATABASE_CREDENTIAL_INSERT = "database.credential.insert";
-
-    public static final String DATABASE_CREDENTIAL_GET_ALL = "database.credential.getAll";
-
-    public static final String DATABASE_CREDENTIAL_GET_ID = "database.credential.getId";
-
-    public static final String DATABASE_CREDENTIAL_DELETE = "database.credential.delete";
-
-    public static final String DATABASE_CREDENTIAL_UPDATE = "database.credential.update";
-
     public static final String DISCOVERY_POST_CHECK_NAME = "discovery.post.name.check";
-
-    public static final String DATABASE_DISCOVERY_INSERT = "database.discovery.insert";
-
-    public static final String DATABASE_DISCOVERY_GET_ALL = "database.discovery.getAll";
-
-    public static final String DATABASE_DISCOVERY_GET_ID = "database.discovery.getId";
-
-    public static final String DATABASE_DISCOVERY_DELETE = "database.discovery.delete";
-
-    public static final String DATABASE_DISCOVERY_UPDATE = "database.discovery.update";
 
     public static final String CREDENTIAL_POST_CHECK_NAME = "database.credential.check.name";
 
@@ -50,10 +30,6 @@ public class Constants {
 
     public static final String TYPE = "type";
 
-    public static final String DISCOVERY_GENERAL = "discovery.general.address";
-
-    public static final String CREDENTIAL_GENERAL = "credential.general.address";
-
     public static final String METHOD = "method";
 
     public static final String DISCOVERY_TABLE = "Discovery";
@@ -79,8 +55,6 @@ public class Constants {
     public static final String STATUS = "status";
 
     public static final String ERROR = "error";
-
-    public static final String EXIST = "Already exist";
 
     public static final String PROTOCOL = "protocol";
 
@@ -112,14 +86,17 @@ public class Constants {
 
     public static final String EVENTBUS_DATABASE = "eventbus.database";
 
+    public static final String DATABASE_ID_CHECK = "database.id.check";
 
-    public static final String VERSION1 = "v1";
+    public static final String DATABASE_INSERT = "database.insert";
+
+    public static final String DATABASE_UPDATE = "database.update";
+
+    public static final String DATABASE_GET = "database.get";
+
+    public static final String DATABASE_DELETE = "database.delete";
 
 
-    public static final String VERSION2 = "v2";
-
-
-    public static final String INSERT = "insertion";
 
 
     public static final String SSH = "ssh";
