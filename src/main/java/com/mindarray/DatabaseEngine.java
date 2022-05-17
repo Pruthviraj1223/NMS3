@@ -147,7 +147,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             stmt.executeUpdate("create table if not exists Credentials (credentialId varchar(255),credential_name varchar(255) PRIMARY KEY,protocol varchar(255),name varchar(255),password varchar(255),community varchar(255),version varchar(255))");
 
-            stmt.executeUpdate("create table if not exists Discovery (discoveryId varchar(255),credentialId varchar(255),discovery_name varchar(255),ip varchar(255),type varchar(255),port int)");
+            stmt.executeUpdate("create table if not exists Discovery (discoveryId varchar(255),credentialId varchar(255),discovery_name varchar(255),ip varchar(255),type varchar(255),port int,result varchar(255))");
 
 
         } catch (Exception exception) {
@@ -359,7 +359,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             LOG.debug("Error {} ", exception.getMessage());
 
-            result = false;
+            return false;
 
         }
 
@@ -399,22 +399,26 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     String columnName = resultSet.getMetaData().getColumnName(i);
 
-                    columnName = columnName.replace("_", ".");
+                    String newColumnName = columnName.replace("_", ".");
 
-                    result.put(columnName, resultSet.getObject(i));
+                    if(!(resultSet.getString(columnName) == null)) {
 
-                    if (columnName.equalsIgnoreCase(PROTOCOL)) {
+                        result.put(newColumnName, resultSet.getObject(i));
 
-                        if (resultSet.getString(i).equalsIgnoreCase(SSH) || resultSet.getString(i).equalsIgnoreCase(WINRM)) {
-
-                            columnCount = columnCount - 2;
-
-                        } else {
-
-                            i = i + 2;
-
-                        }
                     }
+
+//                    if (columnName.equalsIgnoreCase(PROTOCOL)) {
+//
+//                        if (resultSet.getString(i).equalsIgnoreCase(SSH) || resultSet.getString(i).equalsIgnoreCase(WINRM)) {
+//
+//                            columnCount = columnCount - 2;
+//
+//                        } else {
+//
+//                            i = i + 2;
+//
+//                        }
+//                    }
                 }
 
                 jsonArray.add(result);
@@ -424,6 +428,8 @@ public class DatabaseEngine extends AbstractVerticle {
         } catch (Exception exception) {
 
             LOG.debug("Error {} ", exception.getMessage());
+
+            System.out.println("ex " + exception.getMessage());
 
         }
 
@@ -465,6 +471,43 @@ public class DatabaseEngine extends AbstractVerticle {
 
         return result;
     }
+
+    JsonObject merge(String id){
+
+        JsonObject result = new JsonObject();
+
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+
+            String query =  "select discoveryId,port,ip,name,password,type,community,version from Discovery AS D JOIN Credentials AS C ON D.credentialId = C.credentialId where discoveryId='" + id + "'";
+
+            ResultSet resultSet = connection.createStatement().executeQuery(query);
+
+            while (resultSet.next()){
+
+                for(int i=1;i<=resultSet.getMetaData().getColumnCount();i++){
+
+                    String columnName = resultSet.getMetaData().getColumnName(i);
+
+                    if(!(resultSet.getString(columnName) == null)) {
+
+                        result.put(columnName, resultSet.getObject(i));
+
+                    }
+
+                }
+
+            }
+
+        }catch (Exception exception){
+
+            LOG.debug("Error : {} ",exception.getMessage());
+
+        }
+
+        return result;
+
+    }
+
 
     @Override
     public void start(Promise<Void> startPromise) {
@@ -817,6 +860,57 @@ public class DatabaseEngine extends AbstractVerticle {
                     } else {
 
                         handler.fail(-1, resultHandler.cause().getMessage());
+
+                    }
+
+                });
+
+                case MERGE_DATA -> vertx.executeBlocking(blockingHandler ->{
+
+                    JsonObject data = merge(handler.body().getString("id"));
+
+                    blockingHandler.complete(data);
+
+                }).onComplete(completionHandler -> {
+
+                    if(completionHandler.succeeded()){
+
+                        handler.reply(completionHandler.result());
+
+                    }else{
+
+                        handler.reply(completionHandler.cause().getMessage());
+
+                    }
+
+                });
+
+                case RUN_DISCOVERY_INSERT -> vertx.executeBlocking(blockingHandler ->{
+
+                   JsonObject userData = handler.body();
+
+                   userData.remove(METHOD);
+
+                   if(update(DISCOVERY_TABLE,DISCOVERY_TABLE_ID,userData)){
+
+                       blockingHandler.complete();
+
+                   }else{
+
+                       blockingHandler.fail(FAIL);
+
+                   }
+
+                }).onComplete(completionHandler -> {
+
+                    if(completionHandler.succeeded()){
+
+                        handler.reply(SUCCESS);
+
+
+                    }else{
+
+                        handler.fail(-1,completionHandler.cause().getMessage());
 
                     }
 

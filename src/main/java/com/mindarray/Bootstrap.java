@@ -1,5 +1,6 @@
 package com.mindarray;
 
+import com.mindarray.api.Discovery;
 import io.vertx.core.Future;
 
 import io.vertx.core.Promise;
@@ -21,6 +22,10 @@ public class Bootstrap {
         start(ApiRouter.class.getName())
 
                 .compose(future -> start(DatabaseEngine.class.getName()))
+
+                .compose(future -> start(DiscoveryEngine.class.getName()))
+
+                .compose(future -> start(Poller.class.getName()))
 
                 .onComplete(handler -> {
 

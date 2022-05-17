@@ -11,6 +11,7 @@
     </Root>
 
     <Logger name="com.mindarray.Bootstrap" level="DEBUG"/>
-
+    <Logger name="com.mindarray.DiscoveryEngine" level="DEBUG"/>
+    <Logger name="com.mindarray.DatabaseEngine" level="DEBUG"/>
   </Loggers>
 </Configuration>

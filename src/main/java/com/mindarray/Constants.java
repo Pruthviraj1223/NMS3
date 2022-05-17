@@ -96,16 +96,19 @@ public class Constants {
 
     public static final String DATABASE_DELETE = "database.delete";
 
+    public static final String RUN_DISCOVERY = "run.discovery";
 
+    public static final String RUN_DISCOVERY_INSERT = "run.discovery.insert";
 
+    public static final String MERGE_DATA = "merge.data";
 
     public static final String SSH = "ssh";
 
-
     public static final String WINRM = "winrm";
 
-
     public static final String SNMP = "snmp";
+
+    public static final String CATEGORY = "category";
 
     public static final String MISSING_DATA = "data is missing";
 
