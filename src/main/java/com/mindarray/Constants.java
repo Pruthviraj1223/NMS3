@@ -1,5 +1,7 @@
 package com.mindarray;
 
+import com.mysql.cj.xdevapi.PreparableStatement;
+
 public class Constants {
 
     public static final String DISCOVERY_POST_CHECK_NAME = "discovery.post.name.check";
@@ -102,6 +104,8 @@ public class Constants {
 
     public static final String MERGE_DATA = "merge.data";
 
+    public static final String PING_FAIL = "ping fail";
+
     public static final String SSH = "ssh";
 
     public static final String WINRM = "winrm";
@@ -109,6 +113,12 @@ public class Constants {
     public static final String SNMP = "snmp";
 
     public static final String CATEGORY = "category";
+
+    public static final String OBJECTS = "objects";
+
+    public static final String NOT_DISCOVERED = "ip is not discovered yet";
+
+    public static final String VALIDATE_PROVISION = "validate.provision";
 
     public static final String MISSING_DATA = "data is missing";
 

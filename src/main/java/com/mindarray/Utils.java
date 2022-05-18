@@ -96,6 +96,8 @@ public class Utils {
 
         String outcome = handler.output();
 
+        System.out.println(outcome);
+
         JsonObject result = null;
 
         if(outcome!=null){

@@ -2,6 +2,7 @@ package com.mindarray;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
@@ -147,8 +148,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             stmt.executeUpdate("create table if not exists Credentials (credentialId varchar(255),credential_name varchar(255) PRIMARY KEY,protocol varchar(255),name varchar(255),password varchar(255),community varchar(255),version varchar(255))");
 
-            stmt.executeUpdate("create table if not exists Discovery (discoveryId varchar(255),credentialId varchar(255),discovery_name varchar(255),ip varchar(255),type varchar(255),port int,result varchar(255))");
-
+            stmt.executeUpdate("create table if not exists Discovery (discoveryId varchar(255),credentialId varchar(255),discovery_name varchar(255) PRIMARY KEY,ip varchar(255),type varchar(255),port int,result JSON)");
 
         } catch (Exception exception) {
 
@@ -505,6 +505,61 @@ public class DatabaseEngine extends AbstractVerticle {
         }
 
         return result;
+
+    }
+
+    String validateProvision(String table,JsonObject data){
+
+        String ip = data.getString(IP_ADDRESS);
+
+        String type = data.getString(TYPE);
+
+        String credId = data.getString(CREDENTIAL_ID);
+
+
+        boolean isAvailable;
+
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+
+            String query = "select result->>'$.status' from " + table + " where credentialId = '" + credId + "' and ip = '" + ip + "' and type = '" + type +"'";
+
+            ResultSet resultSet = connection.createStatement().executeQuery(query);
+
+            isAvailable = resultSet.next();
+
+            if(isAvailable){
+
+                if(resultSet.getObject(1) != null){
+
+                    if(resultSet.getObject(1).toString().equalsIgnoreCase(SUCCESS)){
+
+                        return SUCCESS;
+
+                    }else{
+
+                        return FAIL;
+
+                    }
+
+                }else{
+
+                    return NOT_DISCOVERED;
+
+                }
+
+            }else{
+
+                return NOT_PRESENT;
+
+            }
+
+        } catch (Exception exception) {
+
+            LOG.debug("Error : {}", exception.getMessage());
+
+        }
+
+        return FAIL;
 
     }
 
@@ -909,6 +964,37 @@ public class DatabaseEngine extends AbstractVerticle {
 
 
                     }else{
+
+                        handler.fail(-1,completionHandler.cause().getMessage());
+
+                    }
+
+                });
+
+                case VALIDATE_PROVISION -> vertx.executeBlocking(blockingHandler->{
+
+                    JsonObject data = handler.body();
+
+                    String result = validateProvision(DISCOVERY_TABLE,data);
+
+                    if(result.equalsIgnoreCase(SUCCESS)){
+
+                        blockingHandler.complete(data);
+
+                    }else{
+
+                        blockingHandler.fail(result);
+
+                    }
+
+                }).onComplete(completionHandler -> {
+
+
+                    if(completionHandler.succeeded()){
+
+                        handler.reply(completionHandler.result());
+
+                    }else {
 
                         handler.fail(-1,completionHandler.cause().getMessage());
 

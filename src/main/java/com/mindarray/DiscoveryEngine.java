@@ -34,13 +34,13 @@ public class DiscoveryEngine extends AbstractVerticle {
 
                     }else{
 
-                        blockingHandler.fail(outcome.getString(ERROR));
+                        blockingHandler.complete(outcome);
 
                     }
 
                 }else{
 
-                    blockingHandler.fail("Ping fail");
+                    blockingHandler.complete(new JsonObject().put(STATUS,FAIL).put(MESSAGE,PING_FAIL));
 
                 }
 
@@ -52,7 +52,7 @@ public class DiscoveryEngine extends AbstractVerticle {
 
                 }else{
 
-                    handler.fail(-1,completionHandler.cause().getMessage());
+                    handler.fail(-1,FAIL);
 
                 }
 

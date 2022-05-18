@@ -38,7 +38,6 @@ public class Discovery {
 
         try {
 
-
             if (routingContext.request().method() == HttpMethod.POST || routingContext.request().method() == HttpMethod.PUT) {
 
                 JsonObject userData = routingContext.getBodyAsJson();
@@ -585,7 +584,7 @@ public class Discovery {
 
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                .end(new JsonObject().put(STATUS,SUCCESS).encodePrettily());
+                                .end(response.result().body().encodePrettily());
 
                     }else{
 
