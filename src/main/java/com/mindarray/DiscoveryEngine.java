@@ -13,7 +13,6 @@ public class DiscoveryEngine extends AbstractVerticle {
     @Override
     public void start(Promise<Void> startPromise)  {
 
-
         vertx.eventBus().<JsonObject>consumer(RUN_DISCOVERY,handler->{
 
             JsonObject userData = handler.body();

@@ -5,10 +5,8 @@ import com.zaxxer.nuprocess.NuProcessBuilder;
 
 import io.vertx.core.json.JsonObject;
 
-import java.util.ArrayList;
+import java.util.*;
 
-import java.util.Base64;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class Utils {
@@ -71,7 +69,6 @@ public class Utils {
 
     }
 
-
     static  JsonObject plugin(JsonObject data){
 
         String encodedString = Base64.getEncoder().encodeToString(data.toString().getBytes());
@@ -108,6 +105,37 @@ public class Utils {
 
         return result;
 
+    }
+
+    public static HashMap<String, HashMap<String, Integer>> metric(){
+
+        HashMap<String,HashMap<String,Integer>> metricMap = new HashMap<>();
+
+        HashMap<String, Integer> temp = new HashMap<>();
+
+        HashMap<String,Integer> snmp = new HashMap<>();
+
+        temp.put("cpu",60000);
+
+        temp.put("disk",120000);
+
+        temp.put("memory",40000);
+
+        temp.put("process",20000);
+
+        temp.put("SystemInfo",200000);
+
+        metricMap.put("linux",temp);
+
+        metricMap.put("windows",temp);
+
+        snmp.put("systemInfo",300000);
+
+        snmp.put("interface",20000);
+
+        metricMap.put("networking",snmp);
+
+        return metricMap;
     }
 
 }

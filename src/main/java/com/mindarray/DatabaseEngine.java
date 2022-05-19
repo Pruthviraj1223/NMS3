@@ -2,7 +2,6 @@ package com.mindarray;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
@@ -140,6 +139,27 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
+    boolean containsAllMonitor(JsonObject data){
+
+        data.put(MONITOR_ID,UUID.randomUUID().toString());
+
+        data.remove(CREDENTIAL_ID);
+
+        data.remove(OBJECTS);
+
+        if(data.containsKey(MONITOR_ID) && data.containsKey(IP_ADDRESS) && data.containsKey(PORT) && data.containsKey(TYPE)){
+
+            return true;
+
+        }else{
+
+            return false;
+
+        }
+
+    }
+
+
     void createTable() {
 
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
@@ -149,6 +169,11 @@ public class DatabaseEngine extends AbstractVerticle {
             stmt.executeUpdate("create table if not exists Credentials (credentialId varchar(255),credential_name varchar(255) PRIMARY KEY,protocol varchar(255),name varchar(255),password varchar(255),community varchar(255),version varchar(255))");
 
             stmt.executeUpdate("create table if not exists Discovery (discoveryId varchar(255),credentialId varchar(255),discovery_name varchar(255) PRIMARY KEY,ip varchar(255),type varchar(255),port int,result JSON)");
+
+            stmt.executeUpdate("create table if not exists Monitor (monitorId varchar(255),ip varchar(255),type varchar(255),port int,objects JSON)");
+
+            stmt.executeUpdate("create table if not exists UserMetric (metricId varchar(255),monitorId varchar(255),credentialId varchar(255),metricGroup varchar(255),time int,objects JSON)");
+
 
         } catch (Exception exception) {
 
@@ -161,6 +186,8 @@ public class DatabaseEngine extends AbstractVerticle {
 
         JsonObject result = new JsonObject();
 
+        userData.remove(TABLE_NAME);
+
         if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) && !containsAllCredential(userData)) {
 
             return null;
@@ -169,6 +196,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
             return null;
 
+        } else if(tableName.equalsIgnoreCase(MONITOR) && !containsAllMonitor(userData)){
+
+            return null;
         }
 
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
@@ -180,6 +210,7 @@ public class DatabaseEngine extends AbstractVerticle {
                 return result;
 
             }
+
 
             if (tableName.equalsIgnoreCase(DISCOVERY_TABLE)) {
 
@@ -201,7 +232,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             }
 
-            userData.remove(TABLE_NAME);
+
 
             StringBuilder column = new StringBuilder("insert into ").append(tableName).append("(");
 
@@ -508,7 +539,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
-    String validateProvision(String table,JsonObject data){
+    String validateProvision(JsonObject data){
 
         String ip = data.getString(IP_ADDRESS);
 
@@ -521,35 +552,49 @@ public class DatabaseEngine extends AbstractVerticle {
 
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
-            String query = "select result->>'$.status' from " + table + " where credentialId = '" + credId + "' and ip = '" + ip + "' and type = '" + type +"'";
+            String check = "select * from " + MONITOR + " where ip = '" + ip + "' and type = '" + type + "'";
 
-            ResultSet resultSet = connection.createStatement().executeQuery(query);
+            ResultSet set = connection.createStatement().executeQuery(check);
 
-            isAvailable = resultSet.next();
+            boolean ans = set.next();
 
-            if(isAvailable){
+            if(!ans) {
 
-                if(resultSet.getObject(1) != null){
+                String query = "select result->>'$.status' from " + DISCOVERY_TABLE + " where credentialId = '" + credId + "' and ip = '" + ip + "' and type = '" + type + "'";
 
-                    if(resultSet.getObject(1).toString().equalsIgnoreCase(SUCCESS)){
+                ResultSet resultSet = connection.createStatement().executeQuery(query);
 
-                        return SUCCESS;
+                isAvailable = resultSet.next();
 
-                    }else{
+                if (isAvailable) {
 
-                        return FAIL;
+                    if (resultSet.getObject(1) != null) {
+
+                        if (resultSet.getObject(1).toString().equalsIgnoreCase(SUCCESS)) {
+
+                            return SUCCESS;
+
+                        } else {
+
+                            return FAIL;
+
+                        }
+
+                    } else {
+
+                        return NOT_DISCOVERED;
 
                     }
 
-                }else{
+                } else {
 
-                    return NOT_DISCOVERED;
+                    return NOT_PRESENT;
 
                 }
 
             }else{
 
-                return NOT_PRESENT;
+                return EXIST;
 
             }
 
@@ -800,41 +845,41 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 case DATABASE_GET -> vertx.executeBlocking(blockingHandler -> {
 
-                            try {
+                    try {
 
-                                JsonArray result = getAll(handler.body().getString(TABLE_NAME), handler.body().getString(TABLE_COLUMN), handler.body().getString(TABLE_ID));
+                        JsonArray result = getAll(handler.body().getString(TABLE_NAME), handler.body().getString(TABLE_COLUMN), handler.body().getString(TABLE_ID));
 
-                                if (result != null) {
+                        if (result != null) {
 
-                                    blockingHandler.complete(result);
+                            blockingHandler.complete(result);
 
-                                } else {
+                        } else {
 
-                                    blockingHandler.fail(Constants.FAIL);
+                            blockingHandler.fail(Constants.FAIL);
 
-                                }
+                        }
 
-                            } catch (Exception exception) {
+                    } catch (Exception exception) {
 
-                                LOG.debug("Error {} ", exception.getMessage());
+                        LOG.debug("Error {} ", exception.getMessage());
 
-                                blockingHandler.fail(Constants.FAIL);
+                        blockingHandler.fail(Constants.FAIL);
 
-                            }
+                    }
 
-                        }).onComplete(completionHandler -> {
+                }).onComplete(completionHandler -> {
 
-                            if (completionHandler.succeeded()) {
+                    if (completionHandler.succeeded()) {
 
-                                handler.reply(completionHandler.result());
+                        handler.reply(completionHandler.result());
 
-                            } else {
+                    } else {
 
-                                handler.fail(-1, completionHandler.cause().getMessage());
+                        handler.fail(-1, completionHandler.cause().getMessage());
 
-                            }
+                    }
 
-                        });
+                });
 
                 case DATABASE_DELETE -> vertx.executeBlocking(blockingHandler -> {
 
@@ -875,7 +920,7 @@ public class DatabaseEngine extends AbstractVerticle {
                     }
                 });
 
-                case DATABASE_UPDATE-> vertx.executeBlocking(blockingHandler -> {
+                case DATABASE_UPDATE -> vertx.executeBlocking(blockingHandler -> {
 
                     JsonObject userData = handler.body();
 
@@ -920,7 +965,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 });
 
-                case MERGE_DATA -> vertx.executeBlocking(blockingHandler ->{
+                case MERGE_DATA -> vertx.executeBlocking(blockingHandler -> {
 
                     JsonObject data = merge(handler.body().getString("id"));
 
@@ -928,11 +973,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }).onComplete(completionHandler -> {
 
-                    if(completionHandler.succeeded()){
+                    if (completionHandler.succeeded()) {
 
                         handler.reply(completionHandler.result());
 
-                    }else{
+                    } else {
 
                         handler.reply(completionHandler.cause().getMessage());
 
@@ -940,48 +985,50 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 });
 
-                case RUN_DISCOVERY_INSERT -> vertx.executeBlocking(blockingHandler ->{
+                case RUN_DISCOVERY_INSERT -> vertx.executeBlocking(blockingHandler -> {
 
-                   JsonObject userData = handler.body();
+                    JsonObject userData = handler.body();
 
-                   userData.remove(METHOD);
+                    userData.remove(METHOD);
 
-                   if(update(DISCOVERY_TABLE,DISCOVERY_TABLE_ID,userData)){
+                    if (update(DISCOVERY_TABLE, DISCOVERY_TABLE_ID, userData)) {
 
-                       blockingHandler.complete();
+                        blockingHandler.complete();
 
-                   }else{
+                    } else {
 
-                       blockingHandler.fail(FAIL);
+                        blockingHandler.fail(FAIL);
 
-                   }
+                    }
 
                 }).onComplete(completionHandler -> {
 
-                    if(completionHandler.succeeded()){
+                    if (completionHandler.succeeded()) {
 
                         handler.reply(SUCCESS);
 
 
-                    }else{
+                    } else {
 
-                        handler.fail(-1,completionHandler.cause().getMessage());
+                        handler.fail(-1, completionHandler.cause().getMessage());
 
                     }
 
                 });
 
-                case VALIDATE_PROVISION -> vertx.executeBlocking(blockingHandler->{
+                case VALIDATE_PROVISION -> vertx.executeBlocking(blockingHandler -> {
 
                     JsonObject data = handler.body();
 
-                    String result = validateProvision(DISCOVERY_TABLE,data);
+                    data.remove(METHOD);
 
-                    if(result.equalsIgnoreCase(SUCCESS)){
+                    String result = validateProvision(data);
 
-                        blockingHandler.complete(data);
+                    if (result.equalsIgnoreCase(SUCCESS)) {
 
-                    }else{
+                        blockingHandler.complete(SUCCESS);
+
+                    } else {
 
                         blockingHandler.fail(result);
 
@@ -989,21 +1036,76 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }).onComplete(completionHandler -> {
 
-
-                    if(completionHandler.succeeded()){
+                    if (completionHandler.succeeded()) {
 
                         handler.reply(completionHandler.result());
 
-                    }else {
+                    } else {
 
-                        handler.fail(-1,completionHandler.cause().getMessage());
+                        handler.fail(-1, completionHandler.cause().getMessage());
 
                     }
 
                 });
 
+                case INSERT_METRIC -> {
 
+                    JsonObject userData = handler.body();
+
+                    userData.remove(METHOD);
+
+                    userData.remove(TABLE_COLUMN);
+
+                    vertx.executeBlocking(request -> {
+
+                        JsonObject result;
+
+                        try {
+
+                            result = insert(userData.getString(TABLE_NAME), userData);
+
+                            if (result == null) {
+
+                                request.fail(Constants.INVALID_INPUT);
+
+                            } else if (result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)) {
+
+                                request.complete();
+
+                            } else {
+
+                                request.fail(Constants.FAIL);
+
+                            }
+
+
+                        } catch (Exception exception) {
+
+                            LOG.debug("Error : {}" + exception.getMessage());
+
+                            request.fail(exception.getMessage());
+
+                        }
+
+                    }).onComplete(completeHandler -> {
+
+                        if (completeHandler.succeeded()) {
+
+                            handler.reply(userData);
+                        } else {
+
+                            handler.fail(-1, completeHandler.cause().getMessage());
+
+                        }
+
+                    });
+
+                }
             }
+
+
+
+
         });
 
         //----------------------------------------------------------------------------------------------------------------------------------------------------------------

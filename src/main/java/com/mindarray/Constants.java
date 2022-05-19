@@ -1,6 +1,9 @@
 package com.mindarray;
 
 import com.mysql.cj.xdevapi.PreparableStatement;
+import io.netty.handler.ipfilter.IpSubnetFilter;
+
+import java.util.HashMap;
 
 public class Constants {
 
@@ -118,12 +121,25 @@ public class Constants {
 
     public static final String NOT_DISCOVERED = "ip is not discovered yet";
 
+    public static final String MONITOR = "Monitor";
+
+    public static final String MONITOR_ID = "monitorId";
+
+    public static final String EXIST = "already exist";
+
     public static final String VALIDATE_PROVISION = "validate.provision";
 
     public static final String MISSING_DATA = "data is missing";
 
     public static final String CREDENTIAL_ID = "credentialId";
 
+    public static final String NETWORKING = "networking";
+
     public static final String CREDENTIAL_NAME = "credential.name";
+
+    public static final String USER_METRIC = "UserMetric";
+
+    public static final String INSERT_METRIC = "insert.metric";
+
 
 }
