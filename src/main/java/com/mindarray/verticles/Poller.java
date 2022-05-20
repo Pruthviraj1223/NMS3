@@ -1,4 +1,4 @@
-package com.mindarray;
+package com.mindarray.verticles;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;

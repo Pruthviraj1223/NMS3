@@ -1,7 +1,7 @@
 package com.mindarray.api;
 
-import com.mindarray.Bootstrap;
-import com.mindarray.Constants;
+import com.mindarray.verticles.Bootstrap;
+import com.mindarray.verticles.Constants;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -11,7 +11,7 @@ import io.vertx.ext.web.RoutingContext;
 
 import java.util.HashMap;
 
-import static com.mindarray.Constants.*;
+import static com.mindarray.verticles.Constants.*;
 
 
 public class Discovery {
@@ -104,7 +104,6 @@ public class Discovery {
                         }
 
                     }
-
 
                     if (routingContext.request().method() == HttpMethod.POST) {
 

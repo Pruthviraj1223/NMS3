@@ -1,4 +1,4 @@
-package com.mindarray;
+package com.mindarray.verticles;
 
 import io.vertx.core.AbstractVerticle;
 
@@ -6,7 +6,7 @@ import io.vertx.core.Promise;
 
 import io.vertx.core.json.JsonObject;
 
-import static com.mindarray.Constants.*;
+import static com.mindarray.verticles.Constants.*;
 
 public class DiscoveryEngine extends AbstractVerticle {
 

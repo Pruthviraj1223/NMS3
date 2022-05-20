@@ -1,7 +1,7 @@
 package com.mindarray.api;
 
-import com.mindarray.Bootstrap;
-import com.mindarray.Constants;
+import com.mindarray.verticles.Bootstrap;
+import com.mindarray.verticles.Constants;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -9,7 +9,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
-import java.net.UnknownServiceException;
 import java.util.HashMap;
 
 public class Credentials {
@@ -37,6 +36,8 @@ public class Credentials {
             if (routingContext.request().method() == HttpMethod.POST || routingContext.request().method() == HttpMethod.PUT) {
 
                 JsonObject userData = routingContext.getBodyAsJson();
+
+                // validation
 
                 if (userData != null) {
 
@@ -85,7 +86,6 @@ public class Credentials {
                     } else {
 
                         userData.put(Constants.METHOD, Constants.DATABASE_ID_CHECK);
-
 
                         userData.put(Constants.TABLE_NAME,Constants.CREDENTIAL_TABLE);
 

@@ -1,17 +1,24 @@
-package com.mindarray;
+package com.mindarray.verticles;
 
 import io.vertx.core.AbstractVerticle;
+
 import io.vertx.core.Promise;
+
 import io.vertx.core.json.JsonArray;
+
 import io.vertx.core.json.JsonObject;
+
 import org.slf4j.Logger;
+
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
-import java.util.Map;
-import java.util.UUID;
 
-import static com.mindarray.Constants.*;
+import java.util.HashMap;
+
+import java.util.Map;
+
+import static com.mindarray.verticles.Constants.*;
 
 public class DatabaseEngine extends AbstractVerticle {
 
@@ -47,7 +54,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
     boolean containsAllCredential(JsonObject data) {
 
-        data.put(CREDENTIAL_ID, UUID.randomUUID().toString());
+        data.put(CREDENTIAL_ID, getId(CREDENTIAL_TABLE,CREDENTIAL_ID));
 
         if (!(data.containsKey(Constants.CREDENTIAL_ID) && (!data.getString(Constants.CREDENTIAL_ID).isEmpty()))) {
 
@@ -102,9 +109,33 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
+    int getId(String tableName,String column){
+
+        int id = 1;
+
+        try(Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");) {
+
+            String query = "select max(" + column + ") from " + tableName;
+
+            ResultSet resultSet = connection.createStatement().executeQuery(query);
+
+            resultSet.next();
+
+            id = resultSet.getInt(1) + 1;
+
+        } catch (Exception exception) {
+
+            LOG.debug("Error {} ",exception.getMessage());
+
+        }
+
+        return id;
+
+    }
+
     boolean containsAllDiscovery(JsonObject data) {
 
-        data.put(DISCOVERY_TABLE_ID, UUID.randomUUID().toString());
+        data.put(DISCOVERY_TABLE_ID, getId(DISCOVERY_TABLE,DISCOVERY_TABLE_ID));
 
         if (!(data.containsKey(Constants.CREDENTIAL_ID) && (!data.getString(Constants.CREDENTIAL_ID).isEmpty()))) {
 
@@ -141,38 +172,37 @@ public class DatabaseEngine extends AbstractVerticle {
 
     boolean containsAllMonitor(JsonObject data){
 
-        data.put(MONITOR_ID,UUID.randomUUID().toString());
+        data.put(MONITOR_ID,getId(MONITOR,MONITOR_ID));
 
         data.remove(CREDENTIAL_ID);
 
         data.remove(OBJECTS);
 
-        if(data.containsKey(MONITOR_ID) && data.containsKey(IP_ADDRESS) && data.containsKey(PORT) && data.containsKey(TYPE)){
-
-            return true;
-
-        }else{
-
-            return false;
-
-        }
+        return data.containsKey(MONITOR_ID) && data.containsKey(IP_ADDRESS) && data.containsKey(PORT) && data.containsKey(TYPE);
 
     }
 
+    boolean containsAllUserMetric(JsonObject data){
+
+        return data.containsKey(CREDENTIAL_ID) && data.containsKey(MONITOR_ID) && data.containsKey(METRIC_ID) && data.containsKey(METRIC_GROUP) && data.containsKey(TIME);
+
+        // snmp validation remaining
+
+    }
 
     void createTable() {
 
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
-            Statement stmt = connection.createStatement();
+            Statement statement = connection.createStatement();
 
-            stmt.executeUpdate("create table if not exists Credentials (credentialId varchar(255),credential_name varchar(255) PRIMARY KEY,protocol varchar(255),name varchar(255),password varchar(255),community varchar(255),version varchar(255))");
+            statement.executeUpdate("create table if not exists Credentials (credentialId int PRIMARY KEY AUTO_INCREMENT,credential_name varchar(255),protocol varchar(255),name varchar(255),password varchar(255),community varchar(255),version varchar(255))");
 
-            stmt.executeUpdate("create table if not exists Discovery (discoveryId varchar(255),credentialId varchar(255),discovery_name varchar(255) PRIMARY KEY,ip varchar(255),type varchar(255),port int,result JSON)");
+            statement.executeUpdate("create table if not exists Discovery (discoveryId int PRIMARY KEY AUTO_INCREMENT,credentialId int,discovery_name varchar(255),ip varchar(255),type varchar(255),port int,result JSON)");
 
-            stmt.executeUpdate("create table if not exists Monitor (monitorId varchar(255),ip varchar(255),type varchar(255),port int,objects JSON)");
+            statement.executeUpdate("create table if not exists Monitor (monitorId int PRIMARY KEY AUTO_INCREMENT,ip varchar(255),type varchar(255),port int,objects JSON)");
 
-            stmt.executeUpdate("create table if not exists UserMetric (metricId varchar(255),monitorId varchar(255),credentialId varchar(255),metricGroup varchar(255),time int,objects JSON)");
+            statement.executeUpdate("create table if not exists UserMetric (metricId int PRIMARY KEY AUTO_INCREMENT,monitorId int,credentialId int,metricGroup varchar(255),time int,objects JSON)");
 
 
         } catch (Exception exception) {
@@ -199,40 +229,14 @@ public class DatabaseEngine extends AbstractVerticle {
         } else if(tableName.equalsIgnoreCase(MONITOR) && !containsAllMonitor(userData)){
 
             return null;
+
+        } else if(tableName.equalsIgnoreCase(USER_METRIC) && !containsAllUserMetric(userData)){
+
+            return null;
+
         }
 
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
-
-            if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) && checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_TABLE_NAME, userData.getString(Constants.CREDENTIAL_NAME))) {
-
-                result.put(Constants.STATUS, Constants.FAIL);
-
-                return result;
-
-            }
-
-
-            if (tableName.equalsIgnoreCase(DISCOVERY_TABLE)) {
-
-                if (checkName(Constants.DISCOVERY_TABLE, Constants.DISCOVERY_TABLE_NAME, userData.getString(Constants.DISCOVERY_NAME))) {
-
-                    result.put(Constants.STATUS, Constants.FAIL);
-
-                    return result;
-
-                }
-
-                if (!checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, userData.getString(Constants.CREDENTIAL_ID))) {
-
-                    result.put(Constants.STATUS, Constants.FAIL);
-
-                    return result;
-
-                }
-
-            }
-
-
 
             StringBuilder column = new StringBuilder("insert into ").append(tableName).append("(");
 
@@ -243,19 +247,17 @@ public class DatabaseEngine extends AbstractVerticle {
 
             Map<String, Object> userMap = userData.getMap();
 
-//            Map<String,String> dataMap = transform();
-
             for (Map.Entry<String, Object> entry : userMap.entrySet()) {
 
                 column.append(entry.getKey().replace(".", "_")).append(",");
 
-                if (entry.getValue() instanceof String) {
-
-                    values.append("'").append(entry.getValue()).append("'").append(",");
-
-                } else {
+                if (entry.getValue() instanceof Integer) {
 
                     values.append(entry.getValue()).append(",");
+
+                } else{
+
+                    values.append("'").append(entry.getValue()).append("'").append(",");
 
                 }
             }
@@ -304,6 +306,8 @@ public class DatabaseEngine extends AbstractVerticle {
         }
 
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+
+            // shift validation
 
             if (userData.containsKey(Constants.CREDENTIAL_NAME)) {
 
@@ -361,7 +365,6 @@ public class DatabaseEngine extends AbstractVerticle {
 
             data.remove(TABLE_ID);
 
-
             String query;
 
             StringBuilder update = new StringBuilder();
@@ -380,7 +383,6 @@ public class DatabaseEngine extends AbstractVerticle {
 
             String updatedQuery = query + update + " where " + columnName + " = '" + id + "' ;";
 
-
             PreparedStatement preparedStatement = connection.prepareStatement(updatedQuery);
 
             preparedStatement.execute();
@@ -389,8 +391,6 @@ public class DatabaseEngine extends AbstractVerticle {
         } catch (Exception exception) {
 
             LOG.debug("Error {} ", exception.getMessage());
-
-            return false;
 
         }
 
@@ -437,22 +437,10 @@ public class DatabaseEngine extends AbstractVerticle {
                         result.put(newColumnName, resultSet.getObject(i));
 
                     }
-
-//                    if (columnName.equalsIgnoreCase(PROTOCOL)) {
-//
-//                        if (resultSet.getString(i).equalsIgnoreCase(SSH) || resultSet.getString(i).equalsIgnoreCase(WINRM)) {
-//
-//                            columnCount = columnCount - 2;
-//
-//                        } else {
-//
-//                            i = i + 2;
-//
-//                        }
-//                    }
                 }
 
                 jsonArray.add(result);
+
             }
 
 
@@ -460,7 +448,6 @@ public class DatabaseEngine extends AbstractVerticle {
 
             LOG.debug("Error {} ", exception.getMessage());
 
-            System.out.println("ex " + exception.getMessage());
 
         }
 
@@ -478,7 +465,6 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
             String query = "delete from " + tableName + " where " + column + " ='" + id + "'";
@@ -492,7 +478,6 @@ public class DatabaseEngine extends AbstractVerticle {
                 result = true;
 
             }
-
 
         } catch (Exception exception) {
 
@@ -541,18 +526,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
     String validateProvision(JsonObject data){
 
-        String ip = data.getString(IP_ADDRESS);
-
-        String type = data.getString(TYPE);
-
-        String credId = data.getString(CREDENTIAL_ID);
-
-
         boolean isAvailable;
 
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
-            String check = "select * from " + MONITOR + " where ip = '" + ip + "' and type = '" + type + "'";
+            String check = "select * from " + MONITOR + " where ip = '" + data.getString(IP_ADDRESS) + "' and type = '" + data.getString(TYPE) + "'";
 
             ResultSet set = connection.createStatement().executeQuery(check);
 
@@ -560,7 +538,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             if(!ans) {
 
-                String query = "select result->>'$.status' from " + DISCOVERY_TABLE + " where credentialId = '" + credId + "' and ip = '" + ip + "' and type = '" + type + "'";
+                String query = "select result->>'$.status' from " + DISCOVERY_TABLE + " where credentialId = '" + data.getString(CREDENTIAL_ID) + "' and ip = '" + data.getString(IP_ADDRESS) + "' and type = '" + data.getString(TYPE) + "'";
 
                 ResultSet resultSet = connection.createStatement().executeQuery(query);
 
@@ -607,7 +585,6 @@ public class DatabaseEngine extends AbstractVerticle {
         return FAIL;
 
     }
-
 
     @Override
     public void start(Promise<Void> startPromise) {
@@ -1052,29 +1029,61 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     JsonObject userData = handler.body();
 
+                    String type = userData.getString(TYPE);
+
                     userData.remove(METHOD);
 
-                    userData.remove(TABLE_COLUMN);
+                    userData.remove(TYPE);
+
+                    if(!userData.containsKey(CREDENTIAL_ID) && userData.containsKey(MONITOR_ID)){
+
+                       handler.fail(-1,INVALID_INPUT);
+
+                    }
 
                     vertx.executeBlocking(request -> {
 
                         JsonObject result;
 
+                        int count =0;
+
                         try {
 
-                            result = insert(userData.getString(TABLE_NAME), userData);
+                            HashMap<String,Integer> map = Utils.metric(type);
 
-                            if (result == null) {
+                            for(Map.Entry<String,Integer> entry : map.entrySet()){
 
-                                request.fail(Constants.INVALID_INPUT);
+                                userData.put(METRIC_GROUP,entry.getKey());
 
-                            } else if (result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)) {
+                                userData.put(TIME,entry.getValue());
+
+                                userData.put(METRIC_ID,getId(USER_METRIC,METRIC_ID));
+
+                                result = insert(USER_METRIC, userData);
+
+                                if (result.containsKey(STATUS)){
+
+                                    if(result.getString(STATUS).equalsIgnoreCase(SUCCESS)){
+
+                                        count++;
+
+                                    }
+
+                                }
+
+                            }
+
+                            if(type.equalsIgnoreCase("linux") || type.equalsIgnoreCase("windows") && count==5){
 
                                 request.complete();
 
-                            } else {
+                            } else if (type.equalsIgnoreCase("networking") && count==2) {
 
-                                request.fail(Constants.FAIL);
+                                request.complete();
+
+                            }else {
+
+                                request.fail(FAIL);
 
                             }
 
@@ -1101,10 +1110,51 @@ public class DatabaseEngine extends AbstractVerticle {
                     });
 
                 }
+
+                case DATABASE_DELETE_MONITOR -> vertx.executeBlocking(blockingHandler -> {
+
+                    try {
+
+                        if (delete(USER_METRIC, MONITOR_ID, handler.body().getString(TABLE_ID))) {
+
+                            if(delete(MONITOR,MONITOR_ID,handler.body().getString(TABLE_ID))){
+
+                                blockingHandler.complete();
+
+                            }else{
+
+                                blockingHandler.fail(FAIL);
+
+                            }
+
+                        } else {
+
+                            blockingHandler.fail(Constants.FAIL);
+
+                        }
+
+
+                    } catch (Exception exception) {
+
+                        LOG.debug("Error : {}" + exception.getMessage());
+
+                        blockingHandler.fail(exception.getMessage());
+
+                    }
+
+                }).onComplete(completeHandler -> {
+
+                    if (completeHandler.succeeded()) {
+
+                        handler.reply(Constants.SUCCESS);
+                    } else {
+
+                        handler.fail(-1, completeHandler.cause().getMessage());
+
+                    }
+                });
+
             }
-
-
-
 
         });
 

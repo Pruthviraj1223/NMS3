@@ -1,4 +1,4 @@
-package com.mindarray;
+package com.mindarray.verticles;
 
 import com.mindarray.api.Credentials;
 
@@ -36,31 +36,27 @@ public class ApiRouter extends AbstractVerticle {
 
         Router router = Router.router(vertx);
 
-        Router discoveryRouter = Router.router(vertx);
-
-        Router credentialRouter = Router.router(vertx);
+        Router subrouter = Router.router(vertx);
 
         Router monitorRouter = Router.router(vertx);
 
-        router.mountSubRouter("/api", discoveryRouter);
-
-        router.mountSubRouter("/api", credentialRouter);
+        router.mountSubRouter("/api", subrouter);
 
         router.mountSubRouter("/api/monitor/",monitorRouter);
 
         router.route().handler(BodyHandler.create());
 
-        discoveryRouter.route().handler(BodyHandler.create());
+        subrouter.route().handler(BodyHandler.create());
 
-        credentialRouter.route().handler(BodyHandler.create());
+        monitorRouter.route().handler(BodyHandler.create());
 
         Credentials credentials = new Credentials();
 
-        credentials.init(credentialRouter);
+        credentials.init(subrouter);
 
         Discovery discovery = new Discovery();
 
-        discovery.init(discoveryRouter);
+        discovery.init(subrouter);
 
         Monitor monitor = new Monitor();
 

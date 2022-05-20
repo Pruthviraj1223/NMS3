@@ -1,9 +1,4 @@
-package com.mindarray;
-
-import com.mysql.cj.xdevapi.PreparableStatement;
-import io.netty.handler.ipfilter.IpSubnetFilter;
-
-import java.util.HashMap;
+package com.mindarray.verticles;
 
 public class Constants {
 
@@ -19,17 +14,7 @@ public class Constants {
 
     public static final String DISCOVERY_TABLE_ID = "discoveryId";
 
-    public static final String CREDENTIAL_PUT_NAME_CHECK = "credentials.put.name.check";
-
     public static final String CREDENTIAL_DELETE_NAME_CHECK = "credentials.delete.name.check";
-
-    public static final String CREDENTIAL_GET_NAME_CHECK = "credentials.get.name.check";
-
-    public static final String DISCOVERY_PUT_NAME_CHECK = "discovery.put.name.check";
-
-    public static final String DISCOVERY_DELETE_NAME_CHECK = "discovery.delete.name.check";
-
-    public static final String DISCOVERY_GET_NAME_CHECK = "discovery.get.name.check";
 
     public static final String CREDENTIAL_TABLE_NAME = "credential_name";
 
@@ -140,6 +125,14 @@ public class Constants {
     public static final String USER_METRIC = "UserMetric";
 
     public static final String INSERT_METRIC = "insert.metric";
+
+    public static final String METRIC_ID = "metricId";
+
+    public static final String METRIC_GROUP = "metricGroup";
+
+    public static final String TIME = "time";
+
+    public static final String DATABASE_DELETE_MONITOR = "database.delete.monitor";
 
 
 }

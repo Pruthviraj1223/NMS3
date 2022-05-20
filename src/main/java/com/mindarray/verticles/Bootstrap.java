@@ -1,6 +1,5 @@
-package com.mindarray;
+package com.mindarray.verticles;
 
-import com.mindarray.api.Discovery;
 import io.vertx.core.Future;
 
 import io.vertx.core.Promise;

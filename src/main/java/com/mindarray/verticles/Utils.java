@@ -1,4 +1,4 @@
-package com.mindarray;
+package com.mindarray.verticles;
 
 import com.mindarray.api.ProcessHandler;
 import com.zaxxer.nuprocess.NuProcessBuilder;
@@ -93,8 +93,6 @@ public class Utils {
 
         String outcome = handler.output();
 
-        System.out.println(outcome);
-
         JsonObject result = null;
 
         if(outcome!=null){
@@ -107,35 +105,31 @@ public class Utils {
 
     }
 
-    public static HashMap<String, HashMap<String, Integer>> metric(){
-
-        HashMap<String,HashMap<String,Integer>> metricMap = new HashMap<>();
+    public static HashMap<String, Integer> metric(String type){
 
         HashMap<String, Integer> temp = new HashMap<>();
 
-        HashMap<String,Integer> snmp = new HashMap<>();
+        if(type.equalsIgnoreCase("linux") || type.equalsIgnoreCase("windows")){
 
-        temp.put("cpu",60000);
+            temp.put("cpu",60000);
 
-        temp.put("disk",120000);
+            temp.put("disk",120000);
 
-        temp.put("memory",40000);
+            temp.put("memory",40000);
 
-        temp.put("process",20000);
+            temp.put("process",20000);
 
-        temp.put("SystemInfo",200000);
+            temp.put("SystemInfo",200000);
 
-        metricMap.put("linux",temp);
+        }else if(type.equalsIgnoreCase(Constants.NETWORKING)){
 
-        metricMap.put("windows",temp);
+            temp.put("systemInfo",300000);
 
-        snmp.put("systemInfo",300000);
+            temp.put("interface",20000);
 
-        snmp.put("interface",20000);
+        }
 
-        metricMap.put("networking",snmp);
-
-        return metricMap;
+        return temp;
     }
 
 }
