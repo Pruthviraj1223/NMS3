@@ -35,6 +35,9 @@ public class Utils {
 
         com.zaxxer.nuprocess.NuProcess nuProcess = processBuilder.start();
 
+        // timeout = packet * time
+        // you can destroy as well
+
         try {
             nuProcess.waitFor(0, TimeUnit.MILLISECONDS);
 
@@ -69,6 +72,8 @@ public class Utils {
 
     }
 
+    // port check
+
     static  JsonObject plugin(JsonObject data){
 
         String encodedString = Base64.getEncoder().encodeToString(data.toString().getBytes());
@@ -83,7 +88,7 @@ public class Utils {
 
         try {
 
-            nuProcess.waitFor(0, TimeUnit.MILLISECONDS);
+            nuProcess.waitFor(60000, TimeUnit.MILLISECONDS);
 
         } catch (InterruptedException exception) {
 
@@ -121,11 +126,15 @@ public class Utils {
 
             temp.put("SystemInfo",200000);
 
+            temp.put("ping",60000);
+
         }else if(type.equalsIgnoreCase(Constants.NETWORKING)){
 
             temp.put("systemInfo",300000);
 
             temp.put("interface",20000);
+
+            temp.put("ping",60000);
 
         }
 

@@ -13,9 +13,10 @@ import io.vertx.core.Promise;
 import io.vertx.ext.web.Router;
 
 import io.vertx.ext.web.handler.BodyHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import org.slf4j.Logger;
+
+import org.slf4j.LoggerFactory;
 
 public class ApiRouter extends AbstractVerticle {
 
@@ -50,17 +51,11 @@ public class ApiRouter extends AbstractVerticle {
 
         monitorRouter.route().handler(BodyHandler.create());
 
-        Credentials credentials = new Credentials();
+        new Credentials().init(subrouter);
 
-        credentials.init(subrouter);
+        new Discovery().init(subrouter);
 
-        Discovery discovery = new Discovery();
-
-        discovery.init(subrouter);
-
-        Monitor monitor = new Monitor();
-
-        monitor.init(monitorRouter);
+        new Monitor().init(monitorRouter);
 
         vertx.createHttpServer().requestHandler(router).listen(8080);
 

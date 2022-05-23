@@ -1,12 +1,19 @@
 package com.mindarray.api;
 
 import com.mindarray.verticles.Bootstrap;
+
 import com.mindarray.verticles.Constants;
+
 import io.vertx.core.Vertx;
+
 import io.vertx.core.http.HttpMethod;
+
 import io.vertx.core.json.JsonArray;
+
 import io.vertx.core.json.JsonObject;
+
 import io.vertx.ext.web.Router;
+
 import io.vertx.ext.web.RoutingContext;
 
 import java.util.HashMap;
@@ -56,6 +63,7 @@ public class Credentials {
                         }
 
                     }
+
 
                     if (routingContext.request().method() == HttpMethod.POST) {
 
@@ -218,7 +226,7 @@ public class Credentials {
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.CREDENTIAL_ID, result.getString(Constants.CREDENTIAL_ID)).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.CREDENTIAL_ID, result.getInteger(Constants.CREDENTIAL_ID)).encodePrettily());
 
                 } else {
 

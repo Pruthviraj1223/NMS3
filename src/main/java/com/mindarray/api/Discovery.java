@@ -13,7 +13,6 @@ import java.util.HashMap;
 
 import static com.mindarray.verticles.Constants.*;
 
-
 public class Discovery {
 
     Vertx vertx = Bootstrap.vertx;
@@ -591,7 +590,7 @@ public class Discovery {
 
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                .end(new JsonObject().put(STATUS,FAIL).encodePrettily());
+                                .end(new JsonObject().put(STATUS,FAIL).put(ERROR,handler.cause().getMessage()).encodePrettily());
 
                     }
 

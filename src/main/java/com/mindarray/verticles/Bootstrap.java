@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 public class Bootstrap {
 
     static final Logger LOG = LoggerFactory.getLogger(Bootstrap.class.getName());
+
     public static Vertx vertx = Vertx.vertx();
 
     public static void main(String[] args) {
@@ -23,6 +24,8 @@ public class Bootstrap {
                 .compose(future -> start(DatabaseEngine.class.getName()))
 
                 .compose(future -> start(DiscoveryEngine.class.getName()))
+
+                .compose(future -> start(Scheduler.class.getName()))
 
                 .compose(future -> start(Poller.class.getName()))
 

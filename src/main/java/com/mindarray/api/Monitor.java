@@ -3,6 +3,7 @@ package com.mindarray.api;
 import com.mindarray.verticles.Bootstrap;
 import com.mindarray.verticles.Constants;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -38,30 +39,30 @@ public class Monitor {
 
             if (data != null) {
 
-                if (data.containsKey(CREDENTIAL_ID) && data.containsKey(IP_ADDRESS) && data.containsKey(TYPE) && data.containsKey(PORT)) {
+                if (data.containsKey(CREDENTIAL_ID) && data.containsKey(IP_ADDRESS) && data.containsKey(TYPE) && data.containsKey(PORT) && data.containsKey(HOST)) {
 
                     data.put(METHOD, VALIDATE_PROVISION);
 
-                    vertx.eventBus().<JsonObject>request(EVENTBUS_DATABASE, data, handler -> {
+                        vertx.eventBus().<JsonObject>request(EVENTBUS_DATABASE, data, handler -> {
 
-                        if (handler.succeeded()) {
+                            if (handler.succeeded()) {
 
-                            routingContext.setBody(data.toBuffer());
+                                routingContext.setBody(data.toBuffer());
 
-                            routingContext.next();
+                                routingContext.next();
 
 
-                        } else {
+                            } else {
 
-                            routingContext.response()
+                                routingContext.response()
 
-                                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                    .end(new JsonObject().put(STATUS, FAIL).put(ERROR, handler.cause().getMessage()).encodePrettily());
+                                        .end(new JsonObject().put(STATUS, FAIL).put(ERROR, handler.cause().getMessage()).encodePrettily());
 
-                        }
+                            }
 
-                    });
+                        });
 
 
                 } else {
@@ -116,7 +117,6 @@ public class Monitor {
 
         }
 
-
     }
 
     public void insertMonitor(RoutingContext routingContext) {
@@ -159,29 +159,35 @@ public class Monitor {
 
     public void snmpInterface(RoutingContext routingContext) {
 
-        JsonObject userData = routingContext.getBodyAsJson();
+        try {
+            JsonObject userData = routingContext.getBodyAsJson();
 
-        if(!userData.getString(TYPE).equalsIgnoreCase(NETWORKING)){
+            if (!userData.getString(TYPE).equalsIgnoreCase(NETWORKING)) {
 
-            routingContext.next();
+                routingContext.next();
 
-        }else {
+            } else {
 
-            JsonArray interfaces = userData.getJsonObject(OBJECTS).getJsonArray("interface");
+                JsonArray interfaces = userData.getJsonObject(OBJECTS).getJsonArray("interface");
 
-            List<JsonObject> list = interfaces.stream().map(JsonObject::mapFrom).filter(val -> {
+                List<JsonObject> list = interfaces.stream().map(JsonObject::mapFrom).filter(val -> {
 
-                return val.getString("interface.operational.status").equalsIgnoreCase("Up");
+                    return val.getString("interface.operational.status").equalsIgnoreCase("Up");
 
-            }).toList();
+                }).toList();
 
-            JsonObject updateObj = routingContext.getBodyAsJson().getJsonObject(OBJECTS).put("interface", list);
+                JsonObject updateObj = routingContext.getBodyAsJson().getJsonObject(OBJECTS).put("interface", list);
 
-            userData.put(OBJECTS, updateObj);
+                userData.put(OBJECTS, updateObj);
 
-            routingContext.setBody(userData.toBuffer());
+                routingContext.setBody(userData.toBuffer());
 
-            routingContext.next();
+                routingContext.next();
+
+            }
+        }catch (Exception exception){
+
+            System.out.println(exception.getMessage());
 
         }
     }
@@ -192,15 +198,14 @@ public class Monitor {
 
         data.put(METHOD,INSERT_METRIC);
 
-        data.remove(IP_ADDRESS);
-
-        data.remove(PORT);
 
         vertx.eventBus().request(EVENTBUS_DATABASE,data,handler ->{
 
             if(handler.succeeded()){
 
                 System.out.println("complete");
+
+                scheduling(data);
 
 
             }else{
@@ -210,6 +215,59 @@ public class Monitor {
             }
 
         });
+
+
+    }
+
+    void scheduling(JsonObject data){
+
+        data.remove(OBJECTS);
+
+        data.put(METHOD, DATABASE_GET);
+
+        data.put(TABLE_NAME,CREDENTIAL_TABLE);
+
+        data.put(TABLE_COLUMN,CREDENTIAL_ID);
+
+        data.put(TABLE_ID,data.getString(CREDENTIAL_ID));
+
+        vertx.eventBus().<JsonArray>request(EVENTBUS_DATABASE,data, handler -> {
+
+           if(handler.succeeded()){
+
+               JsonArray jsonArray = handler.result().body();
+
+               JsonObject jsonObject = jsonArray.getJsonObject(0);
+
+               data.mergeIn(jsonObject);
+
+               System.out.println("data " + data);
+
+               vertx.eventBus().request("sch1",data,ans -> {
+
+
+
+
+               });
+
+
+           }else{
+
+               System.out.println("fail");
+
+           }
+
+        });
+
+        // put this aside for minute
+
+        // take all the data from monitor table
+
+        // list = 5 objects
+
+        // also for
+
+        // it will be called after insertMetric
 
 
     }

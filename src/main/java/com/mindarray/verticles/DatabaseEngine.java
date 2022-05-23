@@ -4,6 +4,7 @@ import io.vertx.core.AbstractVerticle;
 
 import io.vertx.core.Promise;
 
+import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.json.JsonArray;
 
 import io.vertx.core.json.JsonObject;
@@ -49,6 +50,30 @@ public class DatabaseEngine extends AbstractVerticle {
         }
 
         return isAvailable;
+
+    }
+
+    int getId(String tableName,String column){
+
+        int id = 1;
+
+        try(Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+
+            String query = "select max(" + column + ") from " + tableName;
+
+            ResultSet resultSet = connection.createStatement().executeQuery(query);
+
+            resultSet.next();
+
+            id = resultSet.getInt(1) + 1;
+
+        } catch (Exception exception) {
+
+            LOG.debug("Error {} ",exception.getMessage());
+
+        }
+
+        return id;
 
     }
 
@@ -106,30 +131,6 @@ public class DatabaseEngine extends AbstractVerticle {
         }
 
         return true;
-
-    }
-
-    int getId(String tableName,String column){
-
-        int id = 1;
-
-        try(Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password");) {
-
-            String query = "select max(" + column + ") from " + tableName;
-
-            ResultSet resultSet = connection.createStatement().executeQuery(query);
-
-            resultSet.next();
-
-            id = resultSet.getInt(1) + 1;
-
-        } catch (Exception exception) {
-
-            LOG.debug("Error {} ",exception.getMessage());
-
-        }
-
-        return id;
 
     }
 
@@ -200,7 +201,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             statement.executeUpdate("create table if not exists Discovery (discoveryId int PRIMARY KEY AUTO_INCREMENT,credentialId int,discovery_name varchar(255),ip varchar(255),type varchar(255),port int,result JSON)");
 
-            statement.executeUpdate("create table if not exists Monitor (monitorId int PRIMARY KEY AUTO_INCREMENT,ip varchar(255),type varchar(255),port int,objects JSON)");
+            statement.executeUpdate("create table if not exists Monitor (monitorId int PRIMARY KEY AUTO_INCREMENT,ip varchar(255),type varchar(255),port int,host varchar(255))");
 
             statement.executeUpdate("create table if not exists UserMetric (metricId int PRIMARY KEY AUTO_INCREMENT,monitorId int,credentialId int,metricGroup varchar(255),time int,objects JSON)");
 
@@ -554,7 +555,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         } else {
 
-                            return FAIL;
+                             return NOT_DISCOVERED;
 
                         }
 
@@ -999,6 +1000,18 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     data.remove(METHOD);
 
+                    if(data.containsKey(TYPE)){
+
+                        if(data.getString(TYPE).equalsIgnoreCase(NETWORKING)){
+
+                            if(!data.containsKey(OBJECTS)){
+
+                                handler.fail(-1,OBJECT_MISSING);
+
+                            }
+                        }
+                    }
+
                     String result = validateProvision(data);
 
                     if (result.equalsIgnoreCase(SUCCESS)) {
@@ -1035,6 +1048,12 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     userData.remove(TYPE);
 
+                    userData.remove(HOST);
+
+                    userData.remove(IP_ADDRESS);
+
+                    userData.remove(PORT);
+
                     if(!userData.containsKey(CREDENTIAL_ID) && userData.containsKey(MONITOR_ID)){
 
                        handler.fail(-1,INVALID_INPUT);
@@ -1051,6 +1070,16 @@ public class DatabaseEngine extends AbstractVerticle {
 
                             HashMap<String,Integer> map = Utils.metric(type);
 
+                            String objects = null;
+
+                            if(userData.containsKey(OBJECTS)){
+
+                                objects = userData.getString(OBJECTS);
+
+                                userData.remove(OBJECTS);
+
+                            }
+
                             for(Map.Entry<String,Integer> entry : map.entrySet()){
 
                                 userData.put(METRIC_GROUP,entry.getKey());
@@ -1058,6 +1087,12 @@ public class DatabaseEngine extends AbstractVerticle {
                                 userData.put(TIME,entry.getValue());
 
                                 userData.put(METRIC_ID,getId(USER_METRIC,METRIC_ID));
+
+                                if(entry.getKey().equalsIgnoreCase("interface")){
+
+                                    userData.put(OBJECTS,objects);
+
+                                }
 
                                 result = insert(USER_METRIC, userData);
 
@@ -1073,15 +1108,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
                             }
 
-                            if(type.equalsIgnoreCase("linux") || type.equalsIgnoreCase("windows") && count==5){
+                            if(count == map.size()){
 
                                 request.complete();
 
-                            } else if (type.equalsIgnoreCase("networking") && count==2) {
-
-                                request.complete();
-
-                            }else {
+                            } else {
 
                                 request.fail(FAIL);
 
@@ -1101,6 +1132,7 @@ public class DatabaseEngine extends AbstractVerticle {
                         if (completeHandler.succeeded()) {
 
                             handler.reply(userData);
+
                         } else {
 
                             handler.fail(-1, completeHandler.cause().getMessage());
@@ -1141,6 +1173,7 @@ public class DatabaseEngine extends AbstractVerticle {
                         blockingHandler.fail(exception.getMessage());
 
                     }
+
 
                 }).onComplete(completeHandler -> {
 

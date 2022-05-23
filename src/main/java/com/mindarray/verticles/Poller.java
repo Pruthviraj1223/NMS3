@@ -5,7 +5,6 @@ import io.vertx.core.Promise;
 
 public class Poller extends AbstractVerticle {
 
-
     @Override
     public void start(Promise<Void> startPromise)  {
 
