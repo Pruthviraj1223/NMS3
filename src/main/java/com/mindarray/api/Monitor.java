@@ -5,6 +5,7 @@ import com.mindarray.verticles.Constants;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
@@ -198,14 +199,15 @@ public class Monitor {
 
         data.put(METHOD,INSERT_METRIC);
 
-
-        vertx.eventBus().request(EVENTBUS_DATABASE,data,handler ->{
+        vertx.eventBus().<JsonArray>request(EVENTBUS_DATABASE,data,handler ->{
 
             if(handler.succeeded()){
 
                 System.out.println("complete");
 
-                scheduling(data);
+                JsonArray objects = handler.result().body();
+
+                merge(data,objects);
 
 
             }else{
@@ -219,7 +221,7 @@ public class Monitor {
 
     }
 
-    void scheduling(JsonObject data){
+    void merge(JsonObject data,JsonArray metric){
 
         data.remove(OBJECTS);
 
@@ -235,21 +237,19 @@ public class Monitor {
 
            if(handler.succeeded()){
 
-               JsonArray jsonArray = handler.result().body();
+               JsonArray objects = handler.result().body();
 
-               JsonObject jsonObject = jsonArray.getJsonObject(0);
+               JsonObject user = objects.getJsonObject(0);
 
-               data.mergeIn(jsonObject);
+               data.mergeIn(user);
 
-               System.out.println("data " + data);
+               for(int i=0;i<metric.size();i++){
 
-               vertx.eventBus().request("sch1",data,ans -> {
+                   metric.getJsonObject(i).mergeIn(data);
 
+               }
 
-
-
-               });
-
+               scheduling(metric);
 
            }else{
 
@@ -258,16 +258,11 @@ public class Monitor {
            }
 
         });
+    }
 
-        // put this aside for minute
+    void scheduling(JsonArray context){
 
-        // take all the data from monitor table
-
-        // list = 5 objects
-
-        // also for
-
-        // it will be called after insertMetric
+        vertx.eventBus().send(SCHEDULER,context);
 
 
     }

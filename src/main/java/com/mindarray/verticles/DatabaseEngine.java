@@ -1064,7 +1064,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         JsonObject result;
 
-                        int count =0;
+                        JsonArray metric = new JsonArray();
 
                         try {
 
@@ -1100,7 +1100,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
                                     if(result.getString(STATUS).equalsIgnoreCase(SUCCESS)){
 
-                                        count++;
+                                        JsonObject user = userData.copy();
+
+                                        metric.add(user);
 
                                     }
 
@@ -1108,9 +1110,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
                             }
 
-                            if(count == map.size()){
+                            if(metric.size() == map.size()){
 
-                                request.complete();
+                                request.complete(metric);
 
                             } else {
 
@@ -1131,7 +1133,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         if (completeHandler.succeeded()) {
 
-                            handler.reply(userData);
+                            handler.reply(completeHandler.result());
 
                         } else {
 

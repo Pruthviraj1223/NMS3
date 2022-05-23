@@ -140,5 +140,6 @@ public class Constants {
 
     public static final String OBJECT_MISSING = "Object field is missing";
 
+    public static final String SCHEDULER = "scheduler";
 
 }
