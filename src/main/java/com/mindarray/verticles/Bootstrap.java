@@ -20,9 +20,9 @@ public class Bootstrap {
     public static void main(String[] args) {
 
 
-        start(DatabaseEngine.class.getName())
+        start(ApiRouter.class.getName())
 
-                .compose(future -> start(ApiRouter.class.getName()))
+                .compose(future -> start(DatabaseEngine.class.getName()))
 
                 .compose(future -> start(DiscoveryEngine.class.getName()))
 
