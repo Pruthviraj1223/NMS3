@@ -1,5 +1,6 @@
 package com.mindarray.verticles;
 
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 
 import io.vertx.core.Promise;
@@ -19,9 +20,9 @@ public class Bootstrap {
     public static void main(String[] args) {
 
 
-        start(ApiRouter.class.getName())
+        start(DatabaseEngine.class.getName())
 
-                .compose(future -> start(DatabaseEngine.class.getName()))
+                .compose(future -> start(ApiRouter.class.getName()))
 
                 .compose(future -> start(DiscoveryEngine.class.getName()))
 
@@ -48,7 +49,7 @@ public class Bootstrap {
 
         Promise<Void> promise = Promise.promise();
 
-        vertx.deployVerticle(verticle, handler -> {
+        vertx.deployVerticle(verticle , handler -> {
 
             if (handler.succeeded()) {
 

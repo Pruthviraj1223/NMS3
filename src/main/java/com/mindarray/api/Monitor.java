@@ -3,15 +3,14 @@ package com.mindarray.api;
 import com.mindarray.verticles.Bootstrap;
 import com.mindarray.verticles.Constants;
 import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
 
+import java.util.HashMap;
 import java.util.List;
 
 import static com.mindarray.verticles.Constants.*;
@@ -21,6 +20,8 @@ public class Monitor {
     Vertx vertx = Bootstrap.vertx;
 
     public void init(Router provisionRouter) {
+
+        initialPolling();
 
         provisionRouter.post("/provision").handler(this::validate).handler(this::insertMonitor).handler(this::snmpInterface).handler(this::insertMetric);
 
@@ -39,6 +40,22 @@ public class Monitor {
             JsonObject data = routingContext.getBodyAsJson();
 
             if (data != null) {
+
+                HashMap<String, Object> result;
+
+                result = new HashMap<>(data.getMap());
+
+                for (String key : result.keySet()) {
+
+                    Object val = result.get(key);
+
+                    if (val instanceof String) {
+
+                        data.put(key, val.toString().trim());
+
+                    }
+
+                }
 
                 if (data.containsKey(CREDENTIAL_ID) && data.containsKey(IP_ADDRESS) && data.containsKey(TYPE) && data.containsKey(PORT) && data.containsKey(HOST)) {
 
@@ -207,7 +224,7 @@ public class Monitor {
 
                 JsonArray objects = handler.result().body();
 
-                merge(data,objects);
+                scheduling(data,objects);
 
 
             }else{
@@ -221,7 +238,7 @@ public class Monitor {
 
     }
 
-    void merge(JsonObject data,JsonArray metric){
+    void scheduling(JsonObject data, JsonArray metric){
 
         data.remove(OBJECTS);
 
@@ -249,7 +266,7 @@ public class Monitor {
 
                }
 
-               scheduling(metric);
+               vertx.eventBus().send(SCHEDULER,metric);
 
            }else{
 
@@ -260,10 +277,33 @@ public class Monitor {
         });
     }
 
-    void scheduling(JsonArray context){
+    void initialPolling(){
 
-        vertx.eventBus().send(SCHEDULER,context);
+        JsonObject data = new JsonObject();
 
+        data.put(METHOD,DATABASE_GET);
+
+        data.put(TABLE_NAME, USER_METRIC);
+
+        data.put(TABLE_COLUMN,METRIC_ID);
+
+        data.put(TABLE_ID,"getall");
+
+        vertx.eventBus().request(EVENTBUS_DATABASE,data,handler -> {
+
+            if(handler.succeeded()){
+
+                System.out.println(handler.result().body());
+
+
+            }else{
+
+                System.out.println("fail");
+
+            }
+
+
+        });
 
     }
 

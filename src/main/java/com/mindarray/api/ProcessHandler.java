@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 
 public class ProcessHandler extends NuAbstractProcessHandler {
     private NuProcess nuProcess;
-    private String result;
+    private String result = null;
 
     @Override
     public void onStart(NuProcess nuProcess) {
@@ -17,11 +17,10 @@ public class ProcessHandler extends NuAbstractProcessHandler {
     }
 
     public void onStdout(ByteBuffer buffer, boolean closed) {
-        byte[] bytes;
 
         if (!closed) {
 
-            bytes = new byte[buffer.remaining()];
+            byte[] bytes = new byte[buffer.remaining()];
 
             buffer.get(bytes);
 
@@ -34,11 +33,9 @@ public class ProcessHandler extends NuAbstractProcessHandler {
     }
     public void onStderr(ByteBuffer buffer, boolean closed){
 
-        byte[] bytes;
-
         if (!closed) {
 
-            bytes = new byte[buffer.remaining()];
+            byte[] bytes = new byte[buffer.remaining()];
 
             buffer.get(bytes);
 

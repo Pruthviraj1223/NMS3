@@ -142,4 +142,6 @@ public class Constants {
 
     public static final String SCHEDULER = "scheduler";
 
+    public static final String EVENTBUS_POLLER = "eventbus.poller";
+
 }
