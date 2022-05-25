@@ -144,4 +144,6 @@ public class Constants {
 
     public static final String EVENTBUS_POLLER = "eventbus.poller";
 
+    public static final String INITIAL_POLLING = "initial.polling";
+
 }

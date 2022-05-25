@@ -1,6 +1,6 @@
 package com.mindarray.verticles;
 
-import io.vertx.core.DeploymentOptions;
+import com.mindarray.api.Monitor;
 import io.vertx.core.Future;
 
 import io.vertx.core.Promise;
@@ -35,6 +35,8 @@ public class Bootstrap {
                     if (handler.succeeded()) {
 
                         LOG.debug("Deployed Successfully");
+
+                        new Monitor().initialPolling();
 
                     } else {
 

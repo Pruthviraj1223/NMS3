@@ -62,7 +62,7 @@ public class Poller extends AbstractVerticle {
 
                             } else {
 
-                                blockingHandler.fail(result.toString());
+                                blockingHandler.fail(Constants.FAIL);
 
                             }
 
@@ -82,7 +82,7 @@ public class Poller extends AbstractVerticle {
 
                         } else {
 
-                            blockingHandler.fail(result.toString());
+                            blockingHandler.fail(Constants.FAIL);
 
                         }
                     }

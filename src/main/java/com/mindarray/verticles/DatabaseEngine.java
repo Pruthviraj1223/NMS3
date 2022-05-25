@@ -4,7 +4,6 @@ import io.vertx.core.AbstractVerticle;
 
 import io.vertx.core.Promise;
 
-import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.json.JsonArray;
 
 import io.vertx.core.json.JsonObject;
@@ -13,6 +12,7 @@ import org.slf4j.Logger;
 
 import org.slf4j.LoggerFactory;
 
+import javax.naming.ldap.ExtendedRequest;
 import java.sql.*;
 
 import java.util.HashMap;
@@ -584,6 +584,74 @@ public class DatabaseEngine extends AbstractVerticle {
         }
 
         return FAIL;
+
+    }
+
+    JsonArray initialPolling(){
+
+        JsonArray data = new JsonArray();
+
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+
+            JsonArray metric = getAll(USER_METRIC,METRIC_ID,"getall");
+
+            for(int i=0;i<metric.size();i++){
+
+                String monitorId = metric.getJsonObject(i).getString(MONITOR_ID);
+
+                String credentialID = metric.getJsonObject(i).getString(CREDENTIAL_ID);
+
+                // get(monitor,id) get(credential,id)
+
+                String query = "select ip,type,port,name,password,community,version from Monitor,Credentials where monitorId = " + monitorId + " and credentialId = " + credentialID + ";";
+
+                ResultSet resultSet = connection.createStatement().executeQuery(query);
+
+                while (resultSet.next()){
+
+                    JsonObject result = new JsonObject();
+
+                    result.put(IP_ADDRESS,resultSet.getObject(1));
+
+                    result.put(TYPE,resultSet.getObject(2));
+
+                    result.put(PORT,resultSet.getObject(3));
+
+                    if(result.getString(TYPE).equalsIgnoreCase("linux") || result.getString(TYPE).equalsIgnoreCase("windows")){
+
+                        result.put(NAME,resultSet.getObject(4));
+
+                        result.put(PASSWORD,resultSet.getObject(5));
+
+                    }else if(result.getString(TYPE).equalsIgnoreCase(NETWORKING)){
+
+                        result.put(COMMUNITY,resultSet.getObject(6));
+
+                        result.put(VERSION,resultSet.getObject(7));
+
+                    }
+
+                    result.put(METRIC_GROUP,metric.getJsonObject(i).getString(METRIC_GROUP));
+
+                    result.put(TIME,metric.getJsonObject(i).getInteger(TIME));
+
+                    result.put(METRIC_ID,metric.getJsonObject(i).getString(METRIC_ID));
+
+                    result.put(MONITOR_ID,monitorId);
+
+                    data.add(result);
+
+                }
+
+            }
+
+        }catch (Exception exception){
+
+            LOG.debug("Error {}",exception.getMessage());
+
+        }
+
+        return data;
 
     }
 
@@ -1187,6 +1255,37 @@ public class DatabaseEngine extends AbstractVerticle {
                         handler.fail(-1, completeHandler.cause().getMessage());
 
                     }
+                });
+
+                case INITIAL_POLLING -> vertx.executeBlocking(blockingHandler -> {
+
+                    JsonArray data = initialPolling();
+
+                    if(data!=null){
+
+                        blockingHandler.complete(data);
+
+                    }else{
+
+                        blockingHandler.fail(FAIL);
+
+
+                    }
+
+                }).onComplete(completionHandler -> {
+
+                    if(completionHandler.succeeded()){
+
+                        JsonArray res = (JsonArray) completionHandler.result();
+
+                        vertx.eventBus().send(SCHEDULER,res);
+
+                    }else{
+
+                        System.out.println("Initial polling fail");
+
+                    }
+
                 });
 
             }

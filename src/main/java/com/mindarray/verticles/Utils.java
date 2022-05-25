@@ -5,12 +5,16 @@ import com.mindarray.api.ProcessHandler;
 import com.zaxxer.nuprocess.NuProcessBuilder;
 
 import io.vertx.core.json.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 import java.util.concurrent.TimeUnit;
 
 public class Utils {
+
+    static final Logger LOG = LoggerFactory.getLogger(Utils.class.getName());
 
     static JsonObject ping(String ip) {
 
@@ -103,8 +107,17 @@ public class Utils {
 
         if(outcome!=null){
 
-            result = new JsonObject(outcome);
+            try {
 
+                result = new JsonObject(outcome);
+
+            }catch (Exception exception){
+
+                LOG.debug("Error {}",exception.getMessage());
+
+                return null;
+
+            }
         }
 
         return result;

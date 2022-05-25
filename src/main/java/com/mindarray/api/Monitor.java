@@ -21,8 +21,6 @@ public class Monitor {
 
     public void init(Router provisionRouter) {
 
-        initialPolling();
-
         provisionRouter.post("/provision").handler(this::validate).handler(this::insertMonitor).handler(this::snmpInterface).handler(this::insertMetric);
 
         provisionRouter.get().handler(this::getAll);
@@ -277,33 +275,14 @@ public class Monitor {
         });
     }
 
-    void initialPolling(){
+    public void initialPolling(){
 
         JsonObject data = new JsonObject();
 
-        data.put(METHOD,DATABASE_GET);
+        data.put(METHOD,INITIAL_POLLING);
 
-        data.put(TABLE_NAME, USER_METRIC);
+        vertx.eventBus().send(EVENTBUS_DATABASE,data);
 
-        data.put(TABLE_COLUMN,METRIC_ID);
-
-        data.put(TABLE_ID,"getall");
-
-        vertx.eventBus().request(EVENTBUS_DATABASE,data,handler -> {
-
-            if(handler.succeeded()){
-
-                System.out.println(handler.result().body());
-
-
-            }else{
-
-                System.out.println("fail");
-
-            }
-
-
-        });
 
     }
 
