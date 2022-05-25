@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="INFO">
+<Configuration status="INFO" name="Vert.x" packages="com.mindarray">
   <Appenders>
     <Console name="Console" target="SYSTEM_OUT">
       <PatternLayout pattern="%blue{%d{HH:mm:ss.SSS}} [%t] %highlight{%-5level} %magenta{%logger{36}} - %msg%n"/>
@@ -10,8 +10,11 @@
       <AppenderRef ref="Console"/>
     </Root>
 
-    <Logger name="com.mindarray.verticles.Bootstrap" level="DEBUG"/>
+    <Logger name="com.mindarray.Bootstrap" level="DEBUG"/>
     <Logger name="com.mindarray.verticles.DiscoveryEngine" level="DEBUG"/>
-    <Logger name="com.mindarray.verticles.DatabaseEngine" level="DEBUG"/>
+    <Logger name="com.mindarray.verticles.Utils" level="DEBUG"/>
+    <Logger name="com.mindarray.verticles.Poller" level="DEBUG"/>
+    <Logger name="Vert.x" level="DEBUG"/>
+
   </Loggers>
 </Configuration>

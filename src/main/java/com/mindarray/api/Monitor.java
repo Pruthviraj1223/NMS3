@@ -1,16 +1,23 @@
 package com.mindarray.api;
 
-import com.mindarray.verticles.Bootstrap;
+import com.mindarray.Bootstrap;
+
 import com.mindarray.verticles.Constants;
+
 import io.vertx.core.Vertx;
+
 import io.vertx.core.http.HttpMethod;
+
 import io.vertx.core.json.JsonArray;
+
 import io.vertx.core.json.JsonObject;
+
 import io.vertx.ext.web.Router;
+
 import io.vertx.ext.web.RoutingContext;
 
-
 import java.util.HashMap;
+
 import java.util.List;
 
 import static com.mindarray.verticles.Constants.*;
@@ -176,6 +183,7 @@ public class Monitor {
     public void snmpInterface(RoutingContext routingContext) {
 
         try {
+
             JsonObject userData = routingContext.getBodyAsJson();
 
             if (!userData.getString(TYPE).equalsIgnoreCase(NETWORKING)) {
@@ -184,26 +192,19 @@ public class Monitor {
 
             } else {
 
-                JsonArray interfaces = userData.getJsonObject(OBJECTS).getJsonArray("interface");
+                List<JsonObject> list = userData.getJsonObject(OBJECTS).getJsonArray("interface").stream().map(JsonObject::mapFrom).filter(val -> val.getString("interface.operational.status").equalsIgnoreCase("Up")).toList();
 
-                List<JsonObject> list = interfaces.stream().map(JsonObject::mapFrom).filter(val -> {
-
-                    return val.getString("interface.operational.status").equalsIgnoreCase("Up");
-
-                }).toList();
-
-                JsonObject updateObj = routingContext.getBodyAsJson().getJsonObject(OBJECTS).put("interface", list);
-
-                userData.put(OBJECTS, updateObj);
+                userData.put(OBJECTS, routingContext.getBodyAsJson().getJsonObject(OBJECTS).put("interface", list));
 
                 routingContext.setBody(userData.toBuffer());
 
                 routingContext.next();
 
             }
+
         }catch (Exception exception){
 
-            System.out.println(exception.getMessage());
+            System.out.println("ERROR " + exception.getMessage());
 
         }
     }
@@ -220,9 +221,7 @@ public class Monitor {
 
                 System.out.println("complete");
 
-                JsonArray objects = handler.result().body();
-
-                scheduling(data,objects);
+                vertx.eventBus().send(SCHEDULER,handler.result().body());
 
 
             }else{
@@ -236,55 +235,12 @@ public class Monitor {
 
     }
 
-    void scheduling(JsonObject data, JsonArray metric){
-
-        data.remove(OBJECTS);
-
-        data.put(METHOD, DATABASE_GET);
-
-        data.put(TABLE_NAME,CREDENTIAL_TABLE);
-
-        data.put(TABLE_COLUMN,CREDENTIAL_ID);
-
-        data.put(TABLE_ID,data.getString(CREDENTIAL_ID));
-
-        vertx.eventBus().<JsonArray>request(EVENTBUS_DATABASE,data, handler -> {
-
-           if(handler.succeeded()){
-
-               JsonArray objects = handler.result().body();
-
-               JsonObject user = objects.getJsonObject(0);
-
-               data.mergeIn(user);
-
-               for(int i=0;i<metric.size();i++){
-
-                   metric.getJsonObject(i).mergeIn(data);
-
-               }
-
-               vertx.eventBus().send(SCHEDULER,metric);
-
-           }else{
-
-               System.out.println("fail");
-
-           }
-
-        });
-    }
-
-    public void initialPolling(){
-
-        JsonObject data = new JsonObject();
-
-        data.put(METHOD,INITIAL_POLLING);
-
-        vertx.eventBus().send(EVENTBUS_DATABASE,data);
-
-
-    }
+//    public void initialPolling(){
+//
+//        vertx.eventBus().send(EVENTBUS_DATABASE,new JsonObject().put(METHOD,INITIAL_POLLING));
+//
+//
+//    }
 
     void getAll(RoutingContext routingContext) {
 

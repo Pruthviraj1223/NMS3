@@ -1,12 +1,16 @@
 package com.mindarray.verticles;
 
-import com.mindarray.api.ProcessHandler;
+import com.mindarray.ProcessHandler;
 
 import com.zaxxer.nuprocess.NuProcessBuilder;
 
 import io.vertx.core.json.JsonObject;
+
 import org.slf4j.Logger;
+
 import org.slf4j.LoggerFactory;
+
+import java.nio.charset.StandardCharsets;
 
 import java.util.*;
 
@@ -54,7 +58,7 @@ public class Utils {
 
         String result = handler.output();
 
-        if (result != null) {
+        if (!result.isEmpty()) {
 
             String[] packetData = result.split(":")[1].split("=")[1].split(",")[0].split("/");
 
@@ -72,18 +76,15 @@ public class Utils {
 
         }
 
-
         return outcome;
 
     }
 
-    // port check
-
     static  JsonObject plugin(JsonObject data){
 
-        String encodedString = Base64.getEncoder().encodeToString(data.toString().getBytes());
+        String encodedString = Base64.getEncoder().encodeToString(data.toString().getBytes(StandardCharsets.UTF_8));
 
-        NuProcessBuilder processBuilder = new NuProcessBuilder("/home/pruthviraj/NMS3/plugin.exe",encodedString);
+        NuProcessBuilder processBuilder = new NuProcessBuilder("./plugin.exe",encodedString);
 
         ProcessHandler handler = new ProcessHandler();
 
@@ -95,29 +96,22 @@ public class Utils {
 
             nuProcess.waitFor(60000, TimeUnit.MILLISECONDS);
 
-        } catch (InterruptedException exception) {
+        } catch (Exception exception) {
 
-            System.out.println(exception.getMessage());
+            LOG.debug("Error {}",exception.getMessage());
 
         }
 
         String outcome = handler.output();
 
+//        LOG.debug("data {}",outcome);
+
         JsonObject result = null;
 
         if(outcome!=null){
 
-            try {
+            result = new JsonObject(outcome);
 
-                result = new JsonObject(outcome);
-
-            }catch (Exception exception){
-
-                LOG.debug("Error {}",exception.getMessage());
-
-                return null;
-
-            }
         }
 
         return result;

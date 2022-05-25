@@ -1,6 +1,7 @@
-package com.mindarray.verticles;
+package com.mindarray;
 
 import com.mindarray.api.Monitor;
+import com.mindarray.verticles.*;
 import io.vertx.core.Future;
 
 import io.vertx.core.Promise;
@@ -36,7 +37,7 @@ public class Bootstrap {
 
                         LOG.debug("Deployed Successfully");
 
-                        new Monitor().initialPolling();
+//                        new Monitor().initialPolling();
 
                     } else {
 
@@ -45,7 +46,8 @@ public class Bootstrap {
                     }
 
                 });
-    }
+
+        }
 
     public static Future<Void> start(String verticle) {
 

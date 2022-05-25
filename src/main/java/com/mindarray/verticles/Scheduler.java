@@ -5,8 +5,10 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 
 import io.vertx.core.json.JsonArray;
-
 import io.vertx.core.json.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import java.util.HashMap;
 
@@ -14,22 +16,26 @@ import java.util.Map;
 
 public class Scheduler extends AbstractVerticle {
 
+    public static final Logger LOG = LoggerFactory.getLogger(Scheduler.class.getName());
+
+    HashMap<Integer,Integer> duplicate = new HashMap<>();
+
+    HashMap<Integer,Integer> original = new HashMap<>();
+
     @Override
     public void start(Promise<Void> startPromise)  {
-
-        HashMap<String,JsonObject> context = new HashMap<>();
-
-        HashMap<String,Integer> original = new HashMap<>();
 
         vertx.eventBus().<JsonArray>localConsumer(Constants.SCHEDULER, handler -> {
 
             JsonArray metric = handler.body();
 
-            for(int i=0;i<metric.size();i++){
+            for(int i=0;i<metric.size();i++)
+            {
+                var data = metric.getJsonObject(i);
 
-                context.put(metric.getJsonObject(i).getString(Constants.METRIC_ID),metric.getJsonObject(i));
+                original.put(data.getInteger(Constants.METRIC_ID),data.getInteger(Constants.TIME));
 
-                original.put(metric.getJsonObject(i).getString(Constants.METRIC_ID),metric.getJsonObject(i).getInteger(Constants.TIME));
+                duplicate.put(data.getInteger(Constants.METRIC_ID),data.getInteger(Constants.TIME));
 
             }
 
@@ -37,7 +43,7 @@ public class Scheduler extends AbstractVerticle {
 
         vertx.setPeriodic(10000,handler -> {
 
-            for(Map.Entry<String,Integer> entry: original.entrySet()){
+            for(Map.Entry<Integer,Integer> entry: duplicate.entrySet()){
 
                 int time = entry.getValue();
 
@@ -45,18 +51,25 @@ public class Scheduler extends AbstractVerticle {
 
                 if(time<=0){
 
-                    vertx.eventBus().send(Constants.EVENTBUS_POLLER,context.get(entry.getKey()));
+                    vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE,new JsonObject().put(Constants.METHOD,Constants.INITIAL_POLLING).put(Constants.METRIC_ID,entry.getKey()), dbHandler -> {
 
-                    JsonObject obj =  context.get(entry.getKey());
+                        if(dbHandler.succeeded()){
 
-                    int oldTime = obj.getInteger(Constants.TIME);
+                            vertx.eventBus().send(Constants.EVENTBUS_POLLER,dbHandler.result().body());
 
-                    original.put(entry.getKey(),oldTime);
+                            duplicate.put(entry.getKey(),original.get(entry.getKey()));
 
+                        }else{
+
+                            LOG.debug("Error {}" ,dbHandler.cause().getMessage());
+
+                        }
+
+                    });
 
                 }else{
 
-                    original.put(entry.getKey(),time);
+                    duplicate.put(entry.getKey(),time);
 
                 }
 

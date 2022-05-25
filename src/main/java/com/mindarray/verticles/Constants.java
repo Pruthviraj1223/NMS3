@@ -1,7 +1,5 @@
 package com.mindarray.verticles;
 
-import com.mysql.cj.xdevapi.PreparableStatement;
-
 public class Constants {
 
     public static final String DISCOVERY_POST_CHECK_NAME = "discovery.post.name.check";
@@ -134,8 +132,6 @@ public class Constants {
 
     public static final String DATABASE_DELETE_MONITOR = "database.delete.monitor";
 
-    public static final String CREDENTIAL_NOT_UNIQUE = "credential name is not unique";
-
     public static final String HOST = "host";
 
     public static final String OBJECT_MISSING = "Object field is missing";
@@ -145,5 +141,9 @@ public class Constants {
     public static final String EVENTBUS_POLLER = "eventbus.poller";
 
     public static final String INITIAL_POLLING = "initial.polling";
+
+    public static final String LINUX = "linux";
+
+    public static final String WINDOWS = "windows";
 
 }

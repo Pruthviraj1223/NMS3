@@ -1,6 +1,6 @@
 package com.mindarray.api;
 
-import com.mindarray.verticles.Bootstrap;
+import com.mindarray.Bootstrap;
 
 import com.mindarray.verticles.Constants;
 

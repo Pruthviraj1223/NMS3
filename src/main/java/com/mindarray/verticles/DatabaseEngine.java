@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 
 import org.slf4j.LoggerFactory;
 
-import javax.naming.ldap.ExtendedRequest;
 import java.sql.*;
 
 import java.util.HashMap;
@@ -587,29 +586,24 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
-    JsonArray initialPolling(){
+    JsonObject initialPolling(String id){
 
-        JsonArray data = new JsonArray();
+        JsonObject result = new JsonObject();
 
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
-            JsonArray metric = getAll(USER_METRIC,METRIC_ID,"getall");
-
-            for(int i=0;i<metric.size();i++){
-
-                String monitorId = metric.getJsonObject(i).getString(MONITOR_ID);
-
-                String credentialID = metric.getJsonObject(i).getString(CREDENTIAL_ID);
+            JsonArray metric = getAll(USER_METRIC,METRIC_ID,id);
 
                 // get(monitor,id) get(credential,id)
 
-                String query = "select ip,type,port,name,password,community,version from Monitor,Credentials where monitorId = " + monitorId + " and credentialId = " + credentialID + ";";
+                var user = metric.getJsonObject(0);
+
+                String query = "select ip,type,port,name,password,community,version from Monitor,Credentials where monitorId = " + user.getString(MONITOR_ID) + " and credentialId = " + user.getString(CREDENTIAL_ID) + ";";
 
                 ResultSet resultSet = connection.createStatement().executeQuery(query);
 
                 while (resultSet.next()){
 
-                    JsonObject result = new JsonObject();
 
                     result.put(IP_ADDRESS,resultSet.getObject(1));
 
@@ -617,7 +611,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     result.put(PORT,resultSet.getObject(3));
 
-                    if(result.getString(TYPE).equalsIgnoreCase("linux") || result.getString(TYPE).equalsIgnoreCase("windows")){
+                    if(result.getString(TYPE).equalsIgnoreCase(LINUX) || result.getString(TYPE).equalsIgnoreCase(WINDOWS)){
 
                         result.put(NAME,resultSet.getObject(4));
 
@@ -631,19 +625,17 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     }
 
-                    result.put(METRIC_GROUP,metric.getJsonObject(i).getString(METRIC_GROUP));
+                    result.put(METRIC_GROUP,user.getString(METRIC_GROUP));
 
-                    result.put(TIME,metric.getJsonObject(i).getInteger(TIME));
+                    result.put(TIME,user.getInteger(TIME));
 
-                    result.put(METRIC_ID,metric.getJsonObject(i).getString(METRIC_ID));
+                    result.put(METRIC_ID,user.getInteger(METRIC_ID));
 
-                    result.put(MONITOR_ID,monitorId);
-
-                    data.add(result);
+                    result.put(MONITOR_ID,user.getInteger(MONITOR_ID));
 
                 }
 
-            }
+
 
         }catch (Exception exception){
 
@@ -651,7 +643,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        return data;
+        return result;
 
     }
 
@@ -1257,9 +1249,9 @@ public class DatabaseEngine extends AbstractVerticle {
                     }
                 });
 
-                case INITIAL_POLLING -> vertx.executeBlocking(blockingHandler -> {
+                case INITIAL_POLLING -> vertx.<JsonObject>executeBlocking(blockingHandler -> {
 
-                    JsonArray data = initialPolling();
+                    JsonObject data = initialPolling(handler.body().getString(METRIC_ID));
 
                     if(data!=null){
 
@@ -1276,13 +1268,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     if(completionHandler.succeeded()){
 
-                        JsonArray res = (JsonArray) completionHandler.result();
-
-                        vertx.eventBus().send(SCHEDULER,res);
+                        handler.reply(completionHandler.result());
 
                     }else{
 
-                        System.out.println("Initial polling fail");
+                        handler.fail(-1,"Error in Creating context");
 
                     }
 

@@ -1,5 +1,6 @@
 package com.mindarray.verticles;
 
+import com.mindarray.Bootstrap;
 import com.mindarray.api.Credentials;
 
 import com.mindarray.api.Discovery;

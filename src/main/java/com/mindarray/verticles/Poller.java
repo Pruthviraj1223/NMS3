@@ -16,10 +16,10 @@ public class Poller extends AbstractVerticle {
 
     public static final Logger LOG = LoggerFactory.getLogger(Poller.class.getName());
 
+    ConcurrentHashMap<Integer,String> check = new ConcurrentHashMap<>();
+
     @Override
     public void start(Promise<Void> startPromise)  {
-
-        ConcurrentHashMap<String,String> check = new ConcurrentHashMap<>();
 
         vertx.eventBus().<JsonObject>consumer(Constants.EVENTBUS_POLLER, handler -> {
 
@@ -27,7 +27,7 @@ public class Poller extends AbstractVerticle {
 
             vertx.executeBlocking(blockingHandler -> {
 
-                LOG.debug("Thread {}",Thread.currentThread().getName());
+//                LOG.debug("Thread {}",Thread.currentThread().getName());
 
                 data.put(Constants.CATEGORY,"polling");
 
@@ -35,7 +35,7 @@ public class Poller extends AbstractVerticle {
 
                     JsonObject result = Utils.ping(data.getString(Constants.IP_ADDRESS));
 
-                    check.put(data.getString(Constants.MONITOR_ID),result.getString(Constants.STATUS));
+                    check.put(data.getInteger(Constants.MONITOR_ID),result.getString(Constants.STATUS));
 
                     if(result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)){
 
@@ -50,9 +50,9 @@ public class Poller extends AbstractVerticle {
 
                 }else{
 
-                    if(check.containsKey(data.getString(Constants.MONITOR_ID))){
+                    if(check.containsKey(data.getInteger(Constants.MONITOR_ID))){
 
-                        if(check.get(data.getString(Constants.MONITOR_ID)).equalsIgnoreCase(Constants.SUCCESS)){
+                        if(check.get(data.getInteger(Constants.MONITOR_ID)).equalsIgnoreCase(Constants.SUCCESS)){
 
                             JsonObject result = Utils.plugin(data);
 
@@ -97,7 +97,7 @@ public class Poller extends AbstractVerticle {
 
                 }else{
 
-                    System.out.println(completionHandler.cause().getMessage());
+                   LOG.debug("Error {}",completionHandler.cause().getMessage());
 
                 }
 
