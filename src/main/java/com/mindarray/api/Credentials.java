@@ -2,7 +2,7 @@ package com.mindarray.api;
 
 import com.mindarray.Bootstrap;
 
-import com.mindarray.verticles.Constants;
+import com.mindarray.Constants;
 
 import io.vertx.core.Vertx;
 
@@ -44,8 +44,6 @@ public class Credentials {
 
                 JsonObject userData = routingContext.getBodyAsJson();
 
-                // validation
-
                 if (userData != null) {
 
                     HashMap<String, Object> result;
@@ -67,13 +65,13 @@ public class Credentials {
 
                     if (routingContext.request().method() == HttpMethod.POST) {
 
-                        userData.put(Constants.METHOD, Constants.CREDENTIAL_POST_CHECK_NAME);
+                        userData.put(Constants.METHOD, Constants.CREDENTIAL_POST_CHECK);
 
                         vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
                             if (handler.succeeded()) {
 
-                                routingContext.setBody(userData.toBuffer());
+                                routingContext.setBody(handler.result().body().toBuffer());
 
                                 routingContext.next();
 
@@ -202,7 +200,7 @@ public class Credentials {
 
                     .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,exception.getMessage()).encodePrettily());
         }
 
     }
@@ -218,6 +216,7 @@ public class Credentials {
         vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
+
                 if (response.succeeded()) {
 
                     JsonObject result = response.result().body();

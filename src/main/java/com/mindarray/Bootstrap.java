@@ -20,7 +20,6 @@ public class Bootstrap {
 
     public static void main(String[] args) {
 
-
         start(ApiRouter.class.getName())
 
                 .compose(future -> start(DatabaseEngine.class.getName()))
@@ -36,8 +35,6 @@ public class Bootstrap {
                     if (handler.succeeded()) {
 
                         LOG.debug("Deployed Successfully");
-
-//                        new Monitor().initialPolling();
 
                     } else {
 

@@ -1,10 +1,10 @@
-package com.mindarray.verticles;
+package com.mindarray;
 
 public class Constants {
 
-    public static final String DISCOVERY_POST_CHECK_NAME = "discovery.post.name.check";
+    public static final String DISCOVERY_POST_CHECK = "database.discovery.check";
 
-    public static final String CREDENTIAL_POST_CHECK_NAME = "database.credential.check.name";
+    public static final String CREDENTIAL_POST_CHECK = "database.credential.check";
 
     public static final String CREDENTIAL_TABLE = "Credentials";
 
@@ -140,10 +140,11 @@ public class Constants {
 
     public static final String EVENTBUS_POLLER = "eventbus.poller";
 
-    public static final String INITIAL_POLLING = "initial.polling";
-
     public static final String LINUX = "linux";
 
     public static final String WINDOWS = "windows";
+
+    public static final String CREATE_CONTEXT = "create.context";
+
 
 }

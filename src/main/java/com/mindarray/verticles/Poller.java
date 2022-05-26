@@ -1,5 +1,7 @@
 package com.mindarray.verticles;
 
+import com.mindarray.Constants;
+import com.mindarray.Utils;
 import io.vertx.core.AbstractVerticle;
 
 import io.vertx.core.Promise;
@@ -27,8 +29,6 @@ public class Poller extends AbstractVerticle {
 
             vertx.executeBlocking(blockingHandler -> {
 
-//                LOG.debug("Thread {}",Thread.currentThread().getName());
-
                 data.put(Constants.CATEGORY,"polling");
 
                 if(data.getString(Constants.METRIC_GROUP).equalsIgnoreCase("ping")){
@@ -46,7 +46,6 @@ public class Poller extends AbstractVerticle {
                         blockingHandler.fail(Constants.PING_FAIL);
 
                     }
-
 
                 }else{
 
@@ -93,7 +92,7 @@ public class Poller extends AbstractVerticle {
 
                 if(completionHandler.succeeded()){
 
-                    System.out.println("Metric id = " + data.getString(Constants.METRIC_ID) + " ip  = " + data.getString(Constants.IP_ADDRESS) + " polling data is  " + completionHandler.result());
+                    LOG.info("Metric id = {} {} {}", data.getString(Constants.METRIC_ID), data.getString(Constants.IP_ADDRESS), completionHandler.result());
 
                 }else{
 
@@ -104,8 +103,6 @@ public class Poller extends AbstractVerticle {
             });
 
         });
-
-
 
         startPromise.complete();
     }

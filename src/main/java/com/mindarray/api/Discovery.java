@@ -2,7 +2,7 @@ package com.mindarray.api;
 
 import com.mindarray.Bootstrap;
 
-import com.mindarray.verticles.Constants;
+import com.mindarray.Constants;
 
 import io.vertx.core.Vertx;
 
@@ -18,7 +18,7 @@ import io.vertx.ext.web.RoutingContext;
 
 import java.util.HashMap;
 
-import static com.mindarray.verticles.Constants.*;
+import static com.mindarray.Constants.*;
 
 public class Discovery {
 
@@ -89,8 +89,6 @@ public class Discovery {
 
                     });
 
-
-
                 } else {
 
                 if (userData != null) {
@@ -115,7 +113,7 @@ public class Discovery {
 
                         if ((userData.containsKey(Constants.CREDENTIAL_ID) && userData.containsKey(Constants.DISCOVERY_NAME) && userData.containsKey(Constants.PORT) && userData.containsKey(Constants.TYPE) && userData.containsKey(Constants.IP_ADDRESS))) {
 
-                            userData.put(Constants.METHOD, Constants.DISCOVERY_POST_CHECK_NAME);
+                            userData.put(Constants.METHOD, DISCOVERY_POST_CHECK);
 
                             vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
@@ -296,7 +294,7 @@ public class Discovery {
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.DISCOVERY_TABLE_ID, result.getString(Constants.DISCOVERY_TABLE_ID)).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.DISCOVERY_TABLE_ID, result.getInteger(Constants.DISCOVERY_TABLE_ID)).encodePrettily());
 
                 } else {
 

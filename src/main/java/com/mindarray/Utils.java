@@ -1,6 +1,6 @@
-package com.mindarray.verticles;
+package com.mindarray;
 
-import com.mindarray.ProcessHandler;
+import com.zaxxer.nuprocess.NuProcess;
 
 import com.zaxxer.nuprocess.NuProcessBuilder;
 
@@ -10,8 +10,6 @@ import org.slf4j.Logger;
 
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
-
 import java.util.*;
 
 import java.util.concurrent.TimeUnit;
@@ -20,7 +18,7 @@ public class Utils {
 
     static final Logger LOG = LoggerFactory.getLogger(Utils.class.getName());
 
-    static JsonObject ping(String ip) {
+    public static JsonObject ping(String ip) {
 
         JsonObject outcome = new JsonObject();
 
@@ -42,17 +40,20 @@ public class Utils {
 
         processBuilder.setProcessListener(handler);
 
-        com.zaxxer.nuprocess.NuProcess nuProcess = processBuilder.start();
+        NuProcess nuProcess = processBuilder.start();
 
         // timeout = packet * time
         // you can destroy as well
 
         try {
+
             nuProcess.waitFor(0, TimeUnit.MILLISECONDS);
 
-        } catch (InterruptedException e) {
+        } catch (Exception exception) {
 
-            throw new RuntimeException(e);
+            LOG.debug("Error {} ",exception.getMessage());
+
+            return new JsonObject().put(Constants.ERROR,exception.getMessage());
 
         }
 
@@ -80,9 +81,9 @@ public class Utils {
 
     }
 
-    static  JsonObject plugin(JsonObject data){
+    public static JsonObject plugin(JsonObject data){
 
-        String encodedString = Base64.getEncoder().encodeToString(data.toString().getBytes(StandardCharsets.UTF_8));
+        String encodedString = Base64.getEncoder().encodeToString(data.toString().getBytes());
 
         NuProcessBuilder processBuilder = new NuProcessBuilder("./plugin.exe",encodedString);
 
@@ -90,7 +91,7 @@ public class Utils {
 
         processBuilder.setProcessListener(handler);
 
-        com.zaxxer.nuprocess.NuProcess nuProcess = processBuilder.start();
+        NuProcess nuProcess = processBuilder.start();
 
         try {
 
@@ -104,13 +105,21 @@ public class Utils {
 
         String outcome = handler.output();
 
-//        LOG.debug("data {}",outcome);
-
         JsonObject result = null;
 
         if(outcome!=null){
 
-            result = new JsonObject(outcome);
+            try {
+
+                result = new JsonObject(outcome);
+
+            }catch (Exception exception){
+
+                LOG.debug("Error {}",exception.getMessage());
+
+                return new JsonObject().put(Constants.ERROR,exception.getMessage());
+
+            }
 
         }
 

@@ -10,11 +10,17 @@
       <AppenderRef ref="Console"/>
     </Root>
 
+    <Logger name="com.mindarray.Utils" level="DEBUG"/>
+    <Logger name="com.mindarray.ProcessHandler" level="DEBUG"/>
     <Logger name="com.mindarray.Bootstrap" level="DEBUG"/>
+    <Logger name="com.mindarray.api.Monitor" level="DEBUG"/>
+    <Logger name="com.mindarray.api.Discovery" level="DEBUG"/>
+    <Logger name="com.mindarray.api.Credentials" level="DEBUG"/>
     <Logger name="com.mindarray.verticles.DiscoveryEngine" level="DEBUG"/>
-    <Logger name="com.mindarray.verticles.Utils" level="DEBUG"/>
+    <Logger name="com.mindarray.verticles.DatabaseEngine" level="DEBUG"/>
+    <Logger name="com.mindarray.verticles.Scheduler" level="DEBUG"/>
+    <Logger name="com.mindarray.verticles.ApiRouter" level="DEBUG"/>
     <Logger name="com.mindarray.verticles.Poller" level="DEBUG"/>
-    <Logger name="Vert.x" level="DEBUG"/>
 
   </Loggers>
 </Configuration>

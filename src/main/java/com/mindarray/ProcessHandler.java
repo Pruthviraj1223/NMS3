@@ -1,6 +1,7 @@
 package com.mindarray;
 
 import com.zaxxer.nuprocess.NuAbstractProcessHandler;
+
 import com.zaxxer.nuprocess.NuProcess;
 
 import java.nio.ByteBuffer;
@@ -8,7 +9,6 @@ import java.nio.ByteBuffer;
 public class ProcessHandler extends NuAbstractProcessHandler {
     private NuProcess nuProcess;
     private String result = null;
-
     StringBuilder stringBuilder = new StringBuilder();
 
     @Override
