@@ -146,5 +146,9 @@ public class Constants {
 
     public static final String CREATE_CONTEXT = "create.context";
 
+    public static final String POLLING = "polling";
+
+    public static final String POLLER = "Poller";
+
 
 }

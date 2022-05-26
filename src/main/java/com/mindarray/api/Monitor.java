@@ -8,7 +8,6 @@ import io.vertx.core.Vertx;
 
 import io.vertx.core.http.HttpMethod;
 
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 
 import io.vertx.core.json.JsonObject;
@@ -56,6 +55,8 @@ public class Monitor {
 
                 result = new HashMap<>(data.getMap());
 
+                // this can be modified
+
                 for (String key : result.keySet()) {
 
                     Object val = result.get(key);
@@ -67,7 +68,6 @@ public class Monitor {
                     }
 
                 }
-
 
                 if (data.containsKey(CREDENTIAL_ID) && data.containsKey(IP_ADDRESS) && data.containsKey(TYPE) && data.containsKey(PORT) && data.containsKey(HOST)) {
 
@@ -148,7 +148,7 @@ public class Monitor {
 
     }
 
-    public void insertMonitor(RoutingContext routingContext) {
+    private void insertMonitor(RoutingContext routingContext) {
 
         JsonObject data = routingContext.getBodyAsJson();
 
@@ -156,17 +156,11 @@ public class Monitor {
 
         data.put(TABLE_NAME, MONITOR);
 
-        int id = data.getInteger(CREDENTIAL_ID);
-
-        data.remove(CREDENTIAL_ID);
-
         vertx.eventBus().<JsonObject>request(EVENTBUS_DATABASE, data, handler -> {
 
             if (handler.succeeded()) {
 
-                data.put(MONITOR_ID, handler.result().body().getInteger(MONITOR_ID));
-
-                data.put(CREDENTIAL_ID,id);
+//                data.put(MONITOR_ID, handler.result().body().getInteger(MONITOR_ID));
 
                 routingContext.response()
 
@@ -192,21 +186,19 @@ public class Monitor {
 
     }
 
-    public void snmpInterface(RoutingContext routingContext) {
+    private void snmpInterface(RoutingContext routingContext) {
 
         try {
 
             JsonObject userData = routingContext.getBodyAsJson();
-
-            JsonArray interfaces = userData.getJsonObject(OBJECTS).getJsonArray("interface");
-
-            System.out.println("interfaces " + interfaces);
 
             if (!userData.getString(TYPE).equalsIgnoreCase(NETWORKING)) {
 
                 routingContext.next();
 
             } else {
+
+                JsonArray interfaces = userData.getJsonObject(OBJECTS).getJsonArray("interface");
 
                 List<JsonObject> list = interfaces.stream().map(JsonObject::mapFrom).filter(val -> val.getString("interface.operational.status").equalsIgnoreCase("Up")).toList();
 
@@ -220,20 +212,28 @@ public class Monitor {
 
         } catch (Exception exception) {
 
-            System.out.println("ERROR " + exception.getMessage());
+            LOG.error("ERROR {}" , exception.getMessage());
 
         }
     }
 
-    public void insertMetric(RoutingContext routingContext) {
+    private void insertMetric(RoutingContext routingContext) {
 
         JsonObject data = routingContext.getBodyAsJson();
 
         data.put(METHOD, INSERT_METRIC);
 
+        data.remove(HOST);
+
+        data.remove(IP_ADDRESS);
+
+        data.remove(PORT);
+
         vertx.eventBus().<JsonArray>request(EVENTBUS_DATABASE, data, handler -> {
 
             if (handler.succeeded()) {
+
+                System.out.println("inserted in metric " + handler.result().body());
 
                 vertx.eventBus().send(SCHEDULER, handler.result().body());
 
@@ -248,7 +248,7 @@ public class Monitor {
 
     }
 
-    void getAll(RoutingContext routingContext) {
+    private void getAll(RoutingContext routingContext) {
 
         JsonObject userData = new JsonObject();
 
@@ -313,7 +313,7 @@ public class Monitor {
 
     }
 
-    void getById(RoutingContext routingContext) {
+    private void getById(RoutingContext routingContext) {
 
         JsonObject userData = new JsonObject();
 
@@ -366,7 +366,7 @@ public class Monitor {
 
     }
 
-    void delete(RoutingContext routingContext) {
+    private void delete(RoutingContext routingContext) {
 
         JsonObject userData = new JsonObject();
 

@@ -1,19 +1,12 @@
 package com.mindarray.verticles;
 
 import com.mindarray.Constants;
-
 import com.mindarray.Utils;
-
 import io.vertx.core.AbstractVerticle;
-
 import io.vertx.core.Promise;
-
 import io.vertx.core.json.JsonArray;
-
 import io.vertx.core.json.JsonObject;
-
 import org.slf4j.Logger;
-
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
@@ -182,8 +175,15 @@ public class DatabaseEngine extends AbstractVerticle {
 
         data.put(MONITOR_ID, getId(MONITOR, MONITOR_ID));
 
-        return data.containsKey(MONITOR_ID) && data.containsKey(IP_ADDRESS) && data.containsKey(PORT) && data.containsKey(TYPE);
+        if (data.containsKey(TYPE)) {
 
+            if (data.getString(TYPE).equalsIgnoreCase(NETWORKING)) {
+
+                return data.containsKey(OBJECTS);
+            }
+        }
+
+        return true;
     }
 
     private boolean containsAllUserMetric(JsonObject data) {
@@ -202,9 +202,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
             statement.executeUpdate("create table if not exists Discovery (discoveryId int PRIMARY KEY AUTO_INCREMENT,credentialId int,discovery_name varchar(255),ip varchar(255),type varchar(255),port int,result JSON)");
 
-            statement.executeUpdate("create table if not exists Monitor (monitorId int PRIMARY KEY AUTO_INCREMENT,ip varchar(255),type varchar(255),port int,host varchar(255))");
+            statement.executeUpdate("create table if not exists Monitor (monitorId int PRIMARY KEY ,ip varchar(255),type varchar(255),port int,host varchar(255))");
 
-            statement.executeUpdate("create table if not exists UserMetric (metricId int PRIMARY KEY AUTO_INCREMENT,monitorId int,credentialId int,metricGroup varchar(255),time int,objects JSON)");
+            statement.executeUpdate("create table if not exists UserMetric (metricId int PRIMARY KEY ,monitorId int,credentialId int,metricGroup varchar(255),time int,objects JSON)");
+
+            statement.executeUpdate("create table if not exists Poller (pollerId int PRIMARY KEY AUTO_INCREMENT , monitorId int, metricGroup varchar(255) ,result json,timestamp DATETIME)");
 
 
         } catch (Exception exception) {
@@ -220,15 +222,17 @@ public class DatabaseEngine extends AbstractVerticle {
 
         userData.remove(TABLE_NAME);
 
-        if (tableName.equalsIgnoreCase(USER_METRIC) && !containsAllUserMetric(userData)) {
+//        if (tableName.equalsIgnoreCase(USER_METRIC) && !containsAllUserMetric(userData)) {
+//
+//            return null;
+//
+//        }  // it can be changed
 
-            return null;
-
-        }
-
-        if (!tableName.equalsIgnoreCase(USER_METRIC)){
+        if (tableName.equalsIgnoreCase(MONITOR)) {
 
             userData.remove(OBJECTS);
+
+            userData.remove(CREDENTIAL_ID);
 
         }
 
@@ -272,7 +276,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             LOG.debug("Error : {} ", exception.getMessage());
 
-            return new JsonObject().put(ERROR,exception.getMessage());
+            return new JsonObject().put(ERROR, exception.getMessage());
 
         }
 
@@ -331,6 +335,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             }
 
+            // CAN BE MODIFIED
 
             Map<String, Object> data = userData.getMap();
 
@@ -685,16 +690,16 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     }
 
-                }).onComplete(resultHandler -> {
+                }).onComplete(completionHandler -> {
 
-                    if (resultHandler.succeeded()) {
+                    if (completionHandler.succeeded()) {
 
-                        handler.reply(resultHandler.result());
+                        handler.reply(completionHandler.result());
 
 
                     } else {
 
-                        handler.fail(-1, resultHandler.cause().getMessage());
+                        handler.fail(-1, completionHandler.cause().getMessage());
 
                     }
 
@@ -706,21 +711,28 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     try {
 
-                        if (!checkName(Constants.DISCOVERY_TABLE, Constants.CREDENTIAL_ID, id)) {
+                        if (!checkName(USER_METRIC, CREDENTIAL_ID, id)) {
 
-                            if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id)) {
+                            if (!checkName(Constants.DISCOVERY_TABLE, Constants.CREDENTIAL_ID, id)) {
 
-                                blockingHandler.complete();
+                                if (checkName(Constants.CREDENTIAL_TABLE, Constants.CREDENTIAL_ID, id)) {
+
+                                    blockingHandler.complete();
+
+                                } else {
+
+                                    blockingHandler.fail(Constants.NOT_PRESENT);
+
+                                }
 
                             } else {
 
-                                blockingHandler.fail(Constants.NOT_PRESENT);
+                                blockingHandler.fail(Constants.IN_USE);
 
                             }
+                        }else {
 
-                        } else {
-
-                            blockingHandler.fail(Constants.IN_USE);
+                            blockingHandler.fail(IN_USE + " Monitor");
 
                         }
 
@@ -773,7 +785,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                             }
 
-                        }else {
+                        } else {
 
                             blockingHandler.fail(INVALID_INPUT);
 
@@ -787,17 +799,16 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     }
 
+                }).onComplete(completionHandler -> {
 
-                }).onComplete(resultHandler -> {
+                    if (completionHandler.succeeded()) {
 
-                    if (resultHandler.succeeded()) {
-
-                        handler.reply(resultHandler.result());
+                        handler.reply(completionHandler.result());
 
 
                     } else {
 
-                        handler.fail(-1, resultHandler.cause().getMessage());
+                        handler.fail(-1, completionHandler.cause().getMessage());
 
                     }
 
@@ -848,8 +859,6 @@ public class DatabaseEngine extends AbstractVerticle {
                     JsonObject userData = handler.body();
 
                     userData.remove(METHOD);
-
-                    System.out.println("insert" + userData);
 
                     vertx.executeBlocking(blockingHandler -> {
 
@@ -993,9 +1002,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         }
 
-                    }catch (Exception exception){
+                    } catch (Exception exception) {
 
-                        LOG.debug("Error {}",exception.getMessage());
+                        LOG.debug("Error {}", exception.getMessage());
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -1059,9 +1068,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         }
 
-                    }catch (Exception exception){
+                    } catch (Exception exception) {
 
-                        LOG.debug("Error {}" ,exception.getMessage());
+                        LOG.debug("Error {}", exception.getMessage());
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -1088,20 +1097,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     data.remove(METHOD);
 
-                    if (data.containsKey(TYPE)) {
-
-                        if (data.getString(TYPE).equalsIgnoreCase(NETWORKING)) {
-
-                            if (!data.containsKey(OBJECTS)) {
-
-//                                handler.fail(-1, OBJECT_MISSING);  // check once
-                                blockingHandler.fail(OBJECT_MISSING);
-
-                            }
-                        }
-                    }
-
-                    if (containsAllMonitor(data)){
+                    if (containsAllMonitor(data)) {
 
                         String result = validateProvision(data);
 
@@ -1115,7 +1111,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         }
 
-                    }else {
+                    } else {
 
                         blockingHandler.fail(INVALID_INPUT);
 
@@ -1141,11 +1137,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     userData.remove(METHOD);
 
-                    userData.remove(HOST);
-
-                    userData.remove(IP_ADDRESS);
-
-                    userData.remove(PORT);
+//                    userData.remove(HOST);
+//
+//                    userData.remove(IP_ADDRESS);
+//
+//                    userData.remove(PORT);
 
                     vertx.executeBlocking(blockingHandler -> {
 
@@ -1155,7 +1151,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         String type = null;
 
-                        if(userData.containsKey(TYPE)) {
+                        if (userData.containsKey(TYPE)) {
 
                             type = userData.getString(TYPE);
 
@@ -1165,7 +1161,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         try {
 
-                            if (type!=null) {
+                            if (type != null) {
 
                                 HashMap<String, Integer> map = Utils.metric(type);
 
@@ -1193,11 +1189,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
                                     }
 
-                                    if (containsAllUserMetric(userData)) {
+                                    if (containsAllUserMetric(userData)) {  // affect of one change // take care
 
                                         result = insert(USER_METRIC, userData);
 
-                                        if (result!=null) {
+                                        if (result != null) {
 
                                             if (result.containsKey(STATUS)) {
 
@@ -1210,7 +1206,7 @@ public class DatabaseEngine extends AbstractVerticle {
                                                 }
 
                                             }
-                                        }else {
+                                        } else {
 
                                             blockingHandler.fail(INVALID_INPUT);
 
@@ -1235,7 +1231,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                                 }
 
-                            }else {
+                            } else {
 
                                 blockingHandler.fail(INVALID_INPUT);
 

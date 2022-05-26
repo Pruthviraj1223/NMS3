@@ -8,6 +8,7 @@ import io.vertx.core.Promise;
 
 import io.vertx.core.json.JsonObject;
 
+import jdk.swing.interop.SwingInterOpUtils;
 import org.slf4j.Logger;
 
 import org.slf4j.LoggerFactory;
@@ -29,7 +30,7 @@ public class Poller extends AbstractVerticle {
 
             vertx.executeBlocking(blockingHandler -> {
 
-                data.put(Constants.CATEGORY,"polling");
+                data.put(Constants.CATEGORY,Constants.POLLING);
 
                 if(data.getString(Constants.METRIC_GROUP).equalsIgnoreCase("ping")){
 
@@ -55,13 +56,13 @@ public class Poller extends AbstractVerticle {
 
                             JsonObject result = Utils.plugin(data);
 
-                            if (result != null) {
+                            if (!result.containsKey(Constants.ERROR)) {
 
                                 blockingHandler.complete(result);
 
                             } else {
 
-                                blockingHandler.fail(Constants.FAIL);
+                                blockingHandler.fail(result.getString(Constants.ERROR));
 
                             }
 
@@ -75,13 +76,13 @@ public class Poller extends AbstractVerticle {
 
                         JsonObject result = Utils.plugin(data);
 
-                        if (result != null) {
+                        if (!result.containsKey(Constants.ERROR)) {
 
                             blockingHandler.complete(result);
 
                         } else {
 
-                            blockingHandler.fail(Constants.FAIL);
+                            blockingHandler.fail(result.getString(Constants.ERROR));
 
                         }
                     }
@@ -92,11 +93,27 @@ public class Poller extends AbstractVerticle {
 
                 if(completionHandler.succeeded()){
 
+                    JsonObject poll = new JsonObject();
+
+                    poll.put(Constants.MONITOR_ID,data.getInteger(Constants.MONITOR_ID));
+
+                    poll.put(Constants.METRIC_GROUP,data.getString(Constants.METRIC_GROUP));
+
+                    poll.put(Constants.RESULT,completionHandler.result());
+
+                    poll.put("timestamp",data.getString("timestamp"));
+
+                    poll.put(Constants.METHOD,Constants.DATABASE_INSERT);
+
+                    poll.put(Constants.TABLE_NAME,Constants.POLLER);
+
+                    vertx.eventBus().send(Constants.EVENTBUS_DATABASE,poll);
+
                     LOG.info("Metric id = {} {} {}", data.getString(Constants.METRIC_ID), data.getString(Constants.IP_ADDRESS), completionHandler.result());
 
                 }else{
 
-                   LOG.debug("Error {}",completionHandler.cause().getMessage());
+                   LOG.debug("Error {} ",completionHandler.cause().getMessage());
 
                 }
 

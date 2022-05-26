@@ -1,6 +1,7 @@
 package com.mindarray.verticles;
 
 import com.mindarray.Constants;
+
 import io.vertx.core.AbstractVerticle;
 
 import io.vertx.core.Promise;
@@ -13,6 +14,8 @@ import org.slf4j.Logger;
 
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 
 import java.util.Map;
@@ -83,7 +86,13 @@ public class Scheduler extends AbstractVerticle {
 
                         if(contextHandler.succeeded()){
 
-                            vertx.eventBus().send(Constants.EVENTBUS_POLLER,contextHandler.result().body());
+                            LocalDateTime myDateObj = LocalDateTime.now();
+
+                            DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+                            String formattedDate = myDateObj.format(myFormatObj);
+
+                            vertx.eventBus().send(Constants.EVENTBUS_POLLER,contextHandler.result().body().put("timestamp",formattedDate));
 
                             duplicate.put(entry.getKey(),original.get(entry.getKey()));
 

@@ -219,13 +219,13 @@ public class Credentials {
 
                 if (response.succeeded()) {
 
-                    JsonObject result = response.result().body();
+//                    JsonObject result = response.result().body();
 
                     routingContext.response()
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.CREDENTIAL_ID, result.getInteger(Constants.CREDENTIAL_ID)).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.CREDENTIAL_ID, response.result().body().getInteger(Constants.CREDENTIAL_ID)).encodePrettily());
 
                 } else {
 

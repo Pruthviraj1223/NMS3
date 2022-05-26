@@ -286,15 +286,16 @@ public class Discovery {
         vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
+
                 if (response.succeeded()) {
 
-                    JsonObject result = response.result().body();
+//                    JsonObject result = response.result().body();
 
                     routingContext.response()
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.DISCOVERY_TABLE_ID, result.getInteger(Constants.DISCOVERY_TABLE_ID)).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.DISCOVERY_TABLE_ID, response.result().body().getInteger(Constants.DISCOVERY_TABLE_ID)).encodePrettily());
 
                 } else {
 
