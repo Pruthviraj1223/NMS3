@@ -1,14 +1,15 @@
 package com.mindarray.verticles;
 
 import com.mindarray.Constants;
+
 import com.mindarray.Utils;
+
 import io.vertx.core.AbstractVerticle;
 
 import io.vertx.core.Promise;
 
 import io.vertx.core.json.JsonObject;
 
-import jdk.swing.interop.SwingInterOpUtils;
 import org.slf4j.Logger;
 
 import org.slf4j.LoggerFactory;
@@ -19,24 +20,24 @@ public class Poller extends AbstractVerticle {
 
     public static final Logger LOG = LoggerFactory.getLogger(Poller.class.getName());
 
-    ConcurrentHashMap<Integer,String> check = new ConcurrentHashMap<>();
+    ConcurrentHashMap<Integer,String> statusCheck = new ConcurrentHashMap<>();
 
     @Override
     public void start(Promise<Void> startPromise)  {
 
-        vertx.eventBus().<JsonObject>consumer(Constants.EVENTBUS_POLLER, handler -> {
+        vertx.eventBus().<JsonObject>localConsumer(Constants.EVENTBUS_POLLER, handler -> {
 
             JsonObject data = handler.body();
 
-            vertx.executeBlocking(blockingHandler -> {
+            data.put(Constants.CATEGORY,Constants.POLLING);
 
-                data.put(Constants.CATEGORY,Constants.POLLING);
+            vertx.<JsonObject>executeBlocking(blockingHandler -> {
 
                 if(data.getString(Constants.METRIC_GROUP).equalsIgnoreCase("ping")){
 
-                    JsonObject result = Utils.ping(data.getString(Constants.IP_ADDRESS));
+                    JsonObject result = Utils.checkAvailibility(data.getString(Constants.IP_ADDRESS));
 
-                    check.put(data.getInteger(Constants.MONITOR_ID),result.getString(Constants.STATUS));
+                    statusCheck.put(data.getInteger(Constants.MONITOR_ID),result.getString(Constants.STATUS));
 
                     if(result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)){
 
@@ -50,11 +51,11 @@ public class Poller extends AbstractVerticle {
 
                 }else{
 
-                    if(check.containsKey(data.getInteger(Constants.MONITOR_ID))){
+                    if(statusCheck.containsKey(data.getInteger(Constants.MONITOR_ID))){
 
-                        if(check.get(data.getInteger(Constants.MONITOR_ID)).equalsIgnoreCase(Constants.SUCCESS)){
+                        if(statusCheck.get(data.getInteger(Constants.MONITOR_ID)).equalsIgnoreCase(Constants.SUCCESS)){
 
-                            JsonObject result = Utils.plugin(data);
+                            JsonObject result = Utils.spawnProcess(data);
 
                             if (!result.containsKey(Constants.ERROR)) {
 
@@ -74,7 +75,7 @@ public class Poller extends AbstractVerticle {
 
                     }else {
 
-                        JsonObject result = Utils.plugin(data);
+                        JsonObject result = Utils.spawnProcess(data);
 
                         if (!result.containsKey(Constants.ERROR)) {
 
@@ -93,27 +94,27 @@ public class Poller extends AbstractVerticle {
 
                 if(completionHandler.succeeded()){
 
-                    JsonObject poll = new JsonObject();
+                    JsonObject pollData = new JsonObject();
 
-                    poll.put(Constants.MONITOR_ID,data.getInteger(Constants.MONITOR_ID));
+                    pollData.put(Constants.MONITOR_ID,data.getInteger(Constants.MONITOR_ID));
 
-                    poll.put(Constants.METRIC_GROUP,data.getString(Constants.METRIC_GROUP));
+                    pollData.put(Constants.METRIC_GROUP,data.getString(Constants.METRIC_GROUP));
 
-                    poll.put(Constants.RESULT,completionHandler.result());
+                    pollData.put(Constants.RESULT,completionHandler.result());
 
-                    poll.put("timestamp",data.getString("timestamp"));
+                    pollData.put("timestamp",data.getString("timestamp"));
 
-                    poll.put(Constants.METHOD,Constants.DATABASE_INSERT);
+                    pollData.put(Constants.METHOD,Constants.DATABASE_INSERT);
 
-                    poll.put(Constants.TABLE_NAME,Constants.POLLER);
+                    pollData.put(Constants.TABLE_NAME,Constants.POLLER);
 
-                    vertx.eventBus().send(Constants.EVENTBUS_DATABASE,poll);
+                    LOG.error("Metric id = {} {} {}", data.getString(Constants.METRIC_ID), data.getString(Constants.IP_ADDRESS), completionHandler.result());
 
-                    LOG.info("Metric id = {} {} {}", data.getString(Constants.METRIC_ID), data.getString(Constants.IP_ADDRESS), completionHandler.result());
+                    vertx.eventBus().send(Constants.EVENTBUS_DATABASE,pollData);
 
                 }else{
 
-                   LOG.debug("Error {} ",completionHandler.cause().getMessage());
+                   LOG.error("Error : {} ",completionHandler.cause().getMessage());
 
                 }
 

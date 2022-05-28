@@ -409,7 +409,7 @@ public class Credentials {
 
                 routingContext.response()
 
-                        .setStatusCode(400)
+                        .setStatusCode(500)
 
                         .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 

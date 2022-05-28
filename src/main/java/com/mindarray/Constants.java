@@ -150,5 +150,9 @@ public class Constants {
 
     public static final String POLLER = "Poller";
 
+    public static final String SCHEDULER_DELETE = "scheduler.delete";
+
+    public static final String GETALL = "getall";
+
 
 }

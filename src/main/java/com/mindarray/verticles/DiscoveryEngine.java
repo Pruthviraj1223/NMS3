@@ -23,11 +23,11 @@ public class DiscoveryEngine extends AbstractVerticle {
 
             vertx.executeBlocking(blockingHandler -> {
 
-                JsonObject result = Utils.ping(userData.getString(IP_ADDRESS));
+                JsonObject result = Utils.checkAvailibility(userData.getString(IP_ADDRESS));
 
                 if(result.getString(STATUS).equalsIgnoreCase(SUCCESS)){
 
-                    JsonObject outcome = Utils.plugin(userData);
+                    JsonObject outcome = Utils.spawnProcess(userData);
 
                     if(outcome.getString(STATUS).equalsIgnoreCase(SUCCESS)){
 

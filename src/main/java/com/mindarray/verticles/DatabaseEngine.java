@@ -872,7 +872,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
                                 blockingHandler.fail(Constants.INVALID_INPUT);
 
-                            } else if (result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)) {
+                            }else if (result.containsKey(ERROR)){
+
+                                blockingHandler.fail(result.getString(ERROR));
+
+                            }else if (result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)) {
 
                                 blockingHandler.complete();
 
@@ -1189,7 +1193,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                                     }
 
-                                    if (containsAllUserMetric(userData)) {  // affect of one change // take care
+                                    if (containsAllUserMetric(userData)) {
 
                                         result = insert(USER_METRIC, userData);
 
@@ -1266,11 +1270,13 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     try {
 
+                        JsonArray metricId = getAll(USER_METRIC,MONITOR_ID,handler.body().getString(TABLE_ID));
+
                         if (delete(USER_METRIC, MONITOR_ID, handler.body().getString(TABLE_ID))) {
 
                             if (delete(MONITOR, MONITOR_ID, handler.body().getString(TABLE_ID))) {
 
-                                blockingHandler.complete();
+                                blockingHandler.complete(metricId);
 
                             } else {
 
@@ -1293,12 +1299,14 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     }
 
-
                 }).onComplete(completeHandler -> {
 
                     if (completeHandler.succeeded()) {
 
+                        vertx.eventBus().send(SCHEDULER_DELETE,completeHandler.result());
+
                         handler.reply(Constants.SUCCESS);
+
 
                     } else {
 

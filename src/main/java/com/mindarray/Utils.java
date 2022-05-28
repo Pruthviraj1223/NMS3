@@ -18,7 +18,7 @@ public class Utils {
 
     static final Logger LOG = LoggerFactory.getLogger(Utils.class.getName());
 
-    public static JsonObject ping(String ip) {
+    public static JsonObject checkAvailibility(String ip) {
 
         JsonObject outcome = new JsonObject();
 
@@ -81,7 +81,7 @@ public class Utils {
 
     }
 
-    public static JsonObject plugin(JsonObject data){
+    public static JsonObject spawnProcess(JsonObject data){
 
         String encodedString = Base64.getEncoder().encodeToString(data.toString().getBytes());
 

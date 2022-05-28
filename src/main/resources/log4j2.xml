@@ -18,7 +18,7 @@
     <Logger name="com.mindarray.api.Credentials" level="DEBUG"/>
     <Logger name="com.mindarray.verticles.DiscoveryEngine" level="DEBUG"/>
     <Logger name="com.mindarray.verticles.DatabaseEngine" level="DEBUG"/>
-    <Logger name="com.mindarray.verticles.Scheduler" level="DEBUG"/>
+    <Logger name="com.mindarray.verticles.MetricScheduler" level="DEBUG"/>
     <Logger name="com.mindarray.verticles.ApiRouter" level="DEBUG"/>
     <Logger name="com.mindarray.verticles.Poller" level="DEBUG"/>
 

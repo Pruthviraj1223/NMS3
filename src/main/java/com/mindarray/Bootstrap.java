@@ -1,6 +1,5 @@
 package com.mindarray;
 
-import com.mindarray.api.Monitor;
 import com.mindarray.verticles.*;
 import io.vertx.core.Future;
 
@@ -26,7 +25,7 @@ public class Bootstrap {
 
                 .compose(future -> start(DiscoveryEngine.class.getName()))
 
-                .compose(future -> start(Scheduler.class.getName()))
+                .compose(future -> start(MetricScheduler.class.getName()))
 
                 .compose(future -> start(Poller.class.getName()))
 
