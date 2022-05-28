@@ -22,9 +22,11 @@ import java.util.HashMap;
 
 import java.util.Map;
 
+import static com.mindarray.Constants.*;
+
 public class MetricScheduler extends AbstractVerticle {
 
-    public static final Logger LOG = LoggerFactory.getLogger(MetricScheduler.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(MetricScheduler.class.getName());
 
     private final HashMap<Integer, Integer> metrics = new HashMap<>();
 
@@ -47,9 +49,13 @@ public class MetricScheduler extends AbstractVerticle {
 
                             var data = metric.getJsonObject(index);
 
-                            metrics.put(data.getInteger(Constants.METRIC_ID), data.getInteger(Constants.TIME));
+                            if(data.containsKey(METRIC_ID) && data.containsKey(TIME)) {
 
-                            updatedMetrics.put(data.getInteger(Constants.METRIC_ID), data.getInteger(Constants.TIME));
+                                metrics.put(data.getInteger(Constants.METRIC_ID), data.getInteger(Constants.TIME));
+
+                                updatedMetrics.put(data.getInteger(Constants.METRIC_ID), data.getInteger(Constants.TIME));
+
+                            }
 
                         }
                     }
@@ -68,7 +74,6 @@ public class MetricScheduler extends AbstractVerticle {
 
         });
 
-
         vertx.eventBus().<JsonArray>localConsumer(Constants.SCHEDULER, handler -> {
 
             try {
@@ -81,9 +86,13 @@ public class MetricScheduler extends AbstractVerticle {
 
                         var data = metric.getJsonObject(index);
 
-                        metrics.put(data.getInteger(Constants.METRIC_ID), data.getInteger(Constants.TIME));
+                        if(data.containsKey(METRIC_ID) & data.containsKey(TIME)) {
 
-                        updatedMetrics.put(data.getInteger(Constants.METRIC_ID), data.getInteger(Constants.TIME));
+                            metrics.put(data.getInteger(Constants.METRIC_ID), data.getInteger(Constants.TIME));
+
+                            updatedMetrics.put(data.getInteger(Constants.METRIC_ID), data.getInteger(Constants.TIME));
+
+                        }
 
                     }
                 }
@@ -158,9 +167,13 @@ public class MetricScheduler extends AbstractVerticle {
 
                         var data = metricId.getJsonObject(index);
 
-                        metrics.remove(data.getInteger(Constants.METRIC_ID));
+                        if(data.containsKey(METRIC_ID)) {
 
-                        updatedMetrics.remove(data.getInteger(Constants.METRIC_ID));
+                            metrics.remove(data.getInteger(Constants.METRIC_ID));
+
+                            updatedMetrics.remove(data.getInteger(Constants.METRIC_ID));
+
+                        }
 
                     }
                     

@@ -15,78 +15,112 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.CheckedOutputStream;
 
 public class Poller extends AbstractVerticle {
 
-    public static final Logger LOG = LoggerFactory.getLogger(Poller.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(Poller.class.getName());
 
-    ConcurrentHashMap<Integer,String> statusCheck = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer,String> statusCheck = new ConcurrentHashMap<>();
 
     @Override
     public void start(Promise<Void> startPromise)  {
 
         vertx.eventBus().<JsonObject>localConsumer(Constants.EVENTBUS_POLLER, handler -> {
 
-            JsonObject data = handler.body();
-
-            data.put(Constants.CATEGORY,Constants.POLLING);
-
             vertx.<JsonObject>executeBlocking(blockingHandler -> {
 
-                if(data.getString(Constants.METRIC_GROUP).equalsIgnoreCase("ping")){
+                try {
 
-                    JsonObject result = Utils.checkAvailibility(data.getString(Constants.IP_ADDRESS));
+                    if(handler.body()!=null) {
 
-                    statusCheck.put(data.getInteger(Constants.MONITOR_ID),result.getString(Constants.STATUS));
+                        JsonObject data = handler.body();
 
-                    if(result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)){
+                        data.put(Constants.CATEGORY, Constants.POLLING);
 
-                        blockingHandler.complete(result);
+                        if (data.containsKey(Constants.METRIC_GROUP) && data.containsKey(Constants.METRIC_ID) && data.getString(Constants.METRIC_GROUP).equalsIgnoreCase("ping")) {
 
-                    }else{
+                            JsonObject result = Utils.checkAvailability(data.getString(Constants.IP_ADDRESS));
 
-                        blockingHandler.fail(Constants.PING_FAIL);
+                            statusCheck.put(data.getInteger(Constants.MONITOR_ID), result.getString(Constants.STATUS));
 
-                    }
+                            if(!result.containsKey(Constants.ERROR)) {
 
-                }else{
+                                if (result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)) {
 
-                    if(statusCheck.containsKey(data.getInteger(Constants.MONITOR_ID))){
+                                    data.put(Constants.RESULT,result);
 
-                        if(statusCheck.get(data.getInteger(Constants.MONITOR_ID)).equalsIgnoreCase(Constants.SUCCESS)){
+                                    blockingHandler.complete(data);
 
-                            JsonObject result = Utils.spawnProcess(data);
+                                } else {
 
-                            if (!result.containsKey(Constants.ERROR)) {
+                                    blockingHandler.fail(Constants.PING_FAIL);
 
-                                blockingHandler.complete(result);
+                                }
 
-                            } else {
+                            }else {
 
                                 blockingHandler.fail(result.getString(Constants.ERROR));
 
                             }
 
-                        }else{
-
-                            blockingHandler.fail(Constants.PING_FAIL);
-
-                        }
-
-                    }else {
-
-                        JsonObject result = Utils.spawnProcess(data);
-
-                        if (!result.containsKey(Constants.ERROR)) {
-
-                            blockingHandler.complete(result);
-
                         } else {
 
-                            blockingHandler.fail(result.getString(Constants.ERROR));
+                            if (statusCheck.containsKey(data.getInteger(Constants.MONITOR_ID))) {
+
+                                if (statusCheck.get(data.getInteger(Constants.MONITOR_ID)).equalsIgnoreCase(Constants.SUCCESS)) {
+
+                                    JsonObject result = Utils.spawnProcess(data);
+
+                                    if (!result.containsKey(Constants.ERROR)) {
+
+                                        data.put(Constants.RESULT,result);
+
+                                        blockingHandler.complete(data);
+
+                                    } else {
+
+                                        blockingHandler.fail(result.getString(Constants.ERROR));
+
+                                    }
+
+                                } else {
+
+                                    blockingHandler.fail(Constants.PING_FAIL);
+
+                                }
+
+                            } else {
+
+                                JsonObject result = Utils.spawnProcess(data);
+
+                                if (!result.containsKey(Constants.ERROR)) {
+
+                                    data.put(Constants.RESULT,result);
+
+                                    blockingHandler.complete(data);
+
+                                } else {
+
+                                    blockingHandler.fail(result.getString(Constants.ERROR));
+
+                                }
+
+                            }
 
                         }
+
+                    } else {
+
+                        blockingHandler.fail(Constants.FAIL);
+
                     }
+
+                }catch (Exception exception){
+
+                    LOG.debug("Error in Polling {}",exception.getMessage());
+
+                    blockingHandler.fail(exception.getMessage());
 
                 }
 
@@ -96,11 +130,13 @@ public class Poller extends AbstractVerticle {
 
                     JsonObject pollData = new JsonObject();
 
+                    JsonObject data = completionHandler.result();
+
                     pollData.put(Constants.MONITOR_ID,data.getInteger(Constants.MONITOR_ID));
 
                     pollData.put(Constants.METRIC_GROUP,data.getString(Constants.METRIC_GROUP));
 
-                    pollData.put(Constants.RESULT,completionHandler.result());
+                    pollData.put(Constants.RESULT,data.getString(Constants.RESULT));
 
                     pollData.put("timestamp",data.getString("timestamp"));
 
@@ -108,13 +144,13 @@ public class Poller extends AbstractVerticle {
 
                     pollData.put(Constants.TABLE_NAME,Constants.POLLER);
 
-                    LOG.error("Metric id = {} {} {}", data.getString(Constants.METRIC_ID), data.getString(Constants.IP_ADDRESS), completionHandler.result());
+                    LOG.error("Metric id = {} {} {}", data.getString(Constants.METRIC_ID), data.getString(Constants.IP_ADDRESS), data.getString(Constants.RESULT));
 
                     vertx.eventBus().send(Constants.EVENTBUS_DATABASE,pollData);
 
                 }else{
 
-                   LOG.error("Error : {} ",completionHandler.cause().getMessage());
+                   LOG.error("Fail data :: {} ",completionHandler.cause().getMessage());
 
                 }
 

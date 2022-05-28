@@ -20,7 +20,7 @@ import java.util.HashMap;
 
 public class Credentials {
 
-    Vertx vertx = Bootstrap.vertx;
+    private final Vertx vertx = Bootstrap.vertx;
 
     public void init(Router credentialRouter) {
 
@@ -36,7 +36,7 @@ public class Credentials {
 
     }
 
-    void validate(RoutingContext routingContext) {
+    private void validate(RoutingContext routingContext) {
 
         try {
 
@@ -196,7 +196,7 @@ public class Credentials {
 
             routingContext.response()
 
-                    .setStatusCode(400)
+                    .setStatusCode(500)
 
                     .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -205,7 +205,7 @@ public class Credentials {
 
     }
 
-    void create(RoutingContext routingContext) {
+    private void create(RoutingContext routingContext) {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
@@ -241,7 +241,7 @@ public class Credentials {
 
                 routingContext.response()
 
-                        .setStatusCode(400)
+                        .setStatusCode(500)
 
                         .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -253,7 +253,7 @@ public class Credentials {
 
     }
 
-    void get(RoutingContext routingContext) {
+    private void get(RoutingContext routingContext) {
 
         JsonObject userData = new JsonObject();
 
@@ -263,7 +263,7 @@ public class Credentials {
 
         userData.put(Constants.TABLE_COLUMN,Constants.CREDENTIAL_ID);
 
-        userData.put(Constants.TABLE_ID,"getall");
+        userData.put(Constants.TABLE_ID,Constants.GETALL);
 
         vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
@@ -282,6 +282,7 @@ public class Credentials {
                                 .end(result.encodePrettily());
 
                     }else{
+
                         routingContext.response()
 
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
@@ -318,7 +319,7 @@ public class Credentials {
 
     }
 
-    void getId(RoutingContext routingContext) {
+    private void getId(RoutingContext routingContext) {
 
         JsonObject userData = new JsonObject();
 
@@ -358,7 +359,7 @@ public class Credentials {
 
                 routingContext.response()
 
-                        .setStatusCode(400)
+                        .setStatusCode(500)
 
                         .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -371,7 +372,7 @@ public class Credentials {
 
     }
 
-    void delete(RoutingContext routingContext) {
+    private void delete(RoutingContext routingContext) {
 
         JsonObject userData = new JsonObject();
 
@@ -422,7 +423,7 @@ public class Credentials {
 
     }
 
-    void update(RoutingContext routingContext) {
+    private void update(RoutingContext routingContext) {
 
         JsonObject userData = routingContext.getBodyAsJson();
 

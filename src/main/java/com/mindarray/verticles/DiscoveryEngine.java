@@ -8,52 +8,92 @@ import io.vertx.core.Promise;
 
 import io.vertx.core.json.JsonObject;
 
+import org.slf4j.Logger;
+
+import org.slf4j.LoggerFactory;
+
 import static com.mindarray.Constants.*;
 
 public class DiscoveryEngine extends AbstractVerticle {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DiscoveryEngine.class.getName());
+
     @Override
-    public void start(Promise<Void> startPromise)  {
+    public void start(Promise<Void> startPromise) {
 
-        vertx.eventBus().<JsonObject>consumer(RUN_DISCOVERY,handler->{
-
-            JsonObject userData = handler.body();
-
-            userData.put(CATEGORY,"discovery");
+        vertx.eventBus().<JsonObject>consumer(RUN_DISCOVERY, handler -> {
 
             vertx.executeBlocking(blockingHandler -> {
 
-                JsonObject result = Utils.checkAvailibility(userData.getString(IP_ADDRESS));
+                try {
 
-                if(result.getString(STATUS).equalsIgnoreCase(SUCCESS)){
+                    if (handler.body() != null) {
 
-                    JsonObject outcome = Utils.spawnProcess(userData);
+                        JsonObject userData = handler.body();
 
-                    if(outcome.getString(STATUS).equalsIgnoreCase(SUCCESS)){
+                        userData.put(CATEGORY, "discovery");
 
-                        blockingHandler.complete(outcome);
+                        JsonObject result = Utils.checkAvailability(userData.getString(IP_ADDRESS));
 
-                    }else{
+                        if (!result.containsKey(ERROR)) {
 
-                        blockingHandler.complete(outcome);
+                            if (result.getString(STATUS).equalsIgnoreCase(SUCCESS)) {
+
+                                JsonObject outcome = Utils.spawnProcess(userData);
+
+                                if (!outcome.containsKey(ERROR)) {
+
+                                    if (outcome.getString(STATUS).equalsIgnoreCase(SUCCESS)) {
+
+                                        blockingHandler.complete(outcome);
+
+                                    } else {
+
+                                        blockingHandler.complete(outcome);
+
+                                    }
+
+                                } else {
+
+                                    blockingHandler.fail(outcome.getString(ERROR));
+
+                                }
+
+                            } else {
+
+                                blockingHandler.fail(PING_FAIL);
+
+                            }
+
+                        } else {
+
+                            blockingHandler.fail(result.getString(ERROR));
+
+                        }
+
+                    } else {
+
+                        blockingHandler.fail(FAIL);
 
                     }
 
-                }else{
+                } catch (Exception exception) {
 
-                    blockingHandler.fail(PING_FAIL);
+                    LOG.debug("Error {} ", exception.getMessage());
+
+                    blockingHandler.fail(exception.getMessage());
 
                 }
 
-            }).onComplete(completionHandler ->{
+            }).onComplete(completionHandler -> {
 
-                if(completionHandler.succeeded()){
+                if (completionHandler.succeeded()) {
 
                     handler.reply(completionHandler.result());
 
-                }else{
+                } else {
 
-                    handler.fail(-1,completionHandler.cause().getMessage());
+                    handler.fail(-1, completionHandler.cause().getMessage());
 
                 }
 

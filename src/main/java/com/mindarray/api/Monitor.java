@@ -1,41 +1,32 @@
 package com.mindarray.api;
 
 import com.mindarray.Bootstrap;
-
 import com.mindarray.Constants;
-
 import io.vertx.core.Vertx;
-
 import io.vertx.core.http.HttpMethod;
-
 import io.vertx.core.json.JsonArray;
-
 import io.vertx.core.json.JsonObject;
-
 import io.vertx.ext.web.Router;
-
 import io.vertx.ext.web.RoutingContext;
-
 import org.slf4j.Logger;
-
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-
 import java.util.List;
 
 import static com.mindarray.Constants.*;
 
 public class Monitor {
 
-    static final Logger LOG = LoggerFactory.getLogger(Monitor.class.getName());
-    Vertx vertx = Bootstrap.vertx;
+    private static final Logger LOG = LoggerFactory.getLogger(Monitor.class.getName());
+
+    private final Vertx vertx = Bootstrap.vertx;
 
     public void init(Router provisionRouter) {
 
         provisionRouter.post("/provision").handler(this::validate).handler(this::insertMonitor).handler(this::snmpInterface).handler(this::insertMetric);
 
-        provisionRouter.get().handler(this::getAll);
+        provisionRouter.get("/").handler(this::getAll);
 
         provisionRouter.get("/:id").handler(this::validate).handler(this::getById);
 
@@ -45,55 +36,78 @@ public class Monitor {
 
     public void validate(RoutingContext routingContext) {
 
-        if (routingContext.request().method() == HttpMethod.POST) {
+        try {
 
-            JsonObject data = routingContext.getBodyAsJson();
+            if (routingContext.request().method() == HttpMethod.POST) {
 
-            if (data != null) {
+                JsonObject data = routingContext.getBodyAsJson();
 
-                HashMap<String, Object> result;
+                if (data != null) {
 
-                result = new HashMap<>(data.getMap());
+                    HashMap<String, Object> result;
 
-                // this can be modified
+                    result = new HashMap<>(data.getMap());
 
-                for (String key : result.keySet()) {
+                    // this can be modified
 
-                    Object val = result.get(key);
+                    for (String key : result.keySet()) {
 
-                    if (val instanceof String) {
+                        Object val = result.get(key);
 
-                        data.put(key, val.toString().trim());
+                        if (val instanceof String) {
 
-                    }
-
-                }
-
-                if (data.containsKey(CREDENTIAL_ID) && data.containsKey(IP_ADDRESS) && data.containsKey(TYPE) && data.containsKey(PORT) && data.containsKey(HOST)) {
-
-                    data.put(METHOD, VALIDATE_PROVISION);
-
-                    vertx.eventBus().<JsonObject>request(EVENTBUS_DATABASE, data, handler -> {
-
-                        if (handler.succeeded()) {
-
-                            routingContext.setBody(handler.result().body().toBuffer());
-
-                            routingContext.next();
-
-
-                        } else {
-
-                            routingContext.response()
-
-                                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
-
-                                    .end(new JsonObject().put(STATUS, FAIL).put(ERROR, handler.cause().getMessage()).encodePrettily());
+                            data.put(key, val.toString().trim());
 
                         }
 
-                    });
+                    }
 
+                    if (data.containsKey(CREDENTIAL_ID) && data.containsKey(IP_ADDRESS) && data.containsKey(TYPE) && data.containsKey(PORT) && data.containsKey(HOST)) {
+
+                        data.put(METHOD, VALIDATE_PROVISION);
+
+                        vertx.eventBus().<JsonObject>request(EVENTBUS_DATABASE, data, handler -> {
+
+                            if (handler.succeeded()) {
+
+                                if (handler.result().body() != null) {
+
+                                    routingContext.setBody(handler.result().body().toBuffer());
+
+                                    routingContext.next();
+
+                                } else {
+
+                                    routingContext.response()
+
+                                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                            .end(new JsonObject().put(STATUS, FAIL).encodePrettily());
+
+                                }
+
+                            } else {
+
+                                routingContext.response()
+
+                                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                        .end(new JsonObject().put(STATUS, FAIL).put(ERROR, handler.cause().getMessage()).encodePrettily());
+
+                            }
+
+                        });
+
+
+                    } else {
+
+                        routingContext.response()
+
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(STATUS, FAIL).put(ERROR, INVALID_INPUT).encodePrettily());
+
+                    }
 
                 } else {
 
@@ -105,30 +119,75 @@ public class Monitor {
 
                 }
 
-            } else {
+            } else if (routingContext.request().method() == HttpMethod.GET || routingContext.request().method() == HttpMethod.DELETE) {
 
-                routingContext.response()
+                JsonObject userData = new JsonObject();
 
-                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                userData.put(Constants.METHOD, Constants.DATABASE_ID_CHECK);
 
-                        .end(new JsonObject().put(STATUS, FAIL).put(ERROR, INVALID_INPUT).encodePrettily());
+                userData.put(Constants.TABLE_NAME, MONITOR);
+
+                userData.put(Constants.TABLE_COLUMN, MONITOR_ID);
+
+                userData.put(Constants.TABLE_ID, routingContext.pathParam("id"));
+
+                vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
+
+                    if (handler.succeeded()) {
+
+                        routingContext.next();
+
+                    } else {
+
+                        routingContext.response()
+
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
+
+                    }
+
+                });
 
             }
-        } else if (routingContext.request().method() == HttpMethod.GET || routingContext.request().method() == HttpMethod.DELETE) {
 
-            JsonObject userData = new JsonObject();
+        } catch (Exception exception) {
 
-            userData.put(Constants.METHOD, Constants.DATABASE_ID_CHECK);
+            routingContext.response()
 
-            userData.put(Constants.TABLE_NAME, MONITOR);
+                    .setStatusCode(500)
 
-            userData.put(Constants.TABLE_COLUMN, MONITOR_ID);
+                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-            userData.put(Constants.TABLE_ID, routingContext.pathParam("id"));
+                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, exception.getMessage()).encodePrettily());
 
-            vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
+        }
+
+    }
+
+    private void insertMonitor(RoutingContext routingContext) {
+
+        try {
+
+            JsonObject data = routingContext.getBodyAsJson();
+
+            data.put(METHOD, DATABASE_INSERT);
+
+            data.put(TABLE_NAME, MONITOR);
+
+            vertx.eventBus().<JsonObject>request(EVENTBUS_DATABASE, data, handler -> {
 
                 if (handler.succeeded()) {
+
+//                data.put(MONITOR_ID, handler.result().body().getInteger(MONITOR_ID));
+
+                    routingContext.response()
+
+                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                            .end(new JsonObject().put(STATUS, SUCCESS).put(MONITOR_ID, data.getInteger(MONITOR_ID)).encodePrettily());
+
+                    routingContext.setBody(data.toBuffer());
 
                     routingContext.next();
 
@@ -138,51 +197,23 @@ public class Monitor {
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, NOT_PRESENT).encodePrettily());
+                            .end(new JsonObject().put(STATUS, FAIL).put(ERROR, handler.cause().getMessage()).encodePrettily());
 
                 }
 
             });
 
+        } catch (Exception exception) {
+
+            routingContext.response()
+
+                    .setStatusCode(500)
+
+                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
         }
-
-    }
-
-    private void insertMonitor(RoutingContext routingContext) {
-
-        JsonObject data = routingContext.getBodyAsJson();
-
-        data.put(METHOD, DATABASE_INSERT);
-
-        data.put(TABLE_NAME, MONITOR);
-
-        vertx.eventBus().<JsonObject>request(EVENTBUS_DATABASE, data, handler -> {
-
-            if (handler.succeeded()) {
-
-//                data.put(MONITOR_ID, handler.result().body().getInteger(MONITOR_ID));
-
-                routingContext.response()
-
-                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
-
-                        .end(new JsonObject().put(STATUS, SUCCESS).put(MONITOR_ID, data.getInteger(MONITOR_ID)).encodePrettily());
-
-                routingContext.setBody(data.toBuffer());
-
-                routingContext.next();
-
-            } else {
-
-                routingContext.response()
-
-                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
-
-                        .end(new JsonObject().put(STATUS, FAIL).put(ERROR, handler.cause().getMessage()).encodePrettily());
-
-            }
-
-        });
 
     }
 
@@ -212,57 +243,65 @@ public class Monitor {
 
         } catch (Exception exception) {
 
-            LOG.error("ERROR {}" , exception.getMessage());
+            LOG.error("ERROR {}", exception.getMessage());
 
         }
     }
 
     private void insertMetric(RoutingContext routingContext) {
 
-        JsonObject data = routingContext.getBodyAsJson();
+        try {
 
-        data.put(METHOD, INSERT_METRIC);
+            JsonObject data = routingContext.getBodyAsJson();
 
-        data.remove(HOST);
+            data.put(METHOD, INSERT_METRIC);
 
-        data.remove(IP_ADDRESS);
+            data.remove(HOST);
 
-        data.remove(PORT);
+            data.remove(IP_ADDRESS);
 
-        vertx.eventBus().<JsonArray>request(EVENTBUS_DATABASE, data, handler -> {
+            data.remove(PORT);
 
-            if (handler.succeeded()) {
+            vertx.eventBus().<JsonArray>request(EVENTBUS_DATABASE, data, handler -> {
 
-                System.out.println("inserted in metric " + handler.result().body());
+                if (handler.succeeded()) {
 
-                vertx.eventBus().send(SCHEDULER, handler.result().body());
+                    System.out.println("inserted in metric " + handler.result().body());
+
+                    vertx.eventBus().send(SCHEDULER, handler.result().body());
 
 
-            } else {
+                } else {
 
-                LOG.debug("Error : Insert Metric {} {} ", "Data is not inserted ", handler.cause().getMessage());
+                    LOG.debug("Error : Insert Metric {} {} ", "Data is not inserted ", handler.cause().getMessage());
 
-            }
+                }
 
-        });
+            });
+
+        } catch (Exception exception) {
+
+            LOG.debug("ERROR insert metric {} ", exception.getMessage());
+
+        }
 
     }
 
     private void getAll(RoutingContext routingContext) {
 
-        JsonObject userData = new JsonObject();
+        try {
 
-        userData.put(Constants.METHOD, Constants.DATABASE_GET);
+            JsonObject userData = new JsonObject();
 
-        userData.put(Constants.TABLE_NAME, MONITOR);
+            userData.put(Constants.METHOD, Constants.DATABASE_GET);
 
-        userData.put(Constants.TABLE_COLUMN, MONITOR_ID);
+            userData.put(Constants.TABLE_NAME, MONITOR);
 
-        userData.put(Constants.TABLE_ID, "getall");
+            userData.put(Constants.TABLE_COLUMN, MONITOR_ID);
 
-        vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
+            userData.put(Constants.TABLE_ID, "getall");
 
-            try {
+            vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
                 if (response.succeeded()) {
 
@@ -285,7 +324,6 @@ public class Monitor {
 
                     }
 
-
                 } else {
 
                     routingContext.response()
@@ -296,38 +334,39 @@ public class Monitor {
 
                 }
 
-            } catch (Exception exception) {
+            });
 
-                routingContext.response()
+        } catch (Exception exception) {
 
-                        .setStatusCode(400)
+            routingContext.response()
 
-                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                    .setStatusCode(500)
 
-                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-            }
+                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
-        });
+        }
 
 
     }
 
     private void getById(RoutingContext routingContext) {
 
-        JsonObject userData = new JsonObject();
+        try {
 
-        userData.put(Constants.METHOD, Constants.DATABASE_GET);
+            JsonObject userData = new JsonObject();
 
-        userData.put(Constants.TABLE_NAME, MONITOR);
+            userData.put(Constants.METHOD, Constants.DATABASE_GET);
 
-        userData.put(Constants.TABLE_COLUMN, MONITOR_ID);
+            userData.put(Constants.TABLE_NAME, MONITOR);
 
-        userData.put(Constants.TABLE_ID, routingContext.pathParam("id"));
+            userData.put(Constants.TABLE_COLUMN, MONITOR_ID);
 
-        vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
+            userData.put(Constants.TABLE_ID, routingContext.pathParam("id"));
 
-            try {
+            vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
+
                 if (response.succeeded()) {
 
                     JsonArray result = response.result().body();
@@ -349,34 +388,34 @@ public class Monitor {
 
                 }
 
-            } catch (Exception exception) {
+            });
 
-                routingContext.response()
+        } catch (Exception exception) {
 
-                        .setStatusCode(400)
+            routingContext.response()
 
-                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                    .setStatusCode(500)
 
-                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-            }
+                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
-        });
+        }
 
 
     }
 
     private void delete(RoutingContext routingContext) {
 
-        JsonObject userData = new JsonObject();
+        try {
 
-        userData.put(Constants.METHOD, DATABASE_DELETE_MONITOR);
+            JsonObject userData = new JsonObject();
 
-        userData.put(TABLE_ID, routingContext.pathParam("id"));
+            userData.put(Constants.METHOD, DATABASE_DELETE_MONITOR);
 
-        vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, response -> {
+            userData.put(TABLE_ID, routingContext.pathParam("id"));
 
-            try {
+            vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
                 if (response.succeeded()) {
 
@@ -396,19 +435,19 @@ public class Monitor {
 
                 }
 
-            } catch (Exception exception) {
+            });
 
-                routingContext.response()
+        } catch (Exception exception) {
 
-                        .setStatusCode(400)
+            routingContext.response()
 
-                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                    .setStatusCode(500)
 
-                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-            }
+                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
-        });
+        }
 
     }
 }

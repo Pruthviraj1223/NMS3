@@ -1,6 +1,7 @@
 package com.mindarray.verticles;
 
 import com.mindarray.Bootstrap;
+
 import com.mindarray.api.Credentials;
 
 import com.mindarray.api.Discovery;
@@ -32,7 +33,7 @@ public class ApiRouter extends AbstractVerticle {
 
         }catch (Exception exception){
 
-            LOG.debug("Error {}",exception.getMessage());
+            LOG.debug("Error  {}",exception.getMessage());
 
         }
 
