@@ -583,7 +583,7 @@ public class Discovery {
 
                         routingContext.next();
 
-                    }else {
+                    } else {
 
                         routingContext.response()
 
@@ -599,7 +599,7 @@ public class Discovery {
 
             });
 
-        }catch (Exception exception) {
+        } catch (Exception exception) {
 
             routingContext.response()
 

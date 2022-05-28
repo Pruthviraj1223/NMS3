@@ -154,5 +154,11 @@ public class Constants {
 
     public static final String GETALL = "getall";
 
+    public static final int MIN_POLL_TIME = 60000;
+
+    public static final int MAX_POLL_TIME = 86400000;
+
+    public static final String SCHEDULER_UPDATE = "scheduler.update";
+
 
 }

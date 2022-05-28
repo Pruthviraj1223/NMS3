@@ -17,6 +17,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
 import java.util.HashMap;
+import java.util.zip.CheckedOutputStream;
 
 public class Credentials {
 
@@ -351,7 +352,7 @@ public class Credentials {
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(new JsonObject().put(Constants.STATUS, response.cause().getMessage()).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR,response.cause().getMessage()).encodePrettily());
 
                 }
 

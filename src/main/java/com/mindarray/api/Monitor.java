@@ -22,15 +22,15 @@ public class Monitor {
 
     private final Vertx vertx = Bootstrap.vertx;
 
-    public void init(Router provisionRouter) {
+    public void init(Router router) {
 
-        provisionRouter.post("/provision").handler(this::validate).handler(this::insertMonitor).handler(this::snmpInterface).handler(this::insertMetric);
+        router.post("/provision").handler(this::validate).handler(this::insertMonitor).handler(this::snmpInterface).handler(this::insertMetric);
 
-        provisionRouter.get("/").handler(this::getAll);
+        router.get("/").handler(this::getAll);
 
-        provisionRouter.get("/:id").handler(this::validate).handler(this::getById);
+        router.get("/:id").handler(this::validate).handler(this::getById);
 
-        provisionRouter.delete("/:id").handler(this::validate).handler(this::delete);
+        router.delete("/:id").handler(this::validate).handler(this::delete);
 
     }
 
@@ -299,21 +299,22 @@ public class Monitor {
 
             userData.put(Constants.TABLE_COLUMN, MONITOR_ID);
 
-            userData.put(Constants.TABLE_ID, "getall");
+            userData.put(Constants.TABLE_ID, GETALL);
 
             vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
                 if (response.succeeded()) {
 
-                    JsonArray jsonArray = response.result().body();
+                    JsonArray data = response.result().body();
 
-                    if (!jsonArray.isEmpty()) {
+                    if (!data.isEmpty()) {
 
                         routingContext.response()
 
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                .end(jsonArray.encodePrettily());
+                                .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.RESULT, data).encodePrettily());
+
                     } else {
 
                         routingContext.response()
@@ -330,7 +331,7 @@ public class Monitor {
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(new JsonObject().put(Constants.STATUS, response.cause().getMessage()).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.MESSAGE, response.cause().getMessage()).encodePrettily());
 
                 }
 
@@ -369,13 +370,25 @@ public class Monitor {
 
                 if (response.succeeded()) {
 
-                    JsonArray result = response.result().body();
+                    JsonArray data = response.result().body();
 
-                    routingContext.response()
+                    if (!data.isEmpty()) {
 
-                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                        routingContext.response()
 
-                            .end(result.encodePrettily());
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.RESULT, data).encodePrettily());
+
+                    } else {
+
+                        routingContext.response()
+
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.MESSAGE, Constants.NOT_PRESENT).encodePrettily());
+
+                    }
 
 
                 } else {

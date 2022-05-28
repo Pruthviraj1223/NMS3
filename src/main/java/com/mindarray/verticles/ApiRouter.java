@@ -6,6 +6,7 @@ import com.mindarray.api.Credentials;
 
 import com.mindarray.api.Discovery;
 
+import com.mindarray.api.Metric;
 import com.mindarray.api.Monitor;
 
 import io.vertx.core.AbstractVerticle;
@@ -43,9 +44,13 @@ public class ApiRouter extends AbstractVerticle {
 
         Router monitorRouter = Router.router(vertx);
 
+        Router metricRouter = Router.router(vertx);
+
         router.mountSubRouter("/api", subrouter);
 
         router.mountSubRouter("/api/monitor/",monitorRouter);
+
+        router.mountSubRouter("/api/metric/",metricRouter);
 
         router.route().handler(BodyHandler.create());
 
@@ -58,6 +63,8 @@ public class ApiRouter extends AbstractVerticle {
         new Discovery().init(subrouter);
 
         new Monitor().init(monitorRouter);
+
+        new Metric().init(metricRouter);
 
         vertx.createHttpServer().requestHandler(router).listen(8080);
 

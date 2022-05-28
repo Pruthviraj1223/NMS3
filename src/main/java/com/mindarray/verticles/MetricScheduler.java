@@ -187,6 +187,16 @@ public class MetricScheduler extends AbstractVerticle {
 
         });
 
+        vertx.eventBus().localConsumer(SCHEDULER_UPDATE, handler -> {
+
+
+
+
+
+
+
+        });
+
         startPromise.complete();
 
     }
