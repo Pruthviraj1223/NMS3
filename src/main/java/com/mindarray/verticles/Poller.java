@@ -4,12 +4,14 @@ import com.mindarray.Constants;
 
 import com.mindarray.Utils;
 
+import com.mysql.cj.util.StringUtils;
 import io.vertx.core.AbstractVerticle;
 
 import io.vertx.core.Promise;
 
 import io.vertx.core.json.JsonObject;
 
+import io.vertx.ext.web.handler.sockjs.impl.StringEscapeUtils;
 import org.slf4j.Logger;
 
 import org.slf4j.LoggerFactory;
@@ -136,7 +138,7 @@ public class Poller extends AbstractVerticle {
 
                     pollData.put(Constants.METRIC_GROUP,data.getString(Constants.METRIC_GROUP));
 
-                    pollData.put(Constants.RESULT,data.getString(Constants.RESULT));
+                    pollData.put(Constants.RESULT, data.getString(Constants.RESULT));
 
                     pollData.put("timestamp",data.getString("timestamp"));
 

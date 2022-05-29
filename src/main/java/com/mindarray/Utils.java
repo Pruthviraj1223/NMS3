@@ -120,6 +120,8 @@ public class Utils {
 
             String outcome = handler.output();
 
+            System.out.println("out " + outcome);
+
             if (outcome != null) {
 
                 result = new JsonObject(outcome);
@@ -158,7 +160,7 @@ public class Utils {
 
         } else if (type.equalsIgnoreCase(Constants.NETWORKING)) {
 
-            temp.put("systemInfo", 300000);
+            temp.put("SystemInfo", 30000);
 
             temp.put("interface", 20000);
 
@@ -167,6 +169,7 @@ public class Utils {
         }
 
         return temp;
+
     }
 
 }

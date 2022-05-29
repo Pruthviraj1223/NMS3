@@ -212,8 +212,6 @@ public class Monitor {
 
             } else if (routingContext.request().method() == HttpMethod.GET || routingContext.request().method() == HttpMethod.DELETE) {
 
-                System.out.println("path " + routingContext.request().params() + " path " + routingContext.request().path()  +" uri " + routingContext.request().uri());
-
                 JsonObject userData = new JsonObject();
 
                 userData.put(Constants.METHOD, Constants.DATABASE_ID_CHECK);
@@ -400,9 +398,36 @@ public class Monitor {
 
             if(context.containsKey(MONITOR_ID)){
 
-                routingContext.setBody(context.toBuffer());
+                JsonObject userData = new JsonObject();
 
-                routingContext.next();
+                userData.put(Constants.METHOD, Constants.DATABASE_ID_CHECK);
+
+                userData.put(Constants.TABLE_NAME, POLLER);
+
+                userData.put(Constants.TABLE_COLUMN, MONITOR_ID);
+
+                userData.put(Constants.TABLE_ID, context.getValue(MONITOR_ID));
+
+                vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
+
+                    if (handler.succeeded()) {
+
+                        routingContext.setBody(context.toBuffer());
+
+                        routingContext.next();
+
+                    } else {
+
+                        routingContext.response()
+
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
+
+                    }
+
+                });
+
 
             }else{
 
@@ -443,7 +468,6 @@ public class Monitor {
         userData.put(TABLE_COLUMN, MONITOR_ID);
 
         userData.put(TABLE_ID,context.getString(MONITOR_ID));
-
 
         if(context.containsKey(LIMIT)){
 
