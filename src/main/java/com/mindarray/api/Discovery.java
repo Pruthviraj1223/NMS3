@@ -9,7 +9,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.mindarray.Constants.*;
 
@@ -17,19 +20,134 @@ public class Discovery {
 
     private final Vertx vertx = Bootstrap.vertx;
 
+    private final Set<String> checkFields = new HashSet<>(Arrays.asList(CREDENTIAL_ID, DISCOVERY_NAME, IP_ADDRESS, TYPE, PORT));
+
     public void init(Router discoveryRouter) {
 
-        discoveryRouter.post("/discovery").handler(this::validate).handler(this::create);
+        discoveryRouter.post("/discovery").handler(this::fieldValidate).handler(this::validate).handler(this::create);
 
         discoveryRouter.get("/discovery").handler(this::get);
 
         discoveryRouter.get("/discovery/:id").handler(this::validate).handler(this::getId);
 
-        discoveryRouter.put("/discovery").handler(this::validate).handler(this::update);
+        discoveryRouter.put("/discovery").handler(this::fieldValidate).handler(this::validate).handler(this::update);
 
         discoveryRouter.delete("/discovery/:id").handler(this::validate).handler(this::delete);
 
         discoveryRouter.post("/discovery/run/:id").handler(this::validate).handler(this::merge).handler(this::runDiscovery);
+
+    }
+
+    private void fieldValidate(RoutingContext routingContext) {
+
+        try {
+
+            JsonObject user = routingContext.getBodyAsJson();
+
+            if (user != null) {
+
+                Set<String> fieldNames = user.fieldNames();
+
+                if (routingContext.request().method() == HttpMethod.POST) {
+
+                    if (fieldNames.size() >= checkFields.size()) {
+
+                        JsonObject newUserData = new JsonObject();
+
+                        for (String field : fieldNames) {
+
+                            if (checkFields.contains(field)) {
+
+                                newUserData.put(field, user.getValue(field));
+
+                            }
+
+                        }
+
+                        routingContext.setBody(newUserData.toBuffer());
+
+                        routingContext.next();
+
+
+                    } else {
+
+                        routingContext.response()
+
+                                .setStatusCode(400)
+
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, MISSING_DATA).encodePrettily());
+
+
+                    }
+
+
+                } else if (routingContext.request().method() == HttpMethod.PUT) {
+
+                    if (user.containsKey(DISCOVERY_TABLE_ID)) {
+
+                        JsonObject newUserData = new JsonObject();
+
+                        for (String field : fieldNames) {
+
+                            if (checkFields.contains(field)) {
+
+                                newUserData.put(field, user.getValue(field));
+
+                            }
+
+                        }
+
+                        newUserData.put(DISCOVERY_TABLE_ID,user.getValue(DISCOVERY_TABLE_ID));
+
+                        routingContext.setBody(newUserData.toBuffer());
+
+                        routingContext.next();
+
+
+                    } else {
+
+                        routingContext.response()
+
+                                .setStatusCode(400)
+
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, DISCOVERY_TABLE_ID + " is missing").encodePrettily());
+
+
+                    }
+
+
+                }
+
+
+            } else {
+
+                routingContext.response()
+
+                        .setStatusCode(400)
+
+                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                        .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, INVALID_INPUT).encodePrettily());
+
+
+            }
+        } catch (Exception exception) {
+
+
+            routingContext.response()
+
+                    .setStatusCode(500)
+
+                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                    .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
+
+        }
+
 
     }
 
@@ -260,7 +378,7 @@ public class Discovery {
 
                     .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                    .end(new JsonObject().put(Constants.STATUS, Constants.INVALID_INPUT).encodePrettily());
+                    .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
         }
 
     }

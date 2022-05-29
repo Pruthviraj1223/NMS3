@@ -16,6 +16,7 @@ import io.vertx.ext.web.Router;
 
 import io.vertx.ext.web.RoutingContext;
 
+import javax.xml.crypto.dsig.spec.ExcC14NParameterSpec;
 import java.util.HashMap;
 import java.util.zip.CheckedOutputStream;
 
@@ -70,25 +71,34 @@ public class Credentials {
 
                         vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
-                            if (handler.succeeded()) {
+                            try {
 
-                                routingContext.setBody(handler.result().body().toBuffer());
+                                if (handler.succeeded()) {
 
-                                routingContext.next();
+                                    routingContext.setBody(handler.result().body().toBuffer());
 
-                            } else {
+                                    routingContext.next();
 
-                                routingContext.response()
+                                } else {
 
-                                        .setStatusCode(400)
+                                    routingContext.response()
 
-                                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                                            .setStatusCode(400)
 
-                                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
+                                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
+
+                                }
+
+                            }catch (Exception exception){
+
+                                System.out.println(exception.getMessage());
 
                             }
 
                         });
+
 
                     } else {
 
