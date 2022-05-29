@@ -2,6 +2,7 @@ package com.mindarray.api;
 
 import com.mindarray.Bootstrap;
 import com.mindarray.Constants;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -21,13 +22,15 @@ public class Monitor {
 
     private final Set<String> checkFields = new HashSet<>(Arrays.asList(CREDENTIAL_ID, HOST, IP_ADDRESS, TYPE, PORT));
 
+    private final Set<String> checkParams = new HashSet<>(Arrays.asList(MONITOR_ID,LIMIT,METRIC_GROUP));
+
     private final Vertx vertx = Bootstrap.vertx;
 
     public void init(Router router) {
 
         router.post("/provision").handler(this::fieldValidate).handler(this::validate).handler(this::insertMonitor).handler(this::snmpInterface).handler(this::insertMetric);
 
-        router.get("/limit").handler(this::getPollingData);
+        router.get("/limit").handler(this::filter).handler(this::getPollingData);
 
         router.get("/").handler(this::getAll);
 
@@ -375,7 +378,63 @@ public class Monitor {
 
     }
 
+    private void filter(RoutingContext routingContext){
+
+        JsonObject context = new JsonObject();
+
+        MultiMap map = routingContext.queryParams();
+
+        Set<String> set = map.names();
+
+        if(map.size()==1 || map.size()==2 || map.size()==3) {
+
+            for(String field:set){
+
+                if(checkParams.contains(field)){
+
+                    context.put(field,map.get(field));
+
+                }
+
+            }
+
+            if(context.containsKey(MONITOR_ID)){
+
+                routingContext.setBody(context.toBuffer());
+
+                routingContext.next();
+
+            }else{
+
+                routingContext.response()
+
+                        .setStatusCode(400)
+
+                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                        .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, "Invalid parameter").encodePrettily());
+
+            }
+
+        }else{
+
+            routingContext.response()
+
+                    .setStatusCode(400)
+
+                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                    .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, "Invalid parameter").encodePrettily());
+
+
+        }
+
+
+    }
+
     private void getPollingData(RoutingContext routingContext){
+
+        JsonObject context = routingContext.getBodyAsJson();
 
         JsonObject userData = new JsonObject();
 
@@ -383,9 +442,30 @@ public class Monitor {
 
         userData.put(TABLE_COLUMN, MONITOR_ID);
 
-        userData.put(TABLE_ID,routingContext.queryParam(MONITOR_ID).get(0));
+        userData.put(TABLE_ID,context.getString(MONITOR_ID));
 
-        userData.put(LIMIT, routingContext.queryParam(LIMIT).get(0));
+
+        if(context.containsKey(LIMIT)){
+
+            userData.put(LIMIT, context.getValue(LIMIT));
+
+        }else{
+
+            userData.put(LIMIT,10);
+
+        }
+
+        if(context.containsKey(METRIC_GROUP)){
+
+            userData.put(METRIC_GROUP, context.getValue(METRIC_GROUP));
+
+        }else{
+
+            userData.put(METRIC_GROUP,GETALL);
+
+        }
+
+
 
         vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
@@ -432,7 +512,6 @@ public class Monitor {
 
 
     }
-
 
     private void getAll(RoutingContext routingContext) {
 

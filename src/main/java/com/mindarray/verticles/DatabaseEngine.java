@@ -767,28 +767,68 @@ public class DatabaseEngine extends AbstractVerticle {
 
             if(metricGroup.equalsIgnoreCase(GETALL)){
 
-                query = "select pollerId,result from Poller where " + column + "= '" +columnValue + "' ORDER BY pollerId DESC limit " + limit;
+                ResultSet queryResult = connection.createStatement().executeQuery("select type from Monitor where monitorId = '" + columnValue +"'");
 
+                queryResult.next();
+
+                HashMap<String,Integer> counters = Utils.metric(queryResult.getString(1));
+
+                for(Map.Entry<String,Integer> entry: counters.entrySet()) {
+
+                    query = "select pollerId,result from Poller where " + column + "= '" + columnValue + "' and metricGroup = '" + entry.getKey() + "' ORDER BY pollerId DESC limit " + limit;
+
+                    ResultSet resultSet = connection.createStatement().executeQuery(query);
+
+                    while (resultSet.next()) {
+
+                        JsonObject result = new JsonObject();
+
+                        result.put(POLLING_ID, resultSet.getObject(1));
+
+                        result.put(RESULT, resultSet.getObject(2));
+
+                        pollData.add(result);
+
+                    }
+                }
 
             }else{
 
                 query = "select pollerId,result from Poller where " + column + "= '" +columnValue + "' and metricGroup = '" + metricGroup + "' ORDER BY pollerId DESC limit " + limit;
 
+                ResultSet resultSet = connection.createStatement().executeQuery(query);
+
+                while (resultSet.next()) {
+
+                    JsonObject result = new JsonObject();
+
+                    result.put(POLLING_ID,resultSet.getObject(1));
+
+                    result.put(RESULT,resultSet.getObject(2));
+
+                    pollData.add(result);
+
+                }
+
             }
 
-            ResultSet resultSet = connection.createStatement().executeQuery(query);
+//            query = "select pollerId,result from Poller where " + column + "= '" +columnValue + "' ORDER BY pollerId DESC limit " + limit;
+//
+//            ResultSet resultSet = connection.createStatement().executeQuery(query);
+//
+//            while (resultSet.next()) {
+//
+//                JsonObject result = new JsonObject();
+//
+//                result.put(POLLING_ID,resultSet.getObject(1));
+//
+//                result.put(RESULT,resultSet.getObject(2));
+//
+//                pollData.add(result);
+//
+//            }
 
-            while (resultSet.next()) {
 
-                JsonObject result = new JsonObject();
-
-                result.put(POLLING_ID,resultSet.getObject(1));
-
-                result.put(RESULT,resultSet.getObject(2));
-
-                pollData.add(result);
-
-            }
 
 
         }catch (Exception exception){
@@ -1646,12 +1686,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         if (handler.body() != null) {
 
-                            JsonArray result = pollingData(handler.body().getString(TABLE_COLUMN),handler.body().getString(TABLE_ID),GETALL,handler.body().getString(LIMIT));
+                            JsonArray result = pollingData(handler.body().getString(TABLE_COLUMN),handler.body().getString(TABLE_ID),handler.body().getString(METRIC_GROUP),handler.body().getString(LIMIT));
 
                             if (result != null) {
 
                                 blockingHandler.complete(result);
-
 
                             } else {
 
