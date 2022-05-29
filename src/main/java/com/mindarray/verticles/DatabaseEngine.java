@@ -163,19 +163,19 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        if (!(data.containsKey(Constants.CREDENTIAL_ID) && (!data.getString(Constants.CREDENTIAL_ID).isEmpty()))) {
+        if (!(data.containsKey(Constants.CREDENTIAL_ID) && (data.getValue(CREDENTIAL_ID) instanceof Integer))) {
 
             return false;
 
         }
 
-        if (!(data.containsKey(Constants.DISCOVERY_TABLE_ID) && (!data.getString(Constants.DISCOVERY_TABLE_ID).isEmpty()))) {
+        if (!(data.containsKey(Constants.DISCOVERY_TABLE_ID))) {
 
             return false;
 
         }
 
-        if (!(data.containsKey(Constants.PORT) && (!data.getString(Constants.PORT).isEmpty()))) {
+        if (!(data.containsKey(Constants.PORT) && (data.getValue(PORT) instanceof Integer ))) {
 
             return false;
 
@@ -396,6 +396,8 @@ public class DatabaseEngine extends AbstractVerticle {
             }
 
             if (tableName.equalsIgnoreCase(DISCOVERY_TABLE) && userData.containsKey(CREDENTIAL_ID) && !check(CREDENTIAL_TABLE, CREDENTIAL_ID, userData.getString(CREDENTIAL_ID))) {
+
+                System.out.println("here");
 
                 return false;
 
@@ -627,7 +629,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             if (!answer) {
 
-                String query = "select result->>'$.status' from " + DISCOVERY_TABLE + " where credentialId = '" + data.getString(CREDENTIAL_ID) + "' and ip = '" + data.getString(IP_ADDRESS) + "' and type = '" + data.getString(TYPE) + "' and port = " + data.getInteger(PORT) + "";
+                String query = "select result->>'$.status' from " + DISCOVERY_TABLE + " where credentialId = '" + data.getInteger(CREDENTIAL_ID) + "' and ip = '" + data.getString(IP_ADDRESS) + "' and type = '" + data.getString(TYPE) + "' and port = " + data.getInteger(PORT) + "";
 
                 ResultSet resultSet = connection.createStatement().executeQuery(query);
 
@@ -746,6 +748,59 @@ public class DatabaseEngine extends AbstractVerticle {
         }
 
         return result;
+
+    }
+
+    private JsonArray pollingData(String column,String columnValue,String metricGroup, String limit){
+
+        if(column == null || columnValue == null || metricGroup == null){
+
+            return null;
+
+        }
+
+        JsonArray pollData = new JsonArray();
+
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+
+            String query;
+
+            if(metricGroup.equalsIgnoreCase(GETALL)){
+
+                query = "select pollerId,result from Poller where " + column + "= '" +columnValue + "' ORDER BY pollerId DESC limit " + limit;
+
+
+            }else{
+
+                query = "select pollerId,result from Poller where " + column + "= '" +columnValue + "' and metricGroup = '" + metricGroup + "' ORDER BY pollerId DESC limit " + limit;
+
+            }
+
+            ResultSet resultSet = connection.createStatement().executeQuery(query);
+
+            while (resultSet.next()) {
+
+                JsonObject result = new JsonObject();
+
+                result.put(POLLING_ID,resultSet.getObject(1));
+
+                result.put(RESULT,resultSet.getObject(2));
+
+                pollData.add(result);
+
+            }
+
+
+        }catch (Exception exception){
+
+            LOG.debug("Error while fetching poll data {}" ,exception.getMessage());
+
+            return null;
+
+        }
+
+        return pollData;
+
 
     }
 
@@ -1550,6 +1605,53 @@ public class DatabaseEngine extends AbstractVerticle {
                                     blockingHandler.fail(result.getString(ERROR));
 
                                 }
+
+                            } else {
+
+                                blockingHandler.fail(FAIL);
+
+                            }
+
+                        } else {
+
+                            blockingHandler.fail(FAIL);
+
+                        }
+
+                    } catch (Exception exception) {
+
+                        LOG.debug("Error: create context {}", exception.getMessage());
+
+                        blockingHandler.fail(exception.getMessage());
+
+                    }
+
+                }).onComplete(completionHandler -> {
+
+                    if (completionHandler.succeeded()) {
+
+                        handler.reply(completionHandler.result());
+
+                    } else {
+
+                        handler.fail(-1, completionHandler.cause().getMessage());
+
+                    }
+
+                });
+
+                case DATABASE_GET_POLL_DATA -> vertx.<JsonArray>executeBlocking(blockingHandler -> {
+
+                    try {
+
+                        if (handler.body() != null) {
+
+                            JsonArray result = pollingData(handler.body().getString(TABLE_COLUMN),handler.body().getString(TABLE_ID),GETALL,handler.body().getString(LIMIT));
+
+                            if (result != null) {
+
+                                blockingHandler.complete(result);
+
 
                             } else {
 

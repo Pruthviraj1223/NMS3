@@ -22,7 +22,7 @@ public class Metric {
 
     private final Vertx vertx = Bootstrap.vertx;
 
-    private final HashSet<String> defaultFields = new HashSet<>(Arrays.asList(METRIC_ID, TIME));
+    private final HashSet<String> checkFields = new HashSet<>(Arrays.asList(METRIC_ID, TIME));
 
     public void init(Router router) {
 
@@ -46,7 +46,7 @@ public class Metric {
 
                     JsonObject userData = routingContext.getBodyAsJson();
 
-                    if (defaultFields.equals(userData.fieldNames())) {
+                    if (checkFields.equals(userData.fieldNames())) {
 
                         if (userData.getValue(METRIC_ID) instanceof Integer && userData.getValue(TIME) instanceof Integer) {
 

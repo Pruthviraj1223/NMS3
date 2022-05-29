@@ -160,5 +160,11 @@ public class Constants {
 
     public static final String SCHEDULER_UPDATE = "scheduler.update";
 
+    public static final String LIMIT = "limit";
+
+    public static final String POLLING_ID = "pollerId";
+
+    public static final String DATABASE_GET_POLL_DATA = "database.get.poll.data";
+
 
 }

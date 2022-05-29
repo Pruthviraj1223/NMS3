@@ -269,7 +269,7 @@ public class Discovery {
 
                             userData.put(Constants.TABLE_COLUMN, Constants.DISCOVERY_TABLE_ID);
 
-                            userData.put(Constants.TABLE_ID, userData.getString(Constants.DISCOVERY_TABLE_ID));
+                            userData.put(Constants.TABLE_ID, userData.getValue(Constants.DISCOVERY_TABLE_ID));
 
                             vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
@@ -332,7 +332,7 @@ public class Discovery {
 
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, Constants.NOT_PRESENT).encodePrettily());
+                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
 
                     }
 
@@ -342,15 +342,15 @@ public class Discovery {
 
                 JsonObject userData = new JsonObject();
 
-                userData.put(Constants.METHOD, Constants.DATABASE_ID_CHECK);
+                userData.put(METHOD, DATABASE_ID_CHECK);
 
-                userData.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
+                userData.put(TABLE_NAME, DISCOVERY_TABLE);
 
-                userData.put(Constants.TABLE_COLUMN, Constants.DISCOVERY_TABLE_ID);
+                userData.put(TABLE_COLUMN, DISCOVERY_TABLE_ID);
 
-                userData.put(Constants.TABLE_ID, routingContext.pathParam("id"));
+                userData.put(TABLE_ID, routingContext.pathParam("id"));
 
-                vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
+                vertx.eventBus().request(EVENTBUS_DATABASE, userData, handler -> {
 
                     if (handler.succeeded()) {
 
