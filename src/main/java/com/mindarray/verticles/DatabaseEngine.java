@@ -1,25 +1,16 @@
 package com.mindarray.verticles;
 
 import com.mindarray.Constants;
-
 import com.mindarray.Utils;
-
 import io.vertx.core.AbstractVerticle;
-
 import io.vertx.core.Promise;
-
 import io.vertx.core.json.JsonArray;
-
 import io.vertx.core.json.JsonObject;
-
 import org.slf4j.Logger;
-
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
-
 import java.util.HashMap;
-
 import java.util.Map;
 
 import static com.mindarray.Constants.*;
@@ -62,7 +53,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         int id;
 
-        if(tableName == null || column == null ){
+        if (tableName == null || column == null) {
 
             return -1;
 
@@ -92,12 +83,12 @@ public class DatabaseEngine extends AbstractVerticle {
 
     private boolean containsAllCredential(JsonObject data) {
 
-        if(data==null){
+        if (data == null) {
 
             return false;
         }
 
-        if(getId(CREDENTIAL_TABLE, CREDENTIAL_ID)!=-1){
+        if (getId(CREDENTIAL_TABLE, CREDENTIAL_ID) != -1) {
 
             data.put(CREDENTIAL_ID, getId(CREDENTIAL_TABLE, CREDENTIAL_ID));
 
@@ -142,7 +133,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             return data.containsKey(Constants.VERSION) && (!data.getString(Constants.VERSION).isEmpty());
 
-        } else{
+        } else {
 
             return false;
 
@@ -152,12 +143,12 @@ public class DatabaseEngine extends AbstractVerticle {
 
     private boolean containsAllDiscovery(JsonObject data) {
 
-        if(data==null){
+        if (data == null) {
 
             return false;
         }
 
-        if(getId(DISCOVERY_TABLE, DISCOVERY_TABLE_ID)!=-1){
+        if (getId(DISCOVERY_TABLE, DISCOVERY_TABLE_ID) != -1) {
 
             data.put(DISCOVERY_TABLE_ID, getId(DISCOVERY_TABLE, DISCOVERY_TABLE_ID));
 
@@ -175,7 +166,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        if (!(data.containsKey(Constants.PORT) && (data.getValue(PORT) instanceof Integer ))) {
+        if (!(data.containsKey(Constants.PORT) && (data.getValue(PORT) instanceof Integer))) {
 
             return false;
 
@@ -198,7 +189,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        if(getId(MONITOR, MONITOR_ID)!=-1){
+        if (getId(MONITOR, MONITOR_ID) != -1) {
 
             data.put(MONITOR_ID, getId(MONITOR, MONITOR_ID));
 
@@ -220,7 +211,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
     private boolean containsAllUserMetric(JsonObject data) {
 
-        if(data==null){
+        if (data == null) {
 
             return false;
 
@@ -258,15 +249,15 @@ public class DatabaseEngine extends AbstractVerticle {
 
         JsonObject result = new JsonObject();
 
-        if(tableName == null || userData == null){
+        if (tableName == null || userData == null) {
 
-            return result.put(ERROR,"Data is null");
+            return result.put(ERROR, "Data is null");
 
         }
 
         userData.remove(TABLE_NAME);
 
-        if(!tableName.isEmpty()){
+        if (!tableName.isEmpty()) {
 
             if (tableName.equalsIgnoreCase(MONITOR)) {
 
@@ -327,17 +318,17 @@ public class DatabaseEngine extends AbstractVerticle {
 
     private boolean update(String tableName, String columnName, JsonObject userData) {
 
-        if(tableName == null || columnName == null || userData == null){
+        boolean result = true;
+
+        String id;
+
+        if (tableName == null || columnName == null || userData == null) {
 
             return false;
 
         }
 
-        boolean result = true;
-
-        String id;
-
-        if(userData.containsKey(columnName)){
+        if (userData.containsKey(columnName)) {
 
             id = userData.getString(columnName);
 
@@ -348,46 +339,21 @@ public class DatabaseEngine extends AbstractVerticle {
         }
 
 
-        if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) && !userData.containsKey(Constants.CREDENTIAL_ID)) {
-
-            return false;
-
-        }
-
-        if (tableName.equalsIgnoreCase(DISCOVERY_TABLE) && !userData.containsKey(Constants.DISCOVERY_TABLE_ID)) {
-
-            return false;
-
-        }
-
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
-            // shift validation
+            if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) && userData.containsKey(CREDENTIAL_NAME)) {
 
-            if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE)) {
-
-                if(userData.containsKey(CREDENTIAL_NAME) && check(CREDENTIAL_TABLE,CREDENTIAL_TABLE_NAME,userData.getString(CREDENTIAL_NAME))){
+                if (userData.containsKey(CREDENTIAL_NAME) && check(CREDENTIAL_TABLE, CREDENTIAL_TABLE_NAME, userData.getString(CREDENTIAL_NAME))) {
 
                     return false;
 
                 }
 
-                if (!(userData.containsKey(NAME) || userData.containsKey(PASSWORD) || userData.containsKey(COMMUNITY) || userData.containsKey(VERSION) || userData.containsKey(CREDENTIAL_NAME))) {
-
-                    return false;
-
-                }
             }
 
-           if (tableName.equalsIgnoreCase(DISCOVERY_TABLE) && userData.containsKey(Constants.DISCOVERY_NAME)) {
+            if (tableName.equalsIgnoreCase(DISCOVERY_TABLE) && userData.containsKey(Constants.DISCOVERY_NAME)) {
 
-                if (!(userData.containsKey(Constants.IP_ADDRESS) || userData.containsKey(Constants.DISCOVERY_NAME) || userData.containsKey(Constants.CREDENTIAL_ID))) {
-
-                    return false;
-
-                }
-
-                if(check(DISCOVERY_TABLE,DISCOVERY_TABLE_NAME,userData.getString(DISCOVERY_NAME))){
+                if (check(DISCOVERY_TABLE, DISCOVERY_TABLE_NAME, userData.getString(DISCOVERY_NAME))) {
 
                     return false;
 
@@ -397,13 +363,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
             if (tableName.equalsIgnoreCase(DISCOVERY_TABLE) && userData.containsKey(CREDENTIAL_ID) && !check(CREDENTIAL_TABLE, CREDENTIAL_ID, userData.getString(CREDENTIAL_ID))) {
 
-                System.out.println("here");
-
                 return false;
 
             }
-
-            // CAN BE MODIFIED
 
             Map<String, Object> data = userData.getMap();
 
@@ -425,7 +387,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             }
 
-            data.remove(TABLE_COLUMN, columnName);
+            data.remove(TABLE_COLUMN);
 
             data.remove(TABLE_NAME);
 
@@ -465,7 +427,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
     private JsonArray getAll(String tableName, String column, String id) {
 
-        if(tableName == null || column == null || id == null){
+        if (tableName == null || column == null || id == null) {
 
             return null;
 
@@ -563,9 +525,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
         JsonObject result = new JsonObject();
 
-        if(id == null){
+        if (id == null) {
 
-            return result.put(ERROR,"Data is null");
+            return result.put(ERROR, "Data is null");
 
         }
 
@@ -605,7 +567,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
     private String validateProvision(JsonObject data) {
 
-        if(data == null){
+        if (data == null) {
 
             return "Data is null";
 
@@ -613,7 +575,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         boolean isAvailable;
 
-        if(!(data.containsKey(IP_ADDRESS) && data.containsKey(TYPE) && data.containsKey(CREDENTIAL_ID) && data.containsKey(TYPE) && data.containsKey(PORT))){
+        if (!(data.containsKey(IP_ADDRESS) && data.containsKey(TYPE) && data.containsKey(CREDENTIAL_ID) && data.containsKey(TYPE) && data.containsKey(PORT))) {
 
             return FAIL;
 
@@ -681,9 +643,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
         JsonObject result = new JsonObject();
 
-        if( id == null){
+        if (id == null) {
 
-            return result.put(ERROR,"Data is null");
+            return result.put(ERROR, "Data is null");
 
         }
 
@@ -693,7 +655,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             metric = getAll(USER_METRIC, METRIC_ID, id);
 
-            if(metric!=null) {
+            if (metric != null) {
 
                 var user = metric.getJsonObject(0);
 
@@ -733,7 +695,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 }
 
-            } else{
+            } else {
 
                 return new JsonObject().put(ERROR, NOT_PRESENT);
 
@@ -751,9 +713,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
     }
 
-    private JsonArray pollingData(String column,String columnValue,String metricGroup, String limit){
+    private JsonArray pollingData(String column, String columnValue, String metricGroup, String limit) {
 
-        if(column == null || columnValue == null || metricGroup == null){
+        if (column == null || columnValue == null || metricGroup == null) {
 
             return null;
 
@@ -765,15 +727,15 @@ public class DatabaseEngine extends AbstractVerticle {
 
             String query;
 
-            if(metricGroup.equalsIgnoreCase(GETALL)){
+            if (metricGroup.equalsIgnoreCase(GETALL)) {
 
-                ResultSet queryResult = connection.createStatement().executeQuery("select type from Monitor where monitorId = '" + columnValue +"'");
+                ResultSet queryResult = connection.createStatement().executeQuery("select type from Monitor where monitorId = '" + columnValue + "'");
 
                 queryResult.next();
 
-                HashMap<String,Integer> counters = Utils.metric(queryResult.getString(1));
+                HashMap<String, Integer> counters = Utils.metric(queryResult.getString(1));
 
-                for(Map.Entry<String,Integer> entry: counters.entrySet()) {
+                for (Map.Entry<String, Integer> entry : counters.entrySet()) {
 
                     query = "select pollerId,result from Poller where " + column + "= '" + columnValue + "' and metricGroup = '" + entry.getKey() + "' ORDER BY pollerId DESC limit " + limit;
 
@@ -792,9 +754,9 @@ public class DatabaseEngine extends AbstractVerticle {
                     }
                 }
 
-            }else{
+            } else {
 
-                query = "select pollerId,result from Poller where " + column + "= '" +columnValue + "' and metricGroup = '" + metricGroup + "' ORDER BY pollerId DESC limit " + limit;
+                query = "select pollerId,result from Poller where " + column + "= '" + columnValue + "' and metricGroup = '" + metricGroup + "' ORDER BY pollerId DESC limit " + limit;
 
                 ResultSet resultSet = connection.createStatement().executeQuery(query);
 
@@ -802,9 +764,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     JsonObject result = new JsonObject();
 
-                    result.put(POLLING_ID,resultSet.getObject(1));
+                    result.put(POLLING_ID, resultSet.getObject(1));
 
-                    result.put(RESULT,resultSet.getObject(2));
+                    result.put(RESULT, resultSet.getObject(2));
 
                     pollData.add(result);
 
@@ -829,11 +791,9 @@ public class DatabaseEngine extends AbstractVerticle {
 //            }
 
 
+        } catch (Exception exception) {
 
-
-        }catch (Exception exception){
-
-            LOG.debug("Error while fetching poll data {}" ,exception.getMessage());
+            LOG.debug("Error while fetching poll data {}", exception.getMessage());
 
             return null;
 
@@ -1439,87 +1399,81 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 case INSERT_METRIC -> vertx.executeBlocking(blockingHandler -> {
 
-                        try {
+                    try {
 
-                            if (handler.body() != null) {
+                        if (handler.body() != null) {
 
-                                JsonObject userData = handler.body();
+                            JsonObject userData = handler.body();
 
-                                userData.remove(METHOD);
+                            userData.remove(METHOD);
 
-                                JsonObject result;
+                            JsonObject result;
 
-                                JsonArray metric = new JsonArray();
+                            JsonArray metric = new JsonArray();
 
-                                String type = null;
+                            String type = null;
 
-                                if (userData.containsKey(TYPE)) {
+                            if (userData.containsKey(TYPE)) {
 
-                                    type = userData.getString(TYPE);
+                                type = userData.getString(TYPE);
 
-                                    userData.remove(TYPE);
+                                userData.remove(TYPE);
+
+                            }
+
+                            if (type != null) {
+
+                                HashMap<String, Integer> map = Utils.metric(type);
+
+                                String objects = null;
+
+                                if (userData.containsKey(OBJECTS)) {
+
+                                    objects = userData.getString(OBJECTS);
+
+                                    userData.remove(OBJECTS);
 
                                 }
 
-                                if (type != null) {
+                                for (Map.Entry<String, Integer> entry : map.entrySet()) {
 
-                                    HashMap<String, Integer> map = Utils.metric(type);
+                                    userData.put(METRIC_GROUP, entry.getKey());
 
-                                    String objects = null;
+                                    userData.put(TIME, entry.getValue());
 
-                                    if (userData.containsKey(OBJECTS)) {
+                                    if (getId(USER_METRIC, METRIC_ID) != -1) {
 
-                                        objects = userData.getString(OBJECTS);
+                                        userData.put(METRIC_ID, getId(USER_METRIC, METRIC_ID));
+                                    }
 
-                                        userData.remove(OBJECTS);
+                                    if (entry.getKey().equalsIgnoreCase("interface")) {
+
+                                        if (objects != null) {
+
+                                            userData.put(OBJECTS, objects);
+                                        }
 
                                     }
 
-                                    for (Map.Entry<String, Integer> entry : map.entrySet()) {
+                                    if (containsAllUserMetric(userData)) {
 
-                                        userData.put(METRIC_GROUP, entry.getKey());
+                                        result = insert(USER_METRIC, userData);
 
-                                        userData.put(TIME, entry.getValue());
+                                        if (result != null) {
 
-                                        if(getId(USER_METRIC, METRIC_ID)!=-1){
+                                            if (result.containsKey(STATUS)) {
 
-                                            userData.put(METRIC_ID,getId(USER_METRIC, METRIC_ID));
-                                        }
+                                                if (result.getString(STATUS).equalsIgnoreCase(SUCCESS)) {
 
-                                        if (entry.getKey().equalsIgnoreCase("interface")) {
+                                                    JsonObject user = userData.copy();
 
-                                            if (objects != null) {
-
-                                                userData.put(OBJECTS, objects);
-                                            }
-
-                                        }
-
-                                        if (containsAllUserMetric(userData)) {
-
-                                            result = insert(USER_METRIC, userData);
-
-                                            if (result != null) {
-
-                                                if (result.containsKey(STATUS)) {
-
-                                                    if (result.getString(STATUS).equalsIgnoreCase(SUCCESS)) {
-
-                                                        JsonObject user = userData.copy();
-
-                                                        metric.add(user);
-
-                                                    }
-
-                                                } else if (result.containsKey(ERROR)) {
-
-                                                    blockingHandler.fail(result.getString(ERROR));
+                                                    metric.add(user);
 
                                                 }
 
-                                            } else {
+                                            } else if (result.containsKey(ERROR)) {
 
-                                                blockingHandler.fail(INVALID_INPUT);
+                                                blockingHandler.fail(result.getString(ERROR));
 
                                             }
 
@@ -1529,52 +1483,57 @@ public class DatabaseEngine extends AbstractVerticle {
 
                                         }
 
-                                    }
-
-                                    if (metric.size() == map.size()) {
-
-                                        blockingHandler.complete(metric);
-
                                     } else {
 
-                                        blockingHandler.fail(FAIL);
+                                        blockingHandler.fail(INVALID_INPUT);
 
                                     }
+
+                                }
+
+                                if (metric.size() == map.size()) {
+
+                                    blockingHandler.complete(metric);
+
                                 } else {
 
                                     blockingHandler.fail(FAIL);
 
                                 }
-
                             } else {
 
-                                blockingHandler.fail(INVALID_INPUT);
+                                blockingHandler.fail(FAIL);
 
                             }
 
-
-                        } catch (Exception exception) {
-
-                            LOG.debug("Error : {}" + exception.getMessage());
-
-                            blockingHandler.fail(exception.getMessage());
-
-                        }
-
-                    }).onComplete(completeHandler -> {
-
-                        if (completeHandler.succeeded()) {
-
-                            handler.reply(completeHandler.result());
-
                         } else {
 
-                            handler.fail(-1, completeHandler.cause().getMessage());
+                            blockingHandler.fail(INVALID_INPUT);
 
                         }
 
-                    });
 
+                    } catch (Exception exception) {
+
+                        LOG.debug("Error : {}" + exception.getMessage());
+
+                        blockingHandler.fail(exception.getMessage());
+
+                    }
+
+                }).onComplete(completeHandler -> {
+
+                    if (completeHandler.succeeded()) {
+
+                        handler.reply(completeHandler.result());
+
+                    } else {
+
+                        handler.fail(-1, completeHandler.cause().getMessage());
+
+                    }
+
+                });
 
 
                 case DATABASE_DELETE_MONITOR -> vertx.executeBlocking(blockingHandler -> {
@@ -1636,11 +1595,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
                             if (result != null) {
 
-                                if(!result.containsKey(ERROR)){
+                                if (!result.containsKey(ERROR)) {
 
                                     blockingHandler.complete(result);
 
-                                }else {
+                                } else {
 
                                     blockingHandler.fail(result.getString(ERROR));
 
@@ -1686,7 +1645,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                         if (handler.body() != null) {
 
-                            JsonArray result = pollingData(handler.body().getString(TABLE_COLUMN),handler.body().getString(TABLE_ID),handler.body().getString(METRIC_GROUP),handler.body().getString(LIMIT));
+                            JsonArray result = pollingData(handler.body().getString(TABLE_COLUMN), handler.body().getString(TABLE_ID), handler.body().getString(METRIC_GROUP), handler.body().getString(LIMIT));
 
                             if (result != null) {
 

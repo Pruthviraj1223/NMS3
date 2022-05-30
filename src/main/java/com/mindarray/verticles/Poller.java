@@ -4,20 +4,17 @@ import com.mindarray.Constants;
 
 import com.mindarray.Utils;
 
-import com.mysql.cj.util.StringUtils;
 import io.vertx.core.AbstractVerticle;
 
 import io.vertx.core.Promise;
 
 import io.vertx.core.json.JsonObject;
 
-import io.vertx.ext.web.handler.sockjs.impl.StringEscapeUtils;
 import org.slf4j.Logger;
 
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.zip.CheckedOutputStream;
 
 public class Poller extends AbstractVerticle {
 

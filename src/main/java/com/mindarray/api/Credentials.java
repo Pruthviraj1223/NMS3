@@ -8,6 +8,8 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,9 +20,9 @@ import static com.mindarray.Constants.*;
 
 public class Credentials {
 
-    private final Vertx vertx = Bootstrap.vertx;
+    private static final Logger LOG = LoggerFactory.getLogger(Credentials.class.getName());
 
-    private final Set<String> checkFields = new HashSet<>(Arrays.asList(CREDENTIAL_NAME, PROTOCOL, NAME, PASSWORD, COMMUNITY, VERSION));
+    private final Vertx vertx = Bootstrap.vertx;
 
     private final Set<String> checkFields1 = new HashSet<>(Arrays.asList(CREDENTIAL_NAME, PROTOCOL, NAME, PASSWORD));
 
@@ -136,43 +138,111 @@ public class Credentials {
 
                 } else if (routingContext.request().method() == HttpMethod.PUT) {
 
-                    if (user.containsKey(CREDENTIAL_ID)) {
+                    JsonObject context = new JsonObject();
 
-                        JsonObject newUserData = new JsonObject();
+                    context.put(Constants.METHOD, Constants.DATABASE_GET);
 
-                        for (String field : fieldNames) {
+                    context.put(Constants.TABLE_NAME, CREDENTIAL_TABLE);
 
-                            if (checkFields.contains(field)) {
+                    context.put(Constants.TABLE_COLUMN, CREDENTIAL_ID);
 
-                                newUserData.put(field, user.getValue(field));
+                    context.put(Constants.TABLE_ID, user.getValue(CREDENTIAL_ID));
+
+                    vertx.eventBus().<JsonArray>request(EVENTBUS_DATABASE, context, handler -> {
+
+                        if (handler.succeeded()) {
+
+                            JsonArray allData = handler.result().body();
+
+                            JsonObject data = allData.getJsonObject(0);
+
+                            if (data.containsKey(PROTOCOL)) {
+
+                                if (data.getString(PROTOCOL).equalsIgnoreCase(SSH) || data.getString(PROTOCOL).equalsIgnoreCase(WINRM)) {
+
+                                    JsonObject newUserData = new JsonObject();
+
+                                    for (String field : fieldNames) {
+
+                                        if (checkFields1.contains(field)) {
+
+                                            newUserData.put(field, user.getValue(field));
+
+                                        }
+
+                                    }
+
+                                    newUserData.put(CREDENTIAL_ID, user.getValue(CREDENTIAL_ID));
+
+                                    routingContext.setBody(newUserData.toBuffer());
+
+                                    routingContext.next();
+
+
+                                } else {
+
+                                    JsonObject newUserData = new JsonObject();
+
+                                    for (String field : fieldNames) {
+
+                                        if (checkFields2.contains(field)) {
+
+                                            newUserData.put(field, user.getValue(field));
+
+                                        }
+
+                                    }
+
+                                    newUserData.put(CREDENTIAL_ID, user.getValue(CREDENTIAL_ID));
+
+                                    routingContext.setBody(newUserData.toBuffer());
+
+                                    routingContext.next();
+
+                                }
+
+                            } else {
+
+                                routingContext.response()
+
+                                        .setStatusCode(400)
+
+                                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                        .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
+
 
                             }
 
+                        } else {
+
+                            routingContext.response()
+
+                                    .setStatusCode(400)
+
+                                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                    .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
+
+
                         }
 
-                        newUserData.put(CREDENTIAL_ID, user.getValue(CREDENTIAL_ID));
 
-                        routingContext.setBody(newUserData.toBuffer());
-
-                        routingContext.next();
+                    });
 
 
-                    } else {
+                } else {
 
-                        routingContext.response()
+                    routingContext.response()
 
-                                .setStatusCode(400)
+                            .setStatusCode(400)
 
-                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, CREDENTIAL_ID + " is missing").encodePrettily());
-
-
-                    }
+                            .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
 
 
                 }
-
 
             } else {
 
@@ -184,10 +254,11 @@ public class Credentials {
 
                         .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, INVALID_INPUT).encodePrettily());
 
-
             }
+
         } catch (Exception exception) {
 
+            LOG.debug("Error {}", exception.getMessage());
 
             routingContext.response()
 
@@ -257,7 +328,15 @@ public class Credentials {
 
                             } catch (Exception exception) {
 
-                                System.out.println(exception.getMessage());
+                                LOG.debug("Error {}", exception.getMessage());
+
+                                routingContext.response()
+
+                                        .setStatusCode(500)
+
+                                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                        .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
 
                             }
 
@@ -276,23 +355,40 @@ public class Credentials {
 
                         vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
-                            if (handler.succeeded()) {
+                            try {
 
-                                routingContext.setBody(userData.toBuffer());
+                                if (handler.succeeded()) {
 
-                                routingContext.next();
+                                    routingContext.setBody(userData.toBuffer());
 
-                            } else {
+                                    routingContext.next();
+
+                                } else {
+
+                                    routingContext.response()
+
+                                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
+
+                                }
+
+                            } catch (Exception exception) {
+
+                                LOG.debug("Error {}", exception.getMessage());
 
                                 routingContext.response()
 
+                                        .setStatusCode(500)
+
                                         .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
+                                        .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
 
                             }
 
                         });
+
 
                     }
 
@@ -307,6 +403,7 @@ public class Credentials {
                             .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, Constants.MISSING_DATA).encodePrettily());
 
                 }
+
             } else if (routingContext.request().method() == HttpMethod.GET) {
 
                 JsonObject userData = new JsonObject();
@@ -321,18 +418,33 @@ public class Credentials {
 
                 vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
-                    if (handler.succeeded()) {
+                    try {
 
-                        routingContext.next();
+                        if (handler.succeeded()) {
 
-                    } else {
+                            routingContext.next();
+
+                        } else {
+
+                            routingContext.response()
+
+                                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
+
+                        }
+
+                    } catch (Exception exception) {
+
+                        LOG.debug("Error {}", exception.getMessage());
 
                         routingContext.response()
 
+                                .setStatusCode(500)
+
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
-
+                                .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
                     }
 
                 });
@@ -348,18 +460,33 @@ public class Credentials {
 
                 vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
 
-                    if (handler.succeeded()) {
+                    try {
 
-                        routingContext.next();
+                        if (handler.succeeded()) {
 
-                    } else {
+                            routingContext.next();
+
+                        } else {
+
+                            routingContext.response()
+
+                                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
+
+                        }
+
+                    } catch (Exception exception) {
+
+                        LOG.debug("Error {}", exception.getMessage());
 
                         routingContext.response()
 
+                                .setStatusCode(500)
+
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
-
+                                .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
                     }
 
                 });
@@ -369,13 +496,16 @@ public class Credentials {
 
         } catch (Exception exception) {
 
+            LOG.debug("Error {}", exception.getMessage());
+
             routingContext.response()
 
                     .setStatusCode(500)
 
                     .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, exception.getMessage()).encodePrettily());
+                    .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
+
         }
 
     }
@@ -394,8 +524,6 @@ public class Credentials {
 
                 if (response.succeeded()) {
 
-//                    JsonObject result = response.result().body();
-
                     routingContext.response()
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
@@ -413,6 +541,8 @@ public class Credentials {
                 }
 
             } catch (Exception exception) {
+
+                LOG.debug("Error {}", exception.getMessage());
 
                 routingContext.response()
 
@@ -479,9 +609,11 @@ public class Credentials {
 
             } catch (Exception exception) {
 
+                LOG.debug("Error {}", exception.getMessage());
+
                 routingContext.response()
 
-                        .setStatusCode(400)
+                        .setStatusCode(500)
 
                         .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -530,6 +662,8 @@ public class Credentials {
                 }
 
             } catch (Exception exception) {
+
+                LOG.debug("Error {}", exception.getMessage());
 
                 routingContext.response()
 
@@ -582,6 +716,8 @@ public class Credentials {
 
             } catch (Exception exception) {
 
+                LOG.debug("Error {}", exception.getMessage());
+
                 routingContext.response()
 
                         .setStatusCode(500)
@@ -593,7 +729,6 @@ public class Credentials {
             }
 
         });
-
 
     }
 
@@ -610,6 +745,7 @@ public class Credentials {
         vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
+
                 if (response.succeeded()) {
 
                     routingContext.response()
@@ -630,9 +766,11 @@ public class Credentials {
 
             } catch (Exception exception) {
 
+                LOG.debug("Error {}", exception.getMessage());
+
                 routingContext.response()
 
-                        .setStatusCode(400)
+                        .setStatusCode(500)
 
                         .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 

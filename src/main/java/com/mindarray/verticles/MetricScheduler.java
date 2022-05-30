@@ -28,9 +28,9 @@ public class MetricScheduler extends AbstractVerticle {
 
     private static final Logger LOG = LoggerFactory.getLogger(MetricScheduler.class.getName());
 
-    private final HashMap<Integer, Integer> metrics = new HashMap<>();
+    HashMap<Integer, Integer> metrics = new HashMap<>();
 
-    private final HashMap<Integer, Integer> updatedMetrics = new HashMap<>();
+    HashMap<Integer, Integer> updatedMetrics = new HashMap<>();
 
     @Override
     public void start(Promise<Void> startPromise) {
@@ -187,13 +187,29 @@ public class MetricScheduler extends AbstractVerticle {
 
         });
 
-        vertx.eventBus().localConsumer(SCHEDULER_UPDATE, handler -> {
+        vertx.eventBus().<JsonObject>localConsumer(SCHEDULER_UPDATE, handler -> {
 
+            try {
 
+                if (handler.body() != null) {
 
+                    JsonObject user = handler.body();
 
+                    if(user.containsKey(METRIC_ID) && user.containsKey(TIME)){
 
+                        metrics.replace(user.getInteger(METRIC_ID),user.getInteger(TIME));
 
+                        updatedMetrics.replace(user.getInteger(METRIC_ID),user.getInteger(TIME));
+
+                    }
+
+                }
+
+            } catch (Exception exception) {
+
+                LOG.debug("Error SCHEDULER UPDATE {} ", exception.getMessage());
+
+            }
 
         });
 

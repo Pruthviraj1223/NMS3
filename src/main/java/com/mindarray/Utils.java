@@ -1,25 +1,18 @@
 package com.mindarray;
 
 import com.zaxxer.nuprocess.NuProcess;
-
 import com.zaxxer.nuprocess.NuProcessBuilder;
-
 import io.vertx.core.json.JsonObject;
-
 import org.slf4j.Logger;
-
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-
 import java.util.Base64;
-
 import java.util.HashMap;
-
 import java.util.List;
-
 import java.util.concurrent.TimeUnit;
 
+import static com.mindarray.Constants.*;
 
 public class Utils {
 
@@ -31,9 +24,11 @@ public class Utils {
 
         if (ip == null) {
 
-            return outcome.put(Constants.ERROR, "Data is null");
+            return outcome.put(Constants.ERROR, "ip is null");
 
         }
+
+        NuProcess nuProcess = null;
 
         try {
 
@@ -55,12 +50,12 @@ public class Utils {
 
             processBuilder.setProcessListener(handler);
 
-            NuProcess nuProcess = processBuilder.start();
+            nuProcess = processBuilder.start();
 
             // timeout = packet * time
             // you can destroy as well
 
-            nuProcess.waitFor(0, TimeUnit.MILLISECONDS);
+            nuProcess.waitFor(4000, TimeUnit.MILLISECONDS);
 
             String result = handler.output();
 
@@ -86,7 +81,15 @@ public class Utils {
 
             LOG.debug("Error {} ", exception.getMessage());
 
-            return new JsonObject().put(Constants.ERROR, exception.getMessage());
+            outcome.put(Constants.ERROR, exception.getMessage());
+
+        } finally {
+
+            if (nuProcess != null) {
+
+                nuProcess.destroy(true);
+
+            }
 
         }
 
@@ -98,11 +101,15 @@ public class Utils {
 
         JsonObject result = new JsonObject();
 
-        if(data == null){
+        if (data == null) {
 
-            return result.put(Constants.ERROR,"Data is null");
+            return result.put(Constants.ERROR, "Data is null");
 
         }
+
+        System.out.println("data "+ data);
+
+        NuProcess nuProcess = null;
 
         try {
 
@@ -114,13 +121,11 @@ public class Utils {
 
             processBuilder.setProcessListener(handler);
 
-            NuProcess nuProcess = processBuilder.start();
+            nuProcess = processBuilder.start();
 
-            nuProcess.waitFor(60000, TimeUnit.MILLISECONDS);
+            nuProcess.waitFor(15000, TimeUnit.MILLISECONDS);
 
             String outcome = handler.output();
-
-            System.out.println("out " + outcome);
 
             if (outcome != null) {
 
@@ -132,7 +137,15 @@ public class Utils {
 
             LOG.debug("Error {}", exception.getMessage());
 
-            return result.put(Constants.ERROR,exception.getMessage());
+            result.put(Constants.ERROR, exception.getMessage());
+
+        } finally {
+
+            if (nuProcess != null) {
+
+                nuProcess.destroy(true);
+
+            }
 
         }
 
@@ -144,7 +157,7 @@ public class Utils {
 
         HashMap<String, Integer> temp = new HashMap<>();
 
-        if (type.equalsIgnoreCase("linux") || type.equalsIgnoreCase("windows")) {
+        if (type.equalsIgnoreCase(LINUX) || type.equalsIgnoreCase(WINDOWS)) {
 
             temp.put("cpu", 60000);
 

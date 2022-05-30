@@ -32,7 +32,7 @@ public class Metric {
 
         router.get("/monitor/:id").handler(this::validate).handler(this::getByIdMonitor);
 
-        router.post("/").handler(this::validate).handler(this::update);
+        router.put("/").handler(this::validate).handler(this::update);
 
     }
 
@@ -40,7 +40,7 @@ public class Metric {
 
         try {
 
-            if (routingContext.request().method() == HttpMethod.POST) {
+            if (routingContext.request().method() == HttpMethod.PUT) {
 
                 if (routingContext.getBodyAsJson() != null) {
 
@@ -178,7 +178,6 @@ public class Metric {
 
     private void update(RoutingContext routingContext) {
 
-
         JsonObject userData = routingContext.getBodyAsJson();
 
         userData.put(METHOD, DATABASE_UPDATE);
@@ -193,7 +192,7 @@ public class Metric {
 
                 if (response.succeeded()) {
 
-//                    vertx.eventBus().send()
+                    vertx.eventBus().send(SCHEDULER_UPDATE,userData);
 
                     routingContext.response()
 

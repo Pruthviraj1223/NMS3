@@ -20,9 +20,10 @@ public class Monitor {
 
     private static final Logger LOG = LoggerFactory.getLogger(Monitor.class.getName());
 
-    private final Set<String> checkFields = new HashSet<>(Arrays.asList(CREDENTIAL_ID, HOST, IP_ADDRESS, TYPE, PORT));
+    private final Set<String> checkFields = new HashSet<>(Arrays.asList(CREDENTIAL_ID, HOST, IP_ADDRESS, TYPE, PORT, OBJECTS));
+    private final Set<String> checkParams = new HashSet<>(Arrays.asList(MONITOR_ID, LIMIT, METRIC_GROUP));
 
-    private final Set<String> checkParams = new HashSet<>(Arrays.asList(MONITOR_ID,LIMIT,METRIC_GROUP));
+    private final Set<String> checkMetricGroup = Set.of("cpu","disk","memory","SystemInfo","process","interface");
 
     private final Vertx vertx = Bootstrap.vertx;
 
@@ -52,7 +53,7 @@ public class Monitor {
 
                     Set<String> fieldNames = user.fieldNames();
 
-                    if (fieldNames.size() >= checkFields.size()) {
+                    if (fieldNames.size() != 0) {
 
                         JsonObject newUserData = new JsonObject();
 
@@ -112,6 +113,8 @@ public class Monitor {
         } catch (Exception exception) {
 
 
+            LOG.debug("Error {}",exception.getMessage());
+
             routingContext.response()
 
                     .setStatusCode(500)
@@ -131,7 +134,7 @@ public class Monitor {
 
             if (routingContext.request().method() == HttpMethod.POST) {
 
-                JsonObject data = routingContext.getBodyAsJson();
+                    JsonObject data = routingContext.getBodyAsJson();
 
                 if (data != null) {
 
@@ -139,7 +142,6 @@ public class Monitor {
 
                     result = new HashMap<>(data.getMap());
 
-                    // this can be modified
 
                     for (String key : result.keySet()) {
 
@@ -376,27 +378,27 @@ public class Monitor {
 
     }
 
-    private void filter(RoutingContext routingContext){
+    private void filter(RoutingContext routingContext) {
 
-        JsonObject context = new JsonObject();
+        try {
 
-        MultiMap map = routingContext.queryParams();
+            JsonObject context = new JsonObject();
 
-        Set<String> set = map.names();
+            MultiMap map = routingContext.queryParams();
 
-        if(map.size()==1 || map.size()==2 || map.size()==3) {
+            Set<String> set = map.names();
 
-            for(String field:set){
+            for (String field : set) {
 
-                if(checkParams.contains(field)){
+                if (checkParams.contains(field)) {
 
-                    context.put(field,map.get(field));
+                    context.put(field, map.get(field));
 
                 }
 
             }
 
-            if(context.containsKey(MONITOR_ID)){
+            if (context.containsKey(MONITOR_ID)) {
 
                 JsonObject userData = new JsonObject();
 
@@ -412,9 +414,31 @@ public class Monitor {
 
                     if (handler.succeeded()) {
 
-                        routingContext.setBody(context.toBuffer());
+                        if (context.containsKey(METRIC_GROUP)) {
 
-                        routingContext.next();
+                            if (checkMetricGroup.contains(context.getString(METRIC_GROUP))) {
+
+                                routingContext.setBody(context.toBuffer());
+
+                                routingContext.next();
+
+                            } else {
+
+                                routingContext.response()
+
+                                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, "Invalid metric group").encodePrettily());
+                            }
+
+                        } else {
+
+                            routingContext.setBody(context.toBuffer());
+
+                            routingContext.next();
+
+
+                        }
 
                     } else {
 
@@ -428,8 +452,7 @@ public class Monitor {
 
                 });
 
-
-            }else{
+            } else {
 
                 routingContext.response()
 
@@ -437,27 +460,27 @@ public class Monitor {
 
                         .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                        .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, "Invalid parameter").encodePrettily());
+                        .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, MONITOR_ID + " is missing").encodePrettily());
 
             }
 
-        }else{
+        }catch (Exception exception){
+
+            LOG.debug("Error {}",exception.getMessage());
 
             routingContext.response()
 
-                    .setStatusCode(400)
+                    .setStatusCode(500)
 
                     .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                    .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, "Invalid parameter").encodePrettily());
-
+                    .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
 
         }
 
-
     }
 
-    private void getPollingData(RoutingContext routingContext){
+    private void getPollingData(RoutingContext routingContext) {
 
         JsonObject context = routingContext.getBodyAsJson();
 
@@ -467,35 +490,34 @@ public class Monitor {
 
         userData.put(TABLE_COLUMN, MONITOR_ID);
 
-        userData.put(TABLE_ID,context.getString(MONITOR_ID));
+        userData.put(TABLE_ID, context.getString(MONITOR_ID));
 
-        if(context.containsKey(LIMIT)){
+        if (context.containsKey(LIMIT)) {
 
             userData.put(LIMIT, context.getValue(LIMIT));
 
-        }else{
+        } else {
 
-            userData.put(LIMIT,10);
+            userData.put(LIMIT, 10);
 
         }
 
-        if(context.containsKey(METRIC_GROUP)){
+        if (context.containsKey(METRIC_GROUP)) {
 
             userData.put(METRIC_GROUP, context.getValue(METRIC_GROUP));
 
-        }else{
+        } else {
 
-            userData.put(METRIC_GROUP,GETALL);
+            userData.put(METRIC_GROUP, GETALL);
 
         }
-
 
 
         vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
 
-                if(response.succeeded()){
+                if (response.succeeded()) {
 
                     routingContext.response()
 
@@ -503,11 +525,10 @@ public class Monitor {
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(new JsonObject().put(STATUS, SUCCESS).put(RESULT,response.result().body()).encodePrettily());
+                            .end(new JsonObject().put(STATUS, SUCCESS).put(RESULT, response.result().body()).encodePrettily());
 
 
-
-                }else{
+                } else {
 
                     routingContext.response()
 
@@ -532,7 +553,6 @@ public class Monitor {
             }
 
         });
-
 
 
     }
@@ -714,4 +734,5 @@ public class Monitor {
         }
 
     }
+
 }
