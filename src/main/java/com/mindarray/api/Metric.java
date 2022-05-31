@@ -24,9 +24,12 @@ public class Metric {
 
     private final Vertx vertx = Bootstrap.vertx;
 
-    private final HashSet<String> checkFields = new HashSet<>(Arrays.asList( METRIC_GROUP, TIME));
+    private final HashSet<String> checkFields = new HashSet<>(Arrays.asList(TYPE, METRIC_GROUP, TIME));
 
-    private final Set<String> checkMetricGroup = Set.of("cpu", "disk", "memory", "SystemInfo", "process", "interface");
+    private final Set<String> checkMetricGroupSNMP = Set.of("SystemInfo", "interface");
+
+    private final Set<String> checkMetricGroupOthers = Set.of("cpu", "disk", "memory", "SystemInfo", "process");
+
 
     public void init(Router router) {
 
@@ -82,7 +85,7 @@ public class Metric {
 
                         }
 
-                        updatedUser.put(MONITOR_ID,id);
+                        updatedUser.put(MONITOR_ID, id);
 
                         if (updatedUser.getValue(METRIC_GROUP) instanceof String && updatedUser.getValue(TIME) instanceof Integer) {
 
@@ -90,13 +93,93 @@ public class Metric {
 
                                 if (handler.succeeded()) {
 
-                                    if (checkMetricGroup.contains(updatedUser.getString(METRIC_GROUP))) {
+                                    vertx.eventBus().<JsonArray>request(EVENTBUS_DATABASE, new JsonObject().put(METHOD, DATABASE_GET).put(TABLE_NAME, MONITOR).put(TABLE_COLUMN, MONITOR_ID).put(TABLE_ID, updatedUser.getValue(MONITOR_ID)), response -> {
 
-                                        if (MIN_POLL_TIME <= updatedUser.getInteger(TIME) && updatedUser.getInteger(TIME) <= MAX_POLL_TIME) {
+                                        if (response.succeeded() && response.result().body().size() == 1) {
 
-                                            routingContext.setBody(updatedUser.toBuffer());
+                                            var user = response.result().body();
 
-                                            routingContext.next();
+                                            var type = user.getJsonObject(0).getString(TYPE);
+
+                                            if (type != null && type.equalsIgnoreCase(NETWORKING)) {
+
+                                                if (checkMetricGroupSNMP.contains(updatedUser.getString(METRIC_GROUP))) {
+
+                                                    if (MIN_POLL_TIME <= updatedUser.getInteger(TIME) && updatedUser.getInteger(TIME) <= MAX_POLL_TIME) {
+
+                                                        routingContext.setBody(updatedUser.toBuffer());
+
+                                                        routingContext.next();
+
+                                                    } else {
+
+                                                        routingContext.response()
+
+                                                                .setStatusCode(400)
+
+                                                                .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+
+                                                                .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid time").encodePrettily());
+
+                                                    }
+
+                                                } else {
+
+                                                    routingContext.response()
+
+                                                            .setStatusCode(400)
+
+                                                            .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+
+                                                            .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid metric group").encodePrettily());
+
+                                                }
+
+                                            } else if (type!=null && (type.equalsIgnoreCase(LINUX) || type.equalsIgnoreCase(WINDOWS))) {
+
+                                                if (checkMetricGroupOthers.contains(updatedUser.getString(METRIC_GROUP))) {
+
+                                                    if (MIN_POLL_TIME <= updatedUser.getInteger(TIME) && updatedUser.getInteger(TIME) <= MAX_POLL_TIME) {
+
+                                                        routingContext.setBody(updatedUser.toBuffer());
+
+                                                        routingContext.next();
+
+                                                    } else {
+
+                                                        routingContext.response()
+
+                                                                .setStatusCode(400)
+
+                                                                .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+
+                                                                .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid time").encodePrettily());
+
+                                                    }
+
+                                                } else {
+
+                                                    routingContext.response()
+
+                                                            .setStatusCode(400)
+
+                                                            .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+
+                                                            .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid metric group").encodePrettily());
+
+                                                }
+
+                                            } else {
+
+                                                routingContext.response()
+
+                                                        .setStatusCode(400)
+
+                                                        .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+
+                                                        .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid Type").encodePrettily());
+
+                                            }
 
                                         } else {
 
@@ -106,21 +189,11 @@ public class Metric {
 
                                                     .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                                    .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid time").encodePrettily());
+                                                    .end(new JsonObject().put(STATUS, FAIL).encodePrettily());
 
                                         }
 
-                                    } else {
-
-                                        routingContext.response()
-
-                                                .setStatusCode(400)
-
-                                                .putHeader(CONTENT_TYPE, CONTENT_VALUE)
-
-                                                .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid metric group").encodePrettily());
-
-                                    }
+                                    });
 
                                 } else {
 

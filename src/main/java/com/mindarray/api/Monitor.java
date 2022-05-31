@@ -405,7 +405,6 @@ public class Monitor {
                 routingContext.next();
 
             } else {
-                //changes
 
                 if (userData.getJsonObject(OBJECTS).containsKey("interface")) {
 
@@ -415,19 +414,17 @@ public class Monitor {
 
                     userData.put(OBJECTS, userData.getJsonObject(OBJECTS).put("interface", list));
 
-                    routingContext.setBody(userData.toBuffer());
-
-                    routingContext.next();
-
                 } else {
 
                     LOG.debug("Error {}", "Interface is invalid");
 
-                    routingContext.setBody(userData.toBuffer());
-
-                    routingContext.next();
+                    userData.remove(OBJECTS);
 
                 }
+
+                routingContext.setBody(userData.toBuffer());
+
+                routingContext.next();
 
             }
 

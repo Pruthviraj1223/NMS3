@@ -168,5 +168,7 @@ public class Constants {
 
     public static final String DATABASE_UPDATE_GROUP_TIME = "database.update.group.time";
 
+    public static final String TIMESTAMP = "timestamp";
+
 
 }

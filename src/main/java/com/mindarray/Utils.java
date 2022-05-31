@@ -127,7 +127,7 @@ public class Utils {
 
             System.out.println("oytocme " + outcome);
 
-            if (outcome != null) {
+            if (!outcome.isEmpty()) {
 
                 result = new JsonObject(outcome);
 

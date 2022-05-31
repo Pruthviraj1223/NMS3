@@ -127,7 +127,7 @@ public class MetricScheduler extends AbstractVerticle {
 
                                 String formattedDate = myDateObj.format(myFormatObj);
 
-                                vertx.eventBus().send(Constants.EVENTBUS_POLLER, contextHandler.result().body().put("timestamp", formattedDate));
+                                vertx.eventBus().send(Constants.EVENTBUS_POLLER, contextHandler.result().body().put(Constants.TIMESTAMP, formattedDate));
 
                                 updatedMetrics.put(entry.getKey(), metrics.get(entry.getKey()));
 
@@ -194,8 +194,6 @@ public class MetricScheduler extends AbstractVerticle {
                 if (handler.body() != null) {
 
                     JsonObject user = handler.body();
-
-                    System.out.println("usr " + user);
 
                     if(user.containsKey(METRIC_ID) && user.containsKey(TIME)){
 

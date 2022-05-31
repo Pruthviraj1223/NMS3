@@ -31,7 +31,6 @@ public class Poller extends AbstractVerticle {
 
                         data.put(Constants.CATEGORY, Constants.POLLING);
 
-
                         if (data.containsKey(Constants.METRIC_GROUP) && data.containsKey(Constants.METRIC_ID) && data.getString(Constants.METRIC_GROUP).equalsIgnoreCase("ping")) {
 
                             JsonObject result = Utils.checkAvailability(data.getString(Constants.IP_ADDRESS));
@@ -132,7 +131,7 @@ public class Poller extends AbstractVerticle {
 
                     pollData.put(Constants.RESULT, data.getString(Constants.RESULT));
 
-                    pollData.put("timestamp", data.getString("timestamp"));
+                    pollData.put(Constants.TIMESTAMP, data.getString(Constants.TIMESTAMP));
 
                     pollData.put(Constants.METHOD, Constants.DATABASE_INSERT);
 
