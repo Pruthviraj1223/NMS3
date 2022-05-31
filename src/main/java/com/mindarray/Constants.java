@@ -166,5 +166,7 @@ public class Constants {
 
     public static final String DATABASE_GET_POLL_DATA = "database.get.poll.data";
 
+    public static final String DATABASE_UPDATE_GROUP_TIME = "database.update.group.time";
+
 
 }

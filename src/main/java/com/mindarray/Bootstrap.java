@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class Bootstrap {
 
-    static final Logger LOG = LoggerFactory.getLogger(Bootstrap.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(Bootstrap.class.getName());
 
     public static Vertx vertx = Vertx.vertx();
 

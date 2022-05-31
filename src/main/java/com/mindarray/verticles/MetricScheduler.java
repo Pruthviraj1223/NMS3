@@ -62,7 +62,7 @@ public class MetricScheduler extends AbstractVerticle {
 
                 } else {
 
-                    LOG.debug("Error {}  {}", "fail in creating context Initially ", contextHandler.cause().getMessage());
+                    LOG.debug("Error fail in creating context Initially  {}", contextHandler.cause().getMessage());
 
                 }
 
@@ -194,6 +194,8 @@ public class MetricScheduler extends AbstractVerticle {
                 if (handler.body() != null) {
 
                     JsonObject user = handler.body();
+
+                    System.out.println("usr " + user);
 
                     if(user.containsKey(METRIC_ID) && user.containsKey(TIME)){
 

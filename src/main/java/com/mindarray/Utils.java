@@ -107,8 +107,6 @@ public class Utils {
 
         }
 
-        System.out.println("data "+ data);
-
         NuProcess nuProcess = null;
 
         try {
@@ -126,6 +124,8 @@ public class Utils {
             nuProcess.waitFor(15000, TimeUnit.MILLISECONDS);
 
             String outcome = handler.output();
+
+            System.out.println("oytocme " + outcome);
 
             if (outcome != null) {
 

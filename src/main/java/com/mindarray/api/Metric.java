@@ -12,7 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 
 import static com.mindarray.Constants.*;
 
@@ -22,17 +24,19 @@ public class Metric {
 
     private final Vertx vertx = Bootstrap.vertx;
 
-    private final HashSet<String> checkFields = new HashSet<>(Arrays.asList(METRIC_ID, TIME));
+    private final HashSet<String> checkFields = new HashSet<>(Arrays.asList( METRIC_GROUP, TIME));
+
+    private final Set<String> checkMetricGroup = Set.of("cpu", "disk", "memory", "SystemInfo", "process", "interface");
 
     public void init(Router router) {
 
-        router.get("/").handler(this::getAll);
+        router.get("/metric/").handler(this::getAll);
 
-        router.get("/:id").handler(this::validate).handler(this::getByIdMetric);
+        router.get("/metric/:id").handler(this::validate).handler(this::getByIdMetric);
 
-        router.get("/monitor/:id").handler(this::validate).handler(this::getByIdMonitor);
+        router.get("/metric/monitor/:id").handler(this::validate).handler(this::getByIdMonitor);
 
-        router.put("/").handler(this::validate).handler(this::update);
+        router.put("/metric/:id").handler(this::validate).handler(this::update);
 
     }
 
@@ -44,43 +48,85 @@ public class Metric {
 
                 if (routingContext.getBodyAsJson() != null) {
 
+                    String id = routingContext.pathParam("id");
+
                     JsonObject userData = routingContext.getBodyAsJson();
 
-                    if (checkFields.equals(userData.fieldNames())) {
+                    HashMap<String, Object> result = new HashMap<>(userData.getMap());
 
-                        if (userData.getValue(METRIC_ID) instanceof Integer && userData.getValue(TIME) instanceof Integer) {
+                    for (String key : result.keySet()) {
 
-                            JsonObject data = new JsonObject();
+                        Object val = result.get(key);
 
-                            data.put(METHOD, DATABASE_ID_CHECK);
+                        if (val instanceof String) {
 
-                            data.put(TABLE_NAME, USER_METRIC);
+                            userData.put(key, val.toString().trim());
 
-                            data.put(TABLE_COLUMN, METRIC_ID);
+                        }
 
-                            data.put(TABLE_ID, userData.getInteger(METRIC_ID));
+                    }
 
-                            vertx.eventBus().request(Constants.EVENTBUS_DATABASE, data, handler -> {
+                    Set<String> fieldNames = userData.fieldNames();
+
+                    if (fieldNames.size() >= checkFields.size()) {
+
+                        JsonObject updatedUser = new JsonObject();
+
+                        for (String field : fieldNames) {
+
+                            if (checkFields.contains(field)) {
+
+                                updatedUser.put(field, userData.getValue(field));
+
+                            }
+
+                        }
+
+                        updatedUser.put(MONITOR_ID,id);
+
+                        if (updatedUser.getValue(METRIC_GROUP) instanceof String && updatedUser.getValue(TIME) instanceof Integer) {
+
+                            vertx.eventBus().request(Constants.EVENTBUS_DATABASE, new JsonObject().put(METHOD, DATABASE_ID_CHECK).put(TABLE_NAME, USER_METRIC).put(TABLE_COLUMN, MONITOR_ID).put(TABLE_ID, updatedUser.getValue(MONITOR_ID)), handler -> {
 
                                 if (handler.succeeded()) {
 
-                                    if(MIN_POLL_TIME <= userData.getInteger(TIME) && userData.getInteger(TIME)<= MAX_POLL_TIME){
+                                    if (checkMetricGroup.contains(updatedUser.getString(METRIC_GROUP))) {
 
-                                        routingContext.next();
+                                        if (MIN_POLL_TIME <= updatedUser.getInteger(TIME) && updatedUser.getInteger(TIME) <= MAX_POLL_TIME) {
+
+                                            routingContext.setBody(updatedUser.toBuffer());
+
+                                            routingContext.next();
+
+                                        } else {
+
+                                            routingContext.response()
+
+                                                    .setStatusCode(400)
+
+                                                    .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+
+                                                    .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid time").encodePrettily());
+
+                                        }
 
                                     } else {
 
                                         routingContext.response()
 
+                                                .setStatusCode(400)
+
                                                 .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                                .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid time").encodePrettily());
+                                                .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid metric group").encodePrettily());
 
                                     }
 
                                 } else {
 
                                     routingContext.response()
+
+                                            .setStatusCode(400)
 
                                             .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
@@ -109,10 +155,9 @@ public class Metric {
 
                                 .setStatusCode(400)
 
-                                .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid , dont put extra field").encodePrettily());
-
+                                .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, MISSING_DATA).encodePrettily());
 
                     }
 
@@ -130,29 +175,45 @@ public class Metric {
 
             } else if (routingContext.request().method() == HttpMethod.GET || routingContext.request().method() == HttpMethod.DELETE) {
 
-                JsonObject data = new JsonObject();
+                JsonObject request = new JsonObject();
 
-                data.put(METHOD, DATABASE_ID_CHECK);
+                request.put(METHOD, DATABASE_ID_CHECK);
 
-                data.put(TABLE_NAME, USER_METRIC);
+                request.put(TABLE_NAME, USER_METRIC);
 
-                data.put(TABLE_COLUMN, METRIC_ID);
+                request.put(TABLE_COLUMN, METRIC_ID);
 
-                data.put(TABLE_ID, routingContext.pathParam("id"));
+                request.put(TABLE_ID, routingContext.pathParam("id"));
 
-                vertx.eventBus().request(Constants.EVENTBUS_DATABASE, data, handler -> {
+                vertx.eventBus().request(Constants.EVENTBUS_DATABASE, request, handler -> {
 
-                    if (handler.succeeded()) {
+                    try {
 
-                        routingContext.next();
+                        if (handler.succeeded()) {
 
-                    } else {
+                            routingContext.next();
+
+                        } else {
+
+                            routingContext.response()
+
+                                    .setStatusCode(400)
+
+                                    .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+
+                                    .end(new JsonObject().put(STATUS, FAIL).put(ERROR, handler.cause().getMessage()).encodePrettily());
+
+                        }
+
+                    } catch (Exception exception) {
 
                         routingContext.response()
 
-                                .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+                                .setStatusCode(500)
 
-                                .end(new JsonObject().put(STATUS, FAIL).put(ERROR, handler.cause().getMessage()).encodePrettily());
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
                     }
 
@@ -162,7 +223,7 @@ public class Metric {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}",exception.getMessage());
+            LOG.debug("Error {}", exception.getMessage());
 
             routingContext.response()
 
@@ -170,7 +231,7 @@ public class Metric {
 
                     .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, exception.getMessage()).encodePrettily());
+                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
         }
 
@@ -180,11 +241,7 @@ public class Metric {
 
         JsonObject userData = routingContext.getBodyAsJson();
 
-        userData.put(METHOD, DATABASE_UPDATE);
-
-        userData.put(TABLE_NAME, USER_METRIC);
-
-        userData.put(TABLE_COLUMN, METRIC_ID);
+        userData.put(METHOD, DATABASE_UPDATE_GROUP_TIME);
 
         vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
@@ -192,9 +249,9 @@ public class Metric {
 
                 if (response.succeeded()) {
 
-                    vertx.eventBus().send(SCHEDULER_UPDATE,userData);
-
                     routingContext.response()
+
+                            .setStatusCode(200)
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -203,6 +260,8 @@ public class Metric {
                 } else {
 
                     routingContext.response()
+
+                            .setStatusCode(400)
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -230,17 +289,17 @@ public class Metric {
 
         try {
 
-            JsonObject userData = new JsonObject();
+            JsonObject request = new JsonObject();
 
-            userData.put(METHOD, Constants.DATABASE_GET);
+            request.put(METHOD, Constants.DATABASE_GET);
 
-            userData.put(TABLE_NAME, USER_METRIC);
+            request.put(TABLE_NAME, USER_METRIC);
 
-            userData.put(TABLE_COLUMN, METRIC_ID);
+            request.put(TABLE_COLUMN, METRIC_ID);
 
-            userData.put(TABLE_ID, GETALL);
+            request.put(TABLE_ID, GETALL);
 
-            vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
+            vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, request, response -> {
 
                 if (response.succeeded()) {
 
@@ -250,6 +309,8 @@ public class Metric {
 
                         routingContext.response()
 
+                                .setStatusCode(200)
+
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                                 .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.RESULT, results).encodePrettily());
@@ -257,6 +318,8 @@ public class Metric {
                     } else {
 
                         routingContext.response()
+
+                                .setStatusCode(400)
 
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -267,6 +330,8 @@ public class Metric {
                 } else {
 
                     routingContext.response()
+
+                            .setStatusCode(400)
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -295,17 +360,17 @@ public class Metric {
 
         try {
 
-            JsonObject userData = new JsonObject();
+            JsonObject request = new JsonObject();
 
-            userData.put(Constants.METHOD, Constants.DATABASE_GET);
+            request.put(Constants.METHOD, Constants.DATABASE_GET);
 
-            userData.put(Constants.TABLE_NAME, USER_METRIC);
+            request.put(Constants.TABLE_NAME, USER_METRIC);
 
-            userData.put(Constants.TABLE_COLUMN, METRIC_ID);
+            request.put(Constants.TABLE_COLUMN, METRIC_ID);
 
-            userData.put(Constants.TABLE_ID, routingContext.pathParam("id"));
+            request.put(Constants.TABLE_ID, routingContext.pathParam("id"));
 
-            vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
+            vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, request, response -> {
 
                 if (response.succeeded()) {
 
@@ -315,6 +380,8 @@ public class Metric {
 
                         routingContext.response()
 
+                                .setStatusCode(200)
+
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                                 .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.RESULT, results).encodePrettily());
@@ -323,16 +390,19 @@ public class Metric {
 
                         routingContext.response()
 
+                                .setStatusCode(400)
+
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                                 .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.MESSAGE, Constants.NOT_PRESENT).encodePrettily());
 
                     }
 
-
                 } else {
 
                     routingContext.response()
+
+                            .setStatusCode(400)
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -361,17 +431,17 @@ public class Metric {
 
         try {
 
-            JsonObject userData = new JsonObject();
+            JsonObject request = new JsonObject();
 
-            userData.put(Constants.METHOD, Constants.DATABASE_GET);
+            request.put(Constants.METHOD, Constants.DATABASE_GET);
 
-            userData.put(Constants.TABLE_NAME, USER_METRIC);
+            request.put(Constants.TABLE_NAME, USER_METRIC);
 
-            userData.put(Constants.TABLE_COLUMN, MONITOR_ID);
+            request.put(Constants.TABLE_COLUMN, MONITOR_ID);
 
-            userData.put(Constants.TABLE_ID, routingContext.pathParam("id"));
+            request.put(Constants.TABLE_ID, routingContext.pathParam("id"));
 
-            vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
+            vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, request, response -> {
 
                 if (response.succeeded()) {
 
@@ -381,6 +451,8 @@ public class Metric {
 
                         routingContext.response()
 
+                                .setStatusCode(200)
+
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                                 .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.RESULT, results).encodePrettily());
@@ -389,16 +461,19 @@ public class Metric {
 
                         routingContext.response()
 
+                                .setStatusCode(400)
+
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                                 .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.MESSAGE, Constants.NOT_PRESENT).encodePrettily());
 
                     }
 
-
                 } else {
 
                     routingContext.response()
+
+                            .setStatusCode(400)
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -420,8 +495,6 @@ public class Metric {
 
         }
 
-
     }
-
 
 }

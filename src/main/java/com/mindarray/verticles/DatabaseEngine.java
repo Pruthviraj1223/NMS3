@@ -381,9 +381,13 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 data.remove(TYPE);
 
-                data.remove(PORT);
-
                 data.remove(DISCOVERY_TABLE_ID);
+
+            }
+
+            if(tableName.equalsIgnoreCase(MONITOR)){ //changes
+
+                data.remove(MONITOR_ID);
 
             }
 
@@ -407,7 +411,17 @@ public class DatabaseEngine extends AbstractVerticle {
 
             update.deleteCharAt(update.length() - 1);
 
-            String updatedQuery = query + update + " where " + columnName + " = '" + id + "' ;";
+            String updatedQuery;
+
+            if (!tableName.equalsIgnoreCase(USER_METRIC)) {
+
+                updatedQuery = query + update + " where " + columnName + " = '" + id + "' ;";
+
+            } else {
+
+                updatedQuery = query + update + " where " + columnName + " = '" + id + "' and metricGroup = '" + userData.getString(METRIC_GROUP) + "';";
+
+            }
 
             PreparedStatement preparedStatement = connection.prepareStatement(updatedQuery);
 
@@ -591,7 +605,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             if (!answer) {
 
-                String query = "select result->>'$.status' from " + DISCOVERY_TABLE + " where credentialId = '" + data.getInteger(CREDENTIAL_ID) + "' and ip = '" + data.getString(IP_ADDRESS) + "' and type = '" + data.getString(TYPE) + "' and port = " + data.getInteger(PORT) + "";
+                String query = "select result->>'$.status' from " + DISCOVERY_TABLE + " where credentialId = '" + data.getInteger(CREDENTIAL_ID) + "' and ip = '" + data.getString(IP_ADDRESS) + "' and type = '" + data.getString(TYPE) + "' ";
 
                 ResultSet resultSet = connection.createStatement().executeQuery(query);
 
@@ -1365,7 +1379,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                             } else {
 
-                                blockingHandler.fail(INVALID_INPUT);
+                                blockingHandler.fail(OBJECT_MISSING);
 
                             }
 
@@ -1680,6 +1694,73 @@ public class DatabaseEngine extends AbstractVerticle {
                     } else {
 
                         handler.fail(-1, completionHandler.cause().getMessage());
+
+                    }
+
+                });
+
+                case DATABASE_UPDATE_GROUP_TIME -> vertx.executeBlocking(blockingHandler -> {
+
+                    try {
+
+                        if (handler.body() != null) {
+
+                            JsonObject userData = handler.body();
+
+                            userData.remove(METHOD);
+
+                            if (update(USER_METRIC, MONITOR_ID, userData)) {
+
+                                JsonArray data = getAll(USER_METRIC, MONITOR_ID, userData.getString(MONITOR_ID));
+
+                                for (int index = 0; index < data.size(); index++) {
+
+                                    var json = data.getJsonObject(index);
+
+                                    if (json.getString(METRIC_GROUP).equalsIgnoreCase(userData.getString(METRIC_GROUP))) {
+
+                                        userData.put(METRIC_ID, json.getInteger(METRIC_ID));
+
+                                        blockingHandler.complete(userData);
+
+                                        break;
+
+                                    }
+
+                                }
+
+                            } else {
+
+                                blockingHandler.fail(FAIL);
+
+                            }
+
+
+                        } else {
+
+                            blockingHandler.fail(FAIL);
+
+                        }
+
+                    } catch (Exception exception) {
+
+                        LOG.debug("Error {}", exception.getMessage());
+
+                        blockingHandler.fail(exception.getMessage());
+
+                    }
+
+                }).onComplete(resultHandler -> {
+
+                    if (resultHandler.succeeded()) {
+
+                        vertx.eventBus().send(SCHEDULER_UPDATE, resultHandler.result());
+
+                        handler.reply(Constants.SUCCESS);
+
+                    } else {
+
+                        handler.fail(-1, resultHandler.cause().getMessage());
 
                     }
 

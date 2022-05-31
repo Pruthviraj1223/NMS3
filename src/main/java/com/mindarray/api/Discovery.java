@@ -11,9 +11,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Set;
 
 import static com.mindarray.Constants.*;
@@ -24,17 +22,17 @@ public class Discovery {
 
     private final Vertx vertx = Bootstrap.vertx;
 
-    private final Set<String> checkFields = new HashSet<>(Arrays.asList(CREDENTIAL_ID, DISCOVERY_NAME, IP_ADDRESS, TYPE, PORT));
+    private final Set<String> checkFields = Set.of(CREDENTIAL_ID, DISCOVERY_NAME, IP_ADDRESS, TYPE, PORT);
 
     public void init(Router discoveryRouter) {
 
-        discoveryRouter.post("/discovery").handler(this::fieldValidate).handler(this::validate).handler(this::create);
+        discoveryRouter.post("/discovery").handler(this::filter).handler(this::validate).handler(this::create);
 
         discoveryRouter.get("/discovery").handler(this::get);
 
         discoveryRouter.get("/discovery/:id").handler(this::validate).handler(this::getId);
 
-        discoveryRouter.put("/discovery").handler(this::fieldValidate).handler(this::validate).handler(this::update);
+        discoveryRouter.put("/discovery").handler(this::filter).handler(this::validate).handler(this::update);
 
         discoveryRouter.delete("/discovery/:id").handler(this::validate).handler(this::delete);
 
@@ -42,7 +40,7 @@ public class Discovery {
 
     }
 
-    private void fieldValidate(RoutingContext routingContext) {
+    private void filter(RoutingContext routingContext) {
 
         try {
 
@@ -56,19 +54,19 @@ public class Discovery {
 
                     if (fieldNames.size() >= checkFields.size()) {
 
-                        JsonObject newUserData = new JsonObject();
+                        JsonObject updatedUser = new JsonObject();
 
                         for (String field : fieldNames) {
 
                             if (checkFields.contains(field)) {
 
-                                newUserData.put(field, user.getValue(field));
+                                updatedUser.put(field, user.getValue(field));
 
                             }
 
                         }
 
-                        routingContext.setBody(newUserData.toBuffer());
+                        routingContext.setBody(updatedUser.toBuffer());
 
                         routingContext.next();
 
@@ -83,29 +81,27 @@ public class Discovery {
 
                                 .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, MISSING_DATA).encodePrettily());
 
-
                     }
-
 
                 } else if (routingContext.request().method() == HttpMethod.PUT) {
 
                     if (user.containsKey(DISCOVERY_TABLE_ID)) {
 
-                        JsonObject newUserData = new JsonObject();
+                        JsonObject updatedUser = new JsonObject();
 
                         for (String field : fieldNames) {
 
                             if (checkFields.contains(field)) {
 
-                                newUserData.put(field, user.getValue(field));
+                                updatedUser.put(field, user.getValue(field));
 
                             }
 
                         }
 
-                        newUserData.put(DISCOVERY_TABLE_ID, user.getValue(DISCOVERY_TABLE_ID));
+                        updatedUser.put(DISCOVERY_TABLE_ID, user.getValue(DISCOVERY_TABLE_ID));
 
-                        routingContext.setBody(newUserData.toBuffer());
+                        routingContext.setBody(updatedUser.toBuffer());
 
                         routingContext.next();
 
@@ -136,6 +132,7 @@ public class Discovery {
 
 
             }
+
         } catch (Exception exception) {
 
             LOG.debug("Error {}", exception.getMessage());
@@ -174,17 +171,17 @@ public class Discovery {
 
                 } else if (!routingContext.request().params().isEmpty()) {
 
-                    JsonObject data = new JsonObject();
+                    JsonObject request = new JsonObject();
 
-                    data.put(Constants.METHOD, Constants.DATABASE_ID_CHECK);
+                    request.put(Constants.METHOD, Constants.DATABASE_ID_CHECK);
 
-                    data.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
+                    request.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
 
-                    data.put(Constants.TABLE_COLUMN, Constants.DISCOVERY_TABLE_ID);
+                    request.put(Constants.TABLE_COLUMN, Constants.DISCOVERY_TABLE_ID);
 
-                    data.put(Constants.TABLE_ID, routingContext.pathParam("id"));
+                    request.put(Constants.TABLE_ID, routingContext.pathParam("id"));
 
-                    vertx.eventBus().request(Constants.EVENTBUS_DATABASE, data, handler -> {
+                    vertx.eventBus().request(Constants.EVENTBUS_DATABASE, request, handler -> {
 
                         try {
 
@@ -195,6 +192,8 @@ public class Discovery {
                             } else {
 
                                 routingContext.response()
+
+                                        .setStatusCode(400)
 
                                         .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -355,23 +354,22 @@ public class Discovery {
 
                                 .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, Constants.INVALID_INPUT).encodePrettily());
 
-
                     }
                 }
 
             } else if (routingContext.request().method() == HttpMethod.DELETE) {
 
-                JsonObject userData = new JsonObject();
+                JsonObject request = new JsonObject();
 
-                userData.put(Constants.METHOD, Constants.DATABASE_ID_CHECK);
+                request.put(Constants.METHOD, Constants.DATABASE_ID_CHECK);
 
-                userData.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
+                request.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
 
-                userData.put(Constants.TABLE_COLUMN, Constants.DISCOVERY_TABLE_ID);
+                request.put(Constants.TABLE_COLUMN, Constants.DISCOVERY_TABLE_ID);
 
-                userData.put(Constants.TABLE_ID, routingContext.pathParam("id"));
+                request.put(Constants.TABLE_ID, routingContext.pathParam("id"));
 
-                vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, handler -> {
+                vertx.eventBus().request(Constants.EVENTBUS_DATABASE, request, handler -> {
 
                     try {
 
@@ -382,6 +380,8 @@ public class Discovery {
                         } else {
 
                             routingContext.response()
+
+                                    .setStatusCode(400)
 
                                     .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -407,17 +407,17 @@ public class Discovery {
 
             } else if (routingContext.request().method() == HttpMethod.GET) {
 
-                JsonObject userData = new JsonObject();
+                JsonObject request = new JsonObject();
 
-                userData.put(METHOD, DATABASE_ID_CHECK);
+                request.put(METHOD, DATABASE_ID_CHECK);
 
-                userData.put(TABLE_NAME, DISCOVERY_TABLE);
+                request.put(TABLE_NAME, DISCOVERY_TABLE);
 
-                userData.put(TABLE_COLUMN, DISCOVERY_TABLE_ID);
+                request.put(TABLE_COLUMN, DISCOVERY_TABLE_ID);
 
-                userData.put(TABLE_ID, routingContext.pathParam("id"));
+                request.put(TABLE_ID, routingContext.pathParam("id"));
 
-                vertx.eventBus().request(EVENTBUS_DATABASE, userData, handler -> {
+                vertx.eventBus().request(EVENTBUS_DATABASE, request, handler -> {
 
                     try {
 
@@ -428,6 +428,8 @@ public class Discovery {
                         } else {
 
                             routingContext.response()
+
+                                    .setStatusCode(400)
 
                                     .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -486,6 +488,8 @@ public class Discovery {
                     if (response.result().body() != null) {
 
                         routingContext.response()
+
+                                .setStatusCode(200)
 
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -568,7 +572,7 @@ public class Discovery {
 
                             routingContext.response()
 
-                                    .setStatusCode(500)
+                                    .setStatusCode(400)
 
                                     .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -580,7 +584,7 @@ public class Discovery {
 
                         routingContext.response()
 
-                                .setStatusCode(400)
+                                .setStatusCode(500)
 
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -592,6 +596,8 @@ public class Discovery {
                 } else {
 
                     routingContext.response()
+
+                            .setStatusCode(400)
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
@@ -620,17 +626,17 @@ public class Discovery {
 
     private void getId(RoutingContext routingContext) {
 
-        JsonObject userData = new JsonObject();
+        JsonObject request = new JsonObject();
 
-        userData.put(Constants.METHOD, Constants.DATABASE_GET);
+        request.put(Constants.METHOD, Constants.DATABASE_GET);
 
-        userData.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
+        request.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
 
-        userData.put(Constants.TABLE_COLUMN, Constants.DISCOVERY_TABLE_ID);
+        request.put(Constants.TABLE_COLUMN, Constants.DISCOVERY_TABLE_ID);
 
-        userData.put(Constants.TABLE_ID, routingContext.pathParam("id"));
+        request.put(Constants.TABLE_ID, routingContext.pathParam("id"));
 
-        vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, userData, response -> {
+        vertx.eventBus().<JsonArray>request(Constants.EVENTBUS_DATABASE, request, response -> {
 
             try {
 
@@ -701,7 +707,6 @@ public class Discovery {
 
         userData.put(Constants.TABLE_COLUMN, Constants.DISCOVERY_TABLE_ID);
 
-
         vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
             try {
@@ -748,17 +753,17 @@ public class Discovery {
 
     private void delete(RoutingContext routingContext) {
 
-        JsonObject userData = new JsonObject();
+        JsonObject request = new JsonObject();
 
-        userData.put(Constants.METHOD, Constants.DATABASE_DELETE);
+        request.put(Constants.METHOD, Constants.DATABASE_DELETE);
 
-        userData.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
+        request.put(Constants.TABLE_NAME, Constants.DISCOVERY_TABLE);
 
-        userData.put(Constants.TABLE_COLUMN, Constants.DISCOVERY_TABLE_ID);
+        request.put(Constants.TABLE_COLUMN, Constants.DISCOVERY_TABLE_ID);
 
-        userData.put(Constants.TABLE_ID, routingContext.pathParam("id"));
+        request.put(Constants.TABLE_ID, routingContext.pathParam("id"));
 
-        vertx.eventBus().request(Constants.EVENTBUS_DATABASE, userData, response -> {
+        vertx.eventBus().request(Constants.EVENTBUS_DATABASE, request, response -> {
 
             try {
 
@@ -804,13 +809,13 @@ public class Discovery {
 
     private void merge(RoutingContext routingContext) {
 
-        JsonObject data = new JsonObject();
+        JsonObject request = new JsonObject();
 
-        data.put(Constants.METHOD, MERGE_DATA);
+        request.put(Constants.METHOD, MERGE_DATA);
 
-        data.put("id", routingContext.pathParam("id"));
+        request.put("id", routingContext.pathParam("id"));
 
-        vertx.eventBus().<JsonObject>request(EVENTBUS_DATABASE, data, handler -> {
+        vertx.eventBus().<JsonObject>request(EVENTBUS_DATABASE, request, handler -> {
 
             try {
 
@@ -834,7 +839,18 @@ public class Discovery {
 
                     }
 
+                } else{
+
+                    routingContext.response()
+
+                            .setStatusCode(400)
+
+                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                            .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
+
                 }
+
             } catch (Exception exception) {
 
                 LOG.debug("Error {}", exception.getMessage());
@@ -850,7 +866,6 @@ public class Discovery {
             }
 
         });
-
 
     }
 
