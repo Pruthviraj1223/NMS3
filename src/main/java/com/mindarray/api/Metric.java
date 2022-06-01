@@ -24,7 +24,7 @@ public class Metric {
 
     private final Vertx vertx = Bootstrap.vertx;
 
-    private final HashSet<String> checkFields = new HashSet<>(Arrays.asList(TYPE, METRIC_GROUP, TIME));
+    private final HashSet<String> checkFields = new HashSet<>(Arrays.asList( METRIC_GROUP, TIME));
 
     private final Set<String> checkMetricGroupSNMP = Set.of("SystemInfo", "interface");
 
@@ -189,7 +189,7 @@ public class Metric {
 
                                                     .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                                    .end(new JsonObject().put(STATUS, FAIL).encodePrettily());
+                                                    .end(new JsonObject().put(STATUS, FAIL).put(ERROR,response.cause().getMessage()).encodePrettily());
 
                                         }
 
@@ -220,7 +220,6 @@ public class Metric {
                                     .end(new JsonObject().put(STATUS, FAIL).put(ERROR, INVALID_INPUT).encodePrettily());
 
                         }
-
 
                     } else {
 

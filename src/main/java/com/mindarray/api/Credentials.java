@@ -273,9 +273,7 @@ public class Credentials {
 
                 if (userData != null) {
 
-                    HashMap<String, Object> result;
-
-                    result = new HashMap<>(userData.getMap());
+                    HashMap<String, Object> result = new HashMap<>(userData.getMap());
 
                     for (String key : result.keySet()) {
 

@@ -121,11 +121,9 @@ public class Utils {
 
             nuProcess = processBuilder.start();
 
-            nuProcess.waitFor(15000, TimeUnit.MILLISECONDS);
+            nuProcess.waitFor(20000, TimeUnit.MILLISECONDS);
 
             String outcome = handler.output();
-
-            System.out.println("oytocme " + outcome);
 
             if (!outcome.isEmpty()) {
 
@@ -159,7 +157,7 @@ public class Utils {
 
         if (type.equalsIgnoreCase(LINUX) || type.equalsIgnoreCase(WINDOWS)) {
 
-            temp.put("cpu", 60000);
+            temp.put("cpu", 80000);
 
             temp.put("disk", 120000);
 
@@ -167,13 +165,13 @@ public class Utils {
 
             temp.put("process", 20000);
 
-            temp.put("SystemInfo", 200000);
+            temp.put("SystemInfo", 100000);
 
             temp.put("ping", 60000);
 
         } else if (type.equalsIgnoreCase(Constants.NETWORKING)) {
 
-            temp.put("SystemInfo", 30000);
+            temp.put("SystemInfo", 40000);
 
             temp.put("interface", 20000);
 

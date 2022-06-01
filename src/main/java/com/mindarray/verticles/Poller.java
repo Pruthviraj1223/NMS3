@@ -137,9 +137,9 @@ public class Poller extends AbstractVerticle {
 
                     pollData.put(Constants.TABLE_NAME, Constants.POLLER);
 
-                   LOG.debug("Metric id = {} {} {}", data.getString(Constants.METRIC_ID), data.getString(Constants.IP_ADDRESS), data.getString(Constants.RESULT));
-
                     vertx.eventBus().send(Constants.EVENTBUS_DATABASE, pollData);
+
+                    LOG.debug("i p  " +data.getString(Constants.IP_ADDRESS) + " data " + completionHandler.result().getString(Constants.RESULT));
 
                 } else {
 
