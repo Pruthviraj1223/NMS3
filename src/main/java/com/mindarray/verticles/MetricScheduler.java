@@ -28,9 +28,11 @@ public class MetricScheduler extends AbstractVerticle {
 
     private static final Logger LOG = LoggerFactory.getLogger(MetricScheduler.class.getName());
 
-    HashMap<Integer, Integer> metrics = new HashMap<>();
+    private final HashMap<Integer, Integer> metrics = new HashMap<>();
 
-    HashMap<Integer, Integer> updatedMetrics = new HashMap<>();
+    private final HashMap<Integer, Integer> updatedMetrics = new HashMap<>();
+
+    DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public void start(Promise<Void> startPromise) {
@@ -122,8 +124,6 @@ public class MetricScheduler extends AbstractVerticle {
                             if (contextHandler.succeeded()) {
 
                                 LocalDateTime myDateObj = LocalDateTime.now();
-
-                                DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
                                 String formattedDate = myDateObj.format(myFormatObj);
 

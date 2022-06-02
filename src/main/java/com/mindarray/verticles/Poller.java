@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.mindarray.Constants.*;
+
 public class Poller extends AbstractVerticle {
 
     private static final Logger LOG = LoggerFactory.getLogger(Poller.class.getName());
@@ -59,9 +61,7 @@ public class Poller extends AbstractVerticle {
 
                         } else {
 
-                            if (checkStatus.containsKey(data.getInteger(Constants.MONITOR_ID))) {
-
-                                if (checkStatus.get(data.getInteger(Constants.MONITOR_ID)).equalsIgnoreCase(Constants.SUCCESS)) {
+                            if (!checkStatus.containsKey(data.getInteger(Constants.MONITOR_ID)) || checkStatus.get(data.getInteger(Constants.MONITOR_ID)).equalsIgnoreCase(Constants.SUCCESS)) {
 
                                     JsonObject result = Utils.spawnProcess(data);
 
@@ -77,27 +77,9 @@ public class Poller extends AbstractVerticle {
 
                                     }
 
-                                } else {
+                            }else {
 
-                                    blockingHandler.fail(Constants.PING_FAIL);
-
-                                }
-
-                            } else {
-
-                                JsonObject result = Utils.spawnProcess(data);
-
-                                if (!result.containsKey(Constants.ERROR)) {
-
-                                    data.put(Constants.RESULT, result);
-
-                                    blockingHandler.complete(data);
-
-                                } else {
-
-                                    blockingHandler.fail(result.getString(Constants.ERROR));
-
-                                }
+                                blockingHandler.fail(FAIL + "could be ping fail");
 
                             }
 
@@ -121,25 +103,33 @@ public class Poller extends AbstractVerticle {
 
                 if (completionHandler.succeeded()) {
 
-                    JsonObject pollData = new JsonObject();
-
                     JsonObject data = completionHandler.result();
 
-                    pollData.put(Constants.MONITOR_ID, data.getInteger(Constants.MONITOR_ID));
+                    data.remove(NAME);
 
-                    pollData.put(Constants.METRIC_GROUP, data.getString(Constants.METRIC_GROUP));
+                    data.remove(PASSWORD);
 
-                    pollData.put(Constants.RESULT, data.getString(Constants.RESULT));
+                    data.remove(COMMUNITY);
 
-                    pollData.put(Constants.TIMESTAMP, data.getString(Constants.TIMESTAMP));
+                    data.remove(TIME);
 
-                    pollData.put(Constants.METHOD, Constants.DATABASE_INSERT);
+                    data.remove(CATEGORY);
 
-                    pollData.put(Constants.TABLE_NAME, Constants.POLLER);
+                    data.remove(VERSION);
 
-                    vertx.eventBus().send(Constants.EVENTBUS_DATABASE, pollData);
+                    data.remove(TYPE);
 
-                    LOG.debug("i p  " +data.getString(Constants.IP_ADDRESS) + " data " + completionHandler.result().getString(Constants.RESULT));
+                    data.remove(PORT);
+
+                    data.remove(IP_ADDRESS);
+
+                    data.remove(METRIC_ID);
+
+                    data.put(Constants.METHOD, Constants.DATABASE_INSERT);
+
+                    data.put(Constants.TABLE_NAME, Constants.POLLER);
+
+                    vertx.eventBus().send(Constants.EVENTBUS_DATABASE, data);
 
                 } else {
 

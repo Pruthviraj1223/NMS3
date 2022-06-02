@@ -11,10 +11,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static com.mindarray.Constants.*;
 
@@ -24,12 +21,11 @@ public class Metric {
 
     private final Vertx vertx = Bootstrap.vertx;
 
-    private final HashSet<String> checkFields = new HashSet<>(Arrays.asList( METRIC_GROUP, TIME));
+    private final HashSet<String> checkFields = new HashSet<>(Arrays.asList(METRIC_GROUP, TIME));
 
     private final Set<String> checkMetricGroupSNMP = Set.of("SystemInfo", "interface");
 
     private final Set<String> checkMetricGroupOthers = Set.of("cpu", "disk", "memory", "SystemInfo", "process");
-
 
     public void init(Router router) {
 
@@ -49,79 +45,57 @@ public class Metric {
 
             if (routingContext.request().method() == HttpMethod.PUT) {
 
-                if (routingContext.getBodyAsJson() != null) {
+                JsonObject userData = routingContext.getBodyAsJson();
+
+                if (userData != null && !userData.isEmpty() && userData.size() >= checkFields.size()) {
 
                     String id = routingContext.pathParam("id");
 
-                    JsonObject userData = routingContext.getBodyAsJson();
+                    for(Map.Entry<String,Object> entry:userData){
 
-                    HashMap<String, Object> result = new HashMap<>(userData.getMap());
+                        if(entry.getValue() instanceof String){
 
-                    for (String key : result.keySet()) {
-
-                        Object val = result.get(key);
-
-                        if (val instanceof String) {
-
-                            userData.put(key, val.toString().trim());
+                            userData.put(entry.getKey(),entry.getValue().toString().trim());
 
                         }
-
                     }
 
-                    Set<String> fieldNames = userData.fieldNames();
+                    Iterator<Map.Entry<String,Object>> iterator = userData.iterator();
 
-                    if (fieldNames.size() >= checkFields.size()) {
+                    while (iterator.hasNext()) {
 
-                        JsonObject updatedUser = new JsonObject();
+                        if (!checkFields.contains(iterator.next().getKey())) {
 
-                        for (String field : fieldNames) {
-
-                            if (checkFields.contains(field)) {
-
-                                updatedUser.put(field, userData.getValue(field));
-
-                            }
+                            iterator.remove();
 
                         }
+                    }
 
-                        updatedUser.put(MONITOR_ID, id);
+                    userData.put(MONITOR_ID, id);
 
-                        if (updatedUser.getValue(METRIC_GROUP) instanceof String && updatedUser.getValue(TIME) instanceof Integer) {
+                    if (userData.getValue(METRIC_GROUP) instanceof String && userData.getValue(TIME) instanceof Integer && userData.getInteger(TIME) % 10000 == 0) {
 
-                            vertx.eventBus().request(Constants.EVENTBUS_DATABASE, new JsonObject().put(METHOD, DATABASE_ID_CHECK).put(TABLE_NAME, USER_METRIC).put(TABLE_COLUMN, MONITOR_ID).put(TABLE_ID, updatedUser.getValue(MONITOR_ID)), handler -> {
+                        vertx.eventBus().request(Constants.EVENTBUS_DATABASE, new JsonObject().put(METHOD, DATABASE_ID_CHECK).put(TABLE_NAME, USER_METRIC).put(TABLE_COLUMN, MONITOR_ID).put(TABLE_ID, userData.getValue(MONITOR_ID)), handler -> {
 
-                                if (handler.succeeded()) {
+                            if (handler.succeeded()) {
 
-                                    vertx.eventBus().<JsonArray>request(EVENTBUS_DATABASE, new JsonObject().put(METHOD, DATABASE_GET).put(TABLE_NAME, MONITOR).put(TABLE_COLUMN, MONITOR_ID).put(TABLE_ID, updatedUser.getValue(MONITOR_ID)), response -> {
+                                vertx.eventBus().<JsonArray>request(EVENTBUS_DATABASE, new JsonObject().put(METHOD, DATABASE_GET).put(TABLE_NAME, MONITOR).put(TABLE_COLUMN, MONITOR_ID).put(TABLE_ID, userData.getValue(MONITOR_ID)), response -> {
 
-                                        if (response.succeeded() && response.result().body().size() == 1) {
+                                    if (response.succeeded() && response.result().body().size() == 1) {
 
-                                            var user = response.result().body();
+                                        var user = response.result().body();
 
-                                            var type = user.getJsonObject(0).getString(TYPE);
+                                        var type = user.getJsonObject(0).getString(TYPE);
 
-                                            if (type != null && type.equalsIgnoreCase(NETWORKING)) {
+                                        if (type != null && type.equalsIgnoreCase(NETWORKING)) {
 
-                                                if (checkMetricGroupSNMP.contains(updatedUser.getString(METRIC_GROUP))) {
+                                            if (checkMetricGroupSNMP.contains(userData.getString(METRIC_GROUP))) {
 
-                                                    if (MIN_POLL_TIME <= updatedUser.getInteger(TIME) && updatedUser.getInteger(TIME) <= MAX_POLL_TIME) {
+                                                if (MIN_POLL_TIME <= userData.getInteger(TIME) && userData.getInteger(TIME) <= MAX_POLL_TIME) {
 
-                                                        routingContext.setBody(updatedUser.toBuffer());
+                                                    routingContext.setBody(userData.toBuffer());
 
-                                                        routingContext.next();
-
-                                                    } else {
-
-                                                        routingContext.response()
-
-                                                                .setStatusCode(400)
-
-                                                                .putHeader(CONTENT_TYPE, CONTENT_VALUE)
-
-                                                                .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid time").encodePrettily());
-
-                                                    }
+                                                    routingContext.next();
 
                                                 } else {
 
@@ -131,41 +105,7 @@ public class Metric {
 
                                                             .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                                            .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid metric group").encodePrettily());
-
-                                                }
-
-                                            } else if (type!=null && (type.equalsIgnoreCase(LINUX) || type.equalsIgnoreCase(WINDOWS))) {
-
-                                                if (checkMetricGroupOthers.contains(updatedUser.getString(METRIC_GROUP))) {
-
-                                                    if (MIN_POLL_TIME <= updatedUser.getInteger(TIME) && updatedUser.getInteger(TIME) <= MAX_POLL_TIME) {
-
-                                                        routingContext.setBody(updatedUser.toBuffer());
-
-                                                        routingContext.next();
-
-                                                    } else {
-
-                                                        routingContext.response()
-
-                                                                .setStatusCode(400)
-
-                                                                .putHeader(CONTENT_TYPE, CONTENT_VALUE)
-
-                                                                .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid time").encodePrettily());
-
-                                                    }
-
-                                                } else {
-
-                                                    routingContext.response()
-
-                                                            .setStatusCode(400)
-
-                                                            .putHeader(CONTENT_TYPE, CONTENT_VALUE)
-
-                                                            .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid metric group").encodePrettily());
+                                                            .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid time").encodePrettily());
 
                                                 }
 
@@ -177,7 +117,41 @@ public class Metric {
 
                                                         .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                                        .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid Type").encodePrettily());
+                                                        .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid metric group").encodePrettily());
+
+                                            }
+
+                                        } else if (type != null && (type.equalsIgnoreCase(LINUX) || type.equalsIgnoreCase(WINDOWS))) {
+
+                                            if (checkMetricGroupOthers.contains(userData.getString(METRIC_GROUP))) {
+
+                                                if (MIN_POLL_TIME <= userData.getInteger(TIME) && userData.getInteger(TIME) <= MAX_POLL_TIME) {
+
+                                                    routingContext.setBody(userData.toBuffer());
+
+                                                    routingContext.next();
+
+                                                } else {
+
+                                                    routingContext.response()
+
+                                                            .setStatusCode(400)
+
+                                                            .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+
+                                                            .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid time").encodePrettily());
+
+                                                }
+
+                                            } else {
+
+                                                routingContext.response()
+
+                                                        .setStatusCode(400)
+
+                                                        .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+
+                                                        .end(new JsonObject().put(STATUS, FAIL).put(ERROR, INVALID_METRIC_GROUP).encodePrettily());
 
                                             }
 
@@ -189,37 +163,37 @@ public class Metric {
 
                                                     .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                                    .end(new JsonObject().put(STATUS, FAIL).put(ERROR,response.cause().getMessage()).encodePrettily());
+                                                    .end(new JsonObject().put(STATUS, FAIL).put(ERROR, INVALID_TYPE).encodePrettily());
 
                                         }
 
-                                    });
+                                    } else {
 
-                                } else {
+                                        routingContext.response()
 
-                                    routingContext.response()
+                                                .setStatusCode(400)
 
-                                            .setStatusCode(400)
+                                                .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                            .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+                                                .end(new JsonObject().put(STATUS, FAIL).put(ERROR, response.cause().getMessage()).encodePrettily());
 
-                                            .end(new JsonObject().put(STATUS, FAIL).put(ERROR, handler.cause().getMessage()).encodePrettily());
+                                    }
 
-                                }
+                                });
 
-                            });
+                            } else {
 
-                        } else {
+                                routingContext.response()
 
-                            routingContext.response()
+                                        .setStatusCode(400)
 
-                                    .setStatusCode(400)
+                                        .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                    .putHeader(CONTENT_TYPE, CONTENT_VALUE)
+                                        .end(new JsonObject().put(STATUS, FAIL).put(ERROR, handler.cause().getMessage()).encodePrettily());
 
-                                    .end(new JsonObject().put(STATUS, FAIL).put(ERROR, INVALID_INPUT).encodePrettily());
+                            }
 
-                        }
+                        });
 
                     } else {
 
@@ -227,11 +201,12 @@ public class Metric {
 
                                 .setStatusCode(400)
 
-                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                                .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, MISSING_DATA).encodePrettily());
+                                .end(new JsonObject().put(STATUS, FAIL).put(ERROR, INVALID_INPUT).encodePrettily());
 
                     }
+
 
                 } else {
 

@@ -6,6 +6,8 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import jdk.jshell.execution.Util;
+import org.apache.logging.log4j.util.PropertySource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -237,6 +239,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             statement.executeUpdate("create table if not exists Poller (pollerId int PRIMARY KEY AUTO_INCREMENT , monitorId int, metricGroup varchar(255) ,result json,timestamp DATETIME)");
 
+            statement.close();
 
         } catch (Exception exception) {
 
@@ -823,7 +826,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         createTable();
 
-        vertx.eventBus().<JsonObject>consumer(EVENTBUS_DATABASE, handler -> {
+        vertx.eventBus().<JsonObject>localConsumer(EVENTBUS_DATABASE, handler -> {
 
             switch (handler.body().getString(Constants.METHOD)) {
 

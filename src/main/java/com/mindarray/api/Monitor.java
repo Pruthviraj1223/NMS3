@@ -52,28 +52,27 @@ public class Monitor {
 
                 JsonObject user = routingContext.getBodyAsJson();
 
-                if (user != null) {
+                if (user != null && !user.isEmpty()) {
 
                     Set<String> fieldNames = user.fieldNames();
 
                     if (fieldNames.size() != 0) {
 
-                        JsonObject updatedUser = new JsonObject();
+                        Iterator<Map.Entry<String,Object>> iterator = user.iterator();
 
-                        for (String field : fieldNames) {
+                        while (iterator.hasNext()){
 
-                            if (checkFields.contains(field)) {
+                            if(!checkFields.contains(iterator.next().getKey())){
 
-                                updatedUser.put(field, user.getValue(field));
+                                iterator.remove();
 
                             }
-
                         }
 
-                        routingContext.setBody(updatedUser.toBuffer());
+
+                        routingContext.setBody(user.toBuffer());
 
                         routingContext.next();
-
 
                     } else {
 
@@ -138,22 +137,15 @@ public class Monitor {
 
                 JsonObject user = routingContext.getBodyAsJson();
 
-                if (user != null) {
+                if (user != null && !user.isEmpty()) {
 
-                    HashMap<String, Object> result;
+                    for(Map.Entry<String,Object> entry:user){
 
-                    result = new HashMap<>(user.getMap());
+                        if(entry.getValue() instanceof String){
 
-                    for (String key : result.keySet()) {
-
-                        Object val = result.get(key);
-
-                        if (val instanceof String) {
-
-                            user.put(key, val.toString().trim());
+                            user.put(entry.getKey(),entry.getValue().toString().trim());
 
                         }
-
                     }
 
                     if(routingContext.request().method() == HttpMethod.POST) {
@@ -197,7 +189,6 @@ public class Monitor {
                                 }
 
                             });
-
 
                         } else {
 
@@ -526,7 +517,7 @@ public class Monitor {
 
                                         .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, "Invalid metric group").encodePrettily());
+                                        .end(new JsonObject().put(STATUS, FAIL).put(ERROR, INVALID_METRIC_GROUP).encodePrettily());
                             }
 
                         } else {

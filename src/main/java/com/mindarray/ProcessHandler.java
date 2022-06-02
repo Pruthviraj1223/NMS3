@@ -1,7 +1,6 @@
 package com.mindarray;
 
 import com.zaxxer.nuprocess.NuAbstractProcessHandler;
-
 import com.zaxxer.nuprocess.NuProcess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,11 +8,13 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 
 public class ProcessHandler extends NuAbstractProcessHandler {
-    private NuProcess nuProcess;
-    private String result = null;
+    private static final Logger LOG = LoggerFactory.getLogger(Utils.class.getName());
     StringBuilder stringBuilder = new StringBuilder();
 
-    private static final Logger LOG = LoggerFactory.getLogger(Utils.class.getName());
+    StringBuilder error = new StringBuilder();
+
+    private NuProcess nuProcess;
+    private String result = null;
 
     public void onStart(NuProcess nuProcess) {
 
@@ -43,15 +44,15 @@ public class ProcessHandler extends NuAbstractProcessHandler {
 
             }
 
-        }catch (Exception exception){
+        } catch (Exception exception) {
 
-            LOG.debug("Error {}",exception.getMessage());
+            LOG.debug("Error {}", exception.getMessage());
 
         }
 
     }
 
-    public void onStderr(ByteBuffer buffer, boolean closed){
+    public void onStderr(ByteBuffer buffer, boolean closed) {
 
         try {
 
@@ -69,9 +70,9 @@ public class ProcessHandler extends NuAbstractProcessHandler {
 
             }
 
-        }catch (Exception exception){
+        } catch (Exception exception) {
 
-            LOG.debug("Error {}",exception.getMessage());
+            LOG.debug("Error {}", exception.getMessage());
 
         }
     }

@@ -21,7 +21,7 @@ public class DiscoveryEngine extends AbstractVerticle {
     @Override
     public void start(Promise<Void> startPromise) {
 
-        vertx.eventBus().<JsonObject>consumer(RUN_DISCOVERY, handler -> {
+        vertx.eventBus().<JsonObject>localConsumer(RUN_DISCOVERY, handler -> {
 
             vertx.executeBlocking(blockingHandler -> {
 

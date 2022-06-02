@@ -6,10 +6,7 @@ import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.mindarray.Constants.*;
@@ -121,11 +118,13 @@ public class Utils {
 
             nuProcess = processBuilder.start();
 
-            nuProcess.waitFor(20000, TimeUnit.MILLISECONDS);
+            nuProcess.waitFor(15000, TimeUnit.MILLISECONDS);
 
             String outcome = handler.output();
 
             if (!outcome.isEmpty()) {
+
+                outcome = outcome.replace("\\\"","");
 
                 result = new JsonObject(outcome);
 
@@ -161,19 +160,19 @@ public class Utils {
 
             temp.put("disk", 120000);
 
-            temp.put("memory", 40000);
+            temp.put("memory", 100000);
 
-            temp.put("process", 20000);
+            temp.put("process", 80000);
 
-            temp.put("SystemInfo", 100000);
+            temp.put("SystemInfo", 200000);
 
             temp.put("ping", 60000);
 
         } else if (type.equalsIgnoreCase(Constants.NETWORKING)) {
 
-            temp.put("SystemInfo", 40000);
+            temp.put("SystemInfo", 200000);
 
-            temp.put("interface", 20000);
+            temp.put("interface", 80000);
 
             temp.put("ping", 60000);
 

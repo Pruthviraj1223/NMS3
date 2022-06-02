@@ -170,5 +170,11 @@ public class Constants {
 
     public static final String TIMESTAMP = "timestamp";
 
+    public static final String INVALID_METRIC_GROUP = "Invalid metric group";
+
+    public static final String INVALID_TYPE = "Invalid type";
+
+    public static final String INVALID_PROTOCOL = "Invalid protcol";
+
 
 }

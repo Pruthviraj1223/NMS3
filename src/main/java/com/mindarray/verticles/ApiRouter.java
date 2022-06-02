@@ -40,21 +40,21 @@ public class ApiRouter extends AbstractVerticle {
 
         Router router = Router.router(vertx);
 
-        Router subrouter = Router.router(vertx);
+        Router subRouter = Router.router(vertx);
 
-        router.mountSubRouter("/api", subrouter);
+        router.mountSubRouter("/api", subRouter);
 
         router.route().handler(BodyHandler.create());
 
-        subrouter.route().handler(BodyHandler.create());
+        subRouter.route().handler(BodyHandler.create());
 
-        new Credentials().init(subrouter);
+        new Credentials().init(subRouter);
 
-        new Discovery().init(subrouter);
+        new Discovery().init(subRouter);
 
-        new Monitor().init(subrouter);
+        new Monitor().init(subRouter);
 
-        new Metric().init(subrouter);
+        new Metric().init(subRouter);
 
         vertx.createHttpServer().requestHandler(router).listen(8080);
 
