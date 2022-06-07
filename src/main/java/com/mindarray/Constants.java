@@ -1,5 +1,7 @@
 package com.mindarray;
 
+import com.mysql.cj.xdevapi.PreparableStatement;
+
 public class Constants {
 
     public static final String DISCOVERY_POST_CHECK = "database.discovery.check";
@@ -30,7 +32,7 @@ public class Constants {
 
     public static final String PORT = "port";
 
-    public static final String NAME = "name";
+    public static final String USERNAME = "username";
 
     public static final String PASSWORD = "password";
 
@@ -175,6 +177,28 @@ public class Constants {
     public static final String INVALID_TYPE = "Invalid type";
 
     public static final String INVALID_PROTOCOL = "Invalid protcol";
+
+    public static final String INVALID_REQUEST = "Invalid request";
+
+    public static final String PORT_MISSING = "Port is missing";
+
+    public static final String INVALID_PORT  = "Port is invalid";
+
+    public static final String INTERFACE = "interface";
+
+    public static final String PLUGIN_PATH = "./plugin.exe";
+
+    public static final String CPU = "cpu";
+
+    public static final String DISK = "disk";
+
+    public static final String SYSTEM_INFO = "SystemInfo";
+
+    public static final String MEMORY = "memory";
+
+    public static final String PROCESS = "process";
+
+    public static final String PING = "ping";
 
 
 }

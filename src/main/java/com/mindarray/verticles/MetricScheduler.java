@@ -1,25 +1,16 @@
 package com.mindarray.verticles;
 
 import com.mindarray.Constants;
-
 import io.vertx.core.AbstractVerticle;
-
 import io.vertx.core.Promise;
-
 import io.vertx.core.json.JsonArray;
-
 import io.vertx.core.json.JsonObject;
-
 import org.slf4j.Logger;
-
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
-
 import java.time.format.DateTimeFormatter;
-
 import java.util.HashMap;
-
 import java.util.Map;
 
 import static com.mindarray.Constants.*;
@@ -32,7 +23,7 @@ public class MetricScheduler extends AbstractVerticle {
 
     private final HashMap<Integer, Integer> updatedMetrics = new HashMap<>();
 
-    DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private final DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public void start(Promise<Void> startPromise) {
@@ -51,7 +42,7 @@ public class MetricScheduler extends AbstractVerticle {
 
                             var data = metric.getJsonObject(index);
 
-                            if(data.containsKey(METRIC_ID) && data.containsKey(TIME)) {
+                            if (data.containsKey(METRIC_ID) && data.containsKey(TIME)) {
 
                                 metrics.put(data.getInteger(Constants.METRIC_ID), data.getInteger(Constants.TIME));
 
@@ -88,7 +79,7 @@ public class MetricScheduler extends AbstractVerticle {
 
                         var data = metric.getJsonObject(index);
 
-                        if(data.containsKey(METRIC_ID) & data.containsKey(TIME)) {
+                        if (data.containsKey(METRIC_ID) & data.containsKey(TIME)) {
 
                             metrics.put(data.getInteger(Constants.METRIC_ID), data.getInteger(Constants.TIME));
 
@@ -127,9 +118,9 @@ public class MetricScheduler extends AbstractVerticle {
 
                                 String formattedDate = myDateObj.format(myFormatObj);
 
-                                vertx.eventBus().send(Constants.EVENTBUS_POLLER, contextHandler.result().body().put(Constants.TIMESTAMP, formattedDate));
-
                                 updatedMetrics.put(entry.getKey(), metrics.get(entry.getKey()));
+
+                                vertx.eventBus().send(Constants.EVENTBUS_POLLER, contextHandler.result().body().put(Constants.TIMESTAMP, formattedDate));
 
                             } else {
 
@@ -167,7 +158,7 @@ public class MetricScheduler extends AbstractVerticle {
 
                         var data = metricId.getJsonObject(index);
 
-                        if(data.containsKey(METRIC_ID)) {
+                        if (data.containsKey(METRIC_ID)) {
 
                             metrics.remove(data.getInteger(Constants.METRIC_ID));
 
@@ -176,9 +167,9 @@ public class MetricScheduler extends AbstractVerticle {
                         }
 
                     }
-                    
+
                 }
-                
+
             } catch (Exception exception) {
 
                 LOG.debug("Error SCHEDULER DELETE {} ", exception.getMessage());
@@ -195,11 +186,11 @@ public class MetricScheduler extends AbstractVerticle {
 
                     JsonObject user = handler.body();
 
-                    if(user.containsKey(METRIC_ID) && user.containsKey(TIME)){
+                    if (user.containsKey(METRIC_ID) && user.containsKey(TIME)) {
 
-                        metrics.replace(user.getInteger(METRIC_ID),user.getInteger(TIME));
+                        metrics.replace(user.getInteger(METRIC_ID), user.getInteger(TIME));
 
-                        updatedMetrics.replace(user.getInteger(METRIC_ID),user.getInteger(TIME));
+                        updatedMetrics.replace(user.getInteger(METRIC_ID), user.getInteger(TIME));
 
                     }
 

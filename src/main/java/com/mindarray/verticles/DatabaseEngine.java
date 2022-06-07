@@ -6,8 +6,6 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import jdk.jshell.execution.Util;
-import org.apache.logging.log4j.util.PropertySource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,13 +29,15 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
 
             String query = "select * from " + table + " where " + column + "='" + value + "'";
 
-            ResultSet resultSet = connection.createStatement().executeQuery(query);
+            try (ResultSet resultSet = statement.executeQuery(query)) {
 
-            isAvailable = resultSet.next();
+                isAvailable = resultSet.next();
+
+            }
 
         } catch (Exception exception) {
 
@@ -61,15 +61,17 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
 
             String query = "select max(" + column + ") from " + tableName;
 
-            ResultSet resultSet = connection.createStatement().executeQuery(query);
+            try (ResultSet resultSet = statement.executeQuery(query)) {
 
-            resultSet.next();
+                resultSet.next();
 
-            id = resultSet.getInt(1) + 1;
+                id = resultSet.getInt(1) + 1;
+
+            }
 
         } catch (Exception exception) {
 
@@ -117,7 +119,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         if (data.getString(Constants.PROTOCOL).equalsIgnoreCase(SSH) || data.getString(Constants.PROTOCOL).equalsIgnoreCase(WINRM)) {
 
-            if (!(data.containsKey(Constants.NAME) && (!data.getString(Constants.NAME).isEmpty()))) {
+            if (!(data.containsKey(Constants.USERNAME) && (!data.getString(Constants.USERNAME).isEmpty()))) {
 
                 return false;
 
@@ -225,11 +227,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
     private void createTable() {
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
 
-            Statement statement = connection.createStatement();
-
-            statement.executeUpdate("create table if not exists Credentials (credentialId int PRIMARY KEY ,credential_name varchar(255),protocol varchar(255),name varchar(255),password varchar(255),community varchar(255),version varchar(255))");
+            statement.executeUpdate("create table if not exists Credentials (credentialId int PRIMARY KEY ,credential_name varchar(255),protocol varchar(255),username varchar(255),password varchar(255),community varchar(255),version varchar(255))");
 
             statement.executeUpdate("create table if not exists Discovery (discoveryId int PRIMARY KEY ,credentialId int,discovery_name varchar(255),ip varchar(255),type varchar(255),port int,result JSON)");
 
@@ -238,8 +238,6 @@ public class DatabaseEngine extends AbstractVerticle {
             statement.executeUpdate("create table if not exists UserMetric (metricId int PRIMARY KEY ,monitorId int,credentialId int,metricGroup varchar(255),time int,objects JSON)");
 
             statement.executeUpdate("create table if not exists Poller (pollerId int PRIMARY KEY AUTO_INCREMENT , monitorId int, metricGroup varchar(255) ,result json,timestamp DATETIME)");
-
-            statement.close();
 
         } catch (Exception exception) {
 
@@ -277,9 +275,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
             StringBuilder values = new StringBuilder(" values (");
 
-            Map<String, Object> userMap = userData.getMap();
-
-            for (Map.Entry<String, Object> entry : userMap.entrySet()) {
+            for (Map.Entry<String, Object> entry : userData) {
 
                 column.append(entry.getKey().replace(".", "_")).append(",");
 
@@ -300,9 +296,13 @@ public class DatabaseEngine extends AbstractVerticle {
 
             column.append(values);
 
-            PreparedStatement preparedStatement = connection.prepareStatement(column.toString());
+            System.out.println("query " + column);
 
-            preparedStatement.execute();
+            try (PreparedStatement preparedStatement = connection.prepareStatement(column.toString())) {
+
+                preparedStatement.execute();
+
+            }
 
             result.put(Constants.STATUS, Constants.SUCCESS);
 
@@ -341,64 +341,63 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
+        if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) && userData.containsKey(CREDENTIAL_NAME)) {
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
-
-            if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) && userData.containsKey(CREDENTIAL_NAME)) {
-
-                if (userData.containsKey(CREDENTIAL_NAME) && check(CREDENTIAL_TABLE, CREDENTIAL_TABLE_NAME, userData.getString(CREDENTIAL_NAME))) {
-
-                    return false;
-
-                }
-
-            }
-
-            if (tableName.equalsIgnoreCase(DISCOVERY_TABLE) && userData.containsKey(Constants.DISCOVERY_NAME)) {
-
-                if (check(DISCOVERY_TABLE, DISCOVERY_TABLE_NAME, userData.getString(DISCOVERY_NAME))) {
-
-                    return false;
-
-                }
-
-            }
-
-            if (tableName.equalsIgnoreCase(DISCOVERY_TABLE) && userData.containsKey(CREDENTIAL_ID) && !check(CREDENTIAL_TABLE, CREDENTIAL_ID, userData.getString(CREDENTIAL_ID))) {
+            if (userData.containsKey(CREDENTIAL_NAME) && check(CREDENTIAL_TABLE, CREDENTIAL_TABLE_NAME, userData.getString(CREDENTIAL_NAME))) {
 
                 return false;
 
             }
 
-            Map<String, Object> data = userData.getMap();
+        }
 
-            if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE)) {
+        if (tableName.equalsIgnoreCase(DISCOVERY_TABLE) && userData.containsKey(Constants.DISCOVERY_NAME)) {
 
-                data.remove(CREDENTIAL_ID);
+            if (check(DISCOVERY_TABLE, DISCOVERY_TABLE_NAME, userData.getString(DISCOVERY_NAME))) {
 
-                data.remove(PROTOCOL);
-
-            }
-
-            if (tableName.equalsIgnoreCase(DISCOVERY_TABLE)) {
-
-                data.remove(TYPE);
-
-                data.remove(DISCOVERY_TABLE_ID);
+                return false;
 
             }
 
-            if(tableName.equalsIgnoreCase(MONITOR)){ //changes
+        }
 
-                data.remove(MONITOR_ID);
+        if (tableName.equalsIgnoreCase(DISCOVERY_TABLE) && userData.containsKey(CREDENTIAL_ID) && !check(CREDENTIAL_TABLE, CREDENTIAL_ID, userData.getString(CREDENTIAL_ID))) {
 
-            }
+            return false;
 
-            data.remove(TABLE_COLUMN);
+        }
 
-            data.remove(TABLE_NAME);
+        Map<String, Object> data = userData.getMap();
 
-            data.remove(TABLE_ID);
+        if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE)) {
+
+            data.remove(CREDENTIAL_ID);
+
+            data.remove(PROTOCOL);
+
+        }
+
+        if (tableName.equalsIgnoreCase(DISCOVERY_TABLE)) {
+
+            data.remove(TYPE);
+
+            data.remove(DISCOVERY_TABLE_ID);
+
+        }
+
+        if (tableName.equalsIgnoreCase(MONITOR)) { //changes
+
+            data.remove(MONITOR_ID);
+
+        }
+
+        data.remove(TABLE_COLUMN);
+
+        data.remove(TABLE_NAME);
+
+        data.remove(TABLE_ID);
+
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
 
             String query;
 
@@ -416,19 +415,21 @@ public class DatabaseEngine extends AbstractVerticle {
 
             String updatedQuery;
 
-            if (!tableName.equalsIgnoreCase(USER_METRIC)) {
-
-                updatedQuery = query + update + " where " + columnName + " = '" + id + "' ;";
-
-            } else {
+            if (tableName.equalsIgnoreCase(USER_METRIC)) {
 
                 updatedQuery = query + update + " where " + columnName + " = '" + id + "' and metricGroup = '" + userData.getString(METRIC_GROUP) + "';";
 
+            } else {
+
+                updatedQuery = query + update + " where " + columnName + " = '" + id + "' ;";
+
             }
 
-            PreparedStatement preparedStatement = connection.prepareStatement(updatedQuery);
+            try (PreparedStatement preparedStatement = connection.prepareStatement(updatedQuery)) {
 
-            preparedStatement.execute();
+                preparedStatement.execute();
+
+            }
 
         } catch (Exception exception) {
 
@@ -468,29 +469,30 @@ public class DatabaseEngine extends AbstractVerticle {
 
             }
 
-            ResultSet resultSet = connection.createStatement().executeQuery(query);
+            try (ResultSet resultSet = connection.createStatement().executeQuery(query)) {
 
-            while (resultSet.next()) {
+                while (resultSet.next()) {
 
-                JsonObject result = new JsonObject();
+                    JsonObject result = new JsonObject();
 
-                int columnCount = resultSet.getMetaData().getColumnCount();
+                    int columnCount = resultSet.getMetaData().getColumnCount();
 
-                for (int i = 1; i <= columnCount; i++) {
+                    for (int i = 1; i <= columnCount; i++) {
 
-                    String columnName = resultSet.getMetaData().getColumnName(i);
+                        String columnName = resultSet.getMetaData().getColumnName(i);
 
-                    String newColumnName = columnName.replace("_", ".");
+                        String newColumnName = columnName.replace("_", ".");
 
-                    if (!(resultSet.getString(columnName) == null)) {
+                        if (!(resultSet.getString(columnName) == null)) {
 
-                        result.put(newColumnName, resultSet.getObject(i));
+                            result.put(newColumnName, resultSet.getObject(i));
 
+                        }
                     }
+
+                    userData.add(result);
+
                 }
-
-                userData.add(result);
-
             }
 
         } catch (Exception exception) {
@@ -519,11 +521,13 @@ public class DatabaseEngine extends AbstractVerticle {
 
             String query = "delete from " + tableName + " where " + column + " ='" + id + "'";
 
-            PreparedStatement preparedStatement = connection.prepareStatement(query);
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
 
-            if (preparedStatement.executeUpdate() > 0) {
+                if (preparedStatement.executeUpdate() > 0) {
 
-                result = true;
+                    result = true;
+
+                }
 
             }
 
@@ -548,26 +552,27 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
 
-            String query = "select discoveryId,port,ip,name,password,type,community,version from Discovery AS D JOIN Credentials AS C ON D.credentialId = C.credentialId where discoveryId='" + id + "'";
+            String query = "select discoveryId,port,ip,username,password,type,community,version from Discovery AS D JOIN Credentials AS C ON D.credentialId = C.credentialId where discoveryId='" + id + "'";
 
-            ResultSet resultSet = connection.createStatement().executeQuery(query);
+            try (ResultSet resultSet = statement.executeQuery(query)) {
 
-            while (resultSet.next()) {
+                while (resultSet.next()) {
 
-                for (int index = 1; index <= resultSet.getMetaData().getColumnCount(); index++) {
+                    for (int index = 1; index <= resultSet.getMetaData().getColumnCount(); index++) {
 
-                    String columnName = resultSet.getMetaData().getColumnName(index);
+                        String columnName = resultSet.getMetaData().getColumnName(index);
 
-                    if (!(resultSet.getString(columnName) == null)) {
+                        if (!(resultSet.getString(columnName) == null)) {
 
-                        result.put(columnName, resultSet.getObject(index));
+                            result.put(columnName, resultSet.getObject(index));
+
+                        }
 
                     }
 
                 }
-
             }
 
         } catch (Exception exception) {
@@ -598,52 +603,54 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
 
             String check = "select * from " + MONITOR + " where ip = '" + data.getString(IP_ADDRESS) + "' and type = '" + data.getString(TYPE) + "'";
 
-            ResultSet set = connection.createStatement().executeQuery(check);
+            try (ResultSet set = statement.executeQuery(check)) {
 
-            boolean answer = set.next();
+                boolean answer = set.next();
 
-            if (!answer) {
+                if (!answer) {
 
-                String query = "select result->>'$.status' from " + DISCOVERY_TABLE + " where credentialId = '" + data.getInteger(CREDENTIAL_ID) + "' and ip = '" + data.getString(IP_ADDRESS) + "' and type = '" + data.getString(TYPE) + "' ";
+                    String query = "select result->>'$.status' from " + DISCOVERY_TABLE + " where credentialId = '" + data.getInteger(CREDENTIAL_ID) + "' and ip = '" + data.getString(IP_ADDRESS) + "' and type = '" + data.getString(TYPE) + "' ";
 
-                ResultSet resultSet = connection.createStatement().executeQuery(query);
+                    try (ResultSet resultSet = statement.executeQuery(query)) {
 
-                isAvailable = resultSet.next();
+                        isAvailable = resultSet.next();
 
-                if (isAvailable) {
+                        if (isAvailable) {
 
-                    if (resultSet.getObject(1) != null) {
+                            if (resultSet.getObject(1) != null) {
 
-                        if (resultSet.getObject(1).toString().equalsIgnoreCase(SUCCESS)) {
+                                if (resultSet.getObject(1).toString().equalsIgnoreCase(SUCCESS)) {
 
-                            return SUCCESS;
+                                    return SUCCESS;
+
+                                } else {
+
+                                    return NOT_DISCOVERED;
+
+                                }
+
+                            } else {
+
+                                return NOT_DISCOVERED;
+
+                            }
 
                         } else {
 
-                            return NOT_DISCOVERED;
+                            return NOT_PRESENT;
 
                         }
-
-                    } else {
-
-                        return NOT_DISCOVERED;
-
                     }
 
                 } else {
 
-                    return NOT_PRESENT;
+                    return EXIST;
 
                 }
-
-            } else {
-
-                return EXIST;
-
             }
 
         } catch (Exception exception) {
@@ -668,7 +675,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         JsonArray metric;
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
 
             metric = getAll(USER_METRIC, METRIC_ID, id);
 
@@ -676,40 +683,41 @@ public class DatabaseEngine extends AbstractVerticle {
 
                 var user = metric.getJsonObject(0);
 
-                String query = "select ip,type,port,name,password,community,version from Monitor,Credentials where monitorId = " + user.getString(MONITOR_ID) + " and credentialId = " + user.getString(CREDENTIAL_ID) + ";";
+                String query = "select ip,type,port,username,password,community,version from Monitor,Credentials where monitorId = " + user.getString(MONITOR_ID) + " and credentialId = " + user.getString(CREDENTIAL_ID) + ";";
 
-                ResultSet resultSet = connection.createStatement().executeQuery(query);
+                try (ResultSet resultSet = statement.executeQuery(query)) {
 
-                while (resultSet.next()) {
+                    while (resultSet.next()) {
 
-                    result.put(IP_ADDRESS, resultSet.getObject(1));
+                        result.put(IP_ADDRESS, resultSet.getObject(1));
 
-                    result.put(TYPE, resultSet.getObject(2));
+                        result.put(TYPE, resultSet.getObject(2));
 
-                    result.put(PORT, resultSet.getObject(3));
+                        result.put(PORT, resultSet.getObject(3));
 
-                    if (result.getString(TYPE).equalsIgnoreCase(LINUX) || result.getString(TYPE).equalsIgnoreCase(WINDOWS)) {
+                        if (result.getString(TYPE).equalsIgnoreCase(LINUX) || result.getString(TYPE).equalsIgnoreCase(WINDOWS)) {
 
-                        result.put(NAME, resultSet.getObject(4));
+                            result.put(USERNAME, resultSet.getObject(4));
 
-                        result.put(PASSWORD, resultSet.getObject(5));
+                            result.put(PASSWORD, resultSet.getObject(5));
 
-                    } else if (result.getString(TYPE).equalsIgnoreCase(NETWORKING)) {
+                        } else if (result.getString(TYPE).equalsIgnoreCase(NETWORKING)) {
 
-                        result.put(COMMUNITY, resultSet.getObject(6));
+                            result.put(COMMUNITY, resultSet.getObject(6));
 
-                        result.put(VERSION, resultSet.getObject(7));
+                            result.put(VERSION, resultSet.getObject(7));
+
+                        }
+
+                        result.put(METRIC_GROUP, user.getString(METRIC_GROUP));
+
+                        result.put(TIME, user.getInteger(TIME));
+
+                        result.put(METRIC_ID, user.getInteger(METRIC_ID));
+
+                        result.put(MONITOR_ID, user.getInteger(MONITOR_ID));
 
                     }
-
-                    result.put(METRIC_GROUP, user.getString(METRIC_GROUP));
-
-                    result.put(TIME, user.getInteger(TIME));
-
-                    result.put(METRIC_ID, user.getInteger(METRIC_ID));
-
-                    result.put(MONITOR_ID, user.getInteger(MONITOR_ID));
-
                 }
 
             } else {
@@ -717,6 +725,7 @@ public class DatabaseEngine extends AbstractVerticle {
                 return new JsonObject().put(ERROR, NOT_PRESENT);
 
             }
+
 
         } catch (Exception exception) {
 
@@ -740,23 +749,44 @@ public class DatabaseEngine extends AbstractVerticle {
 
         JsonArray pollData = new JsonArray();
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
 
             String query;
 
             if (metricGroup.equalsIgnoreCase(GETALL)) {
 
-                ResultSet queryResult = connection.createStatement().executeQuery("select type from Monitor where monitorId = '" + columnValue + "'");
+                try (ResultSet queryResult = statement.executeQuery("select type from Monitor where monitorId = '" + columnValue + "'")) {
 
-                queryResult.next();
+                    queryResult.next();
 
-                HashMap<String, Integer> counters = Utils.metric(queryResult.getString(1));
+                    HashMap<String, Integer> counters = Utils.metric(queryResult.getString(1));
 
-                for (Map.Entry<String, Integer> entry : counters.entrySet()) {
+                    for (Map.Entry<String, Integer> entry : counters.entrySet()) {
 
-                    query = "select pollerId,result from Poller where " + column + "= '" + columnValue + "' and metricGroup = '" + entry.getKey() + "' ORDER BY pollerId DESC limit " + limit;
+                        query = "select pollerId,result from Poller where " + column + "= '" + columnValue + "' and metricGroup = '" + entry.getKey() + "' ORDER BY pollerId DESC limit " + limit;
 
-                    ResultSet resultSet = connection.createStatement().executeQuery(query);
+                        try (ResultSet resultSet = statement.executeQuery(query)) {
+
+                            while (resultSet.next()) {
+
+                                JsonObject result = new JsonObject();
+
+                                result.put(POLLING_ID, resultSet.getObject(1));
+
+                                result.put(RESULT, resultSet.getObject(2));
+
+                                pollData.add(result);
+
+                            }
+                        }
+                    }
+                }
+
+            } else {
+
+                query = "select pollerId,result from Poller where " + column + "= '" + columnValue + "' and metricGroup = '" + metricGroup + "' ORDER BY pollerId DESC limit " + limit;
+
+                try (ResultSet resultSet = statement.executeQuery(query)) {
 
                     while (resultSet.next()) {
 
@@ -771,42 +801,7 @@ public class DatabaseEngine extends AbstractVerticle {
                     }
                 }
 
-            } else {
-
-                query = "select pollerId,result from Poller where " + column + "= '" + columnValue + "' and metricGroup = '" + metricGroup + "' ORDER BY pollerId DESC limit " + limit;
-
-                ResultSet resultSet = connection.createStatement().executeQuery(query);
-
-                while (resultSet.next()) {
-
-                    JsonObject result = new JsonObject();
-
-                    result.put(POLLING_ID, resultSet.getObject(1));
-
-                    result.put(RESULT, resultSet.getObject(2));
-
-                    pollData.add(result);
-
-                }
-
             }
-
-//            query = "select pollerId,result from Poller where " + column + "= '" +columnValue + "' ORDER BY pollerId DESC limit " + limit;
-//
-//            ResultSet resultSet = connection.createStatement().executeQuery(query);
-//
-//            while (resultSet.next()) {
-//
-//                JsonObject result = new JsonObject();
-//
-//                result.put(POLLING_ID,resultSet.getObject(1));
-//
-//                result.put(RESULT,resultSet.getObject(2));
-//
-//                pollData.add(result);
-//
-//            }
-
 
         } catch (Exception exception) {
 

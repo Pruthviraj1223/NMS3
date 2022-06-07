@@ -350,29 +350,16 @@ public class Metric {
 
                 if (response.succeeded()) {
 
-                    JsonArray results = response.result().body();
+                    JsonArray result  = response.result().body();
 
-                    if (!results.isEmpty()) {
+                    routingContext.response()
 
-                        routingContext.response()
+                            .setStatusCode(200)
 
-                                .setStatusCode(200)
+                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                            .end(new JsonObject().put(Constants.STATUS, SUCCESS).put(RESULT, result).encodePrettily());
 
-                                .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.RESULT, results).encodePrettily());
-
-                    } else {
-
-                        routingContext.response()
-
-                                .setStatusCode(400)
-
-                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
-
-                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.MESSAGE, Constants.NOT_PRESENT).encodePrettily());
-
-                    }
 
                 } else {
 

@@ -70,7 +70,6 @@ public class Discovery {
 
                         routingContext.next();
 
-
                     } else {
 
                         routingContext.response()
@@ -126,7 +125,6 @@ public class Discovery {
 
                         .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, INVALID_INPUT).encodePrettily());
 
-
             }
 
         } catch (Exception exception) {
@@ -142,7 +140,6 @@ public class Discovery {
                     .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
 
         }
-
 
     }
 
@@ -311,6 +308,8 @@ public class Discovery {
 
                         if (handler.succeeded()) {
 
+                            userData.put(RESULT, "{}");
+
                             routingContext.setBody(userData.toBuffer());
 
                             routingContext.next();
@@ -341,7 +340,7 @@ public class Discovery {
 
                 });
 
-            } else if (routingContext.request().method() == HttpMethod.DELETE) {
+            } else if (routingContext.request().method() == HttpMethod.DELETE || routingContext.request().method() == HttpMethod.GET) {
 
                 JsonObject request = new JsonObject();
 
@@ -389,53 +388,15 @@ public class Discovery {
 
                 });
 
-            } else if (routingContext.request().method() == HttpMethod.GET) {
+            } else {
 
-                JsonObject request = new JsonObject();
+                routingContext.response()
 
-                request.put(METHOD, DATABASE_ID_CHECK);
+                        .setStatusCode(500)
 
-                request.put(TABLE_NAME, DISCOVERY_TABLE);
+                        .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                request.put(TABLE_COLUMN, DISCOVERY_TABLE_ID);
-
-                request.put(TABLE_ID, routingContext.pathParam("id"));
-
-                vertx.eventBus().request(EVENTBUS_DATABASE, request, handler -> {
-
-                    try {
-
-                        if (handler.succeeded()) {
-
-                            routingContext.next();
-
-                        } else {
-
-                            routingContext.response()
-
-                                    .setStatusCode(400)
-
-                                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
-
-                                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, handler.cause().getMessage()).encodePrettily());
-
-                        }
-
-                    } catch (Exception exception) {
-
-                        LOG.debug("Error {}", exception.getMessage());
-
-                        routingContext.response()
-
-                                .setStatusCode(500)
-
-                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
-
-                                .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
-
-                    }
-
-                });
+                        .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(ERROR,INVALID_REQUEST).encodePrettily());
 
             }
 
@@ -541,28 +502,16 @@ public class Discovery {
 
                     if (response.result().body() != null) {
 
-                        JsonArray jsonArray = response.result().body();
+                        JsonArray result  = response.result().body();
 
-                        if (!jsonArray.isEmpty()) {
+                        routingContext.response()
 
-                            routingContext.response()
+                                .setStatusCode(200)
 
-                                    .setStatusCode(200)
+                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                                .end(new JsonObject().put(Constants.STATUS, SUCCESS).put(RESULT, result).encodePrettily());
 
-                                    .end(jsonArray.encodePrettily());
-                        } else {
-
-                            routingContext.response()
-
-                                    .setStatusCode(400)
-
-                                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
-
-                                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.MESSAGE, Constants.NOT_PRESENT).encodePrettily());
-
-                        }
 
                     } else {
 

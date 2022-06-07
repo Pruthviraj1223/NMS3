@@ -21,37 +21,53 @@ public class Poller extends AbstractVerticle {
     @Override
     public void start(Promise<Void> startPromise) {
 
-        vertx.eventBus().<JsonObject>localConsumer(Constants.EVENTBUS_POLLER, handler -> {
+        vertx.eventBus().<JsonObject>localConsumer(Constants.EVENTBUS_POLLER, handler -> vertx.<JsonObject>executeBlocking(blockingHandler -> {
 
-            vertx.<JsonObject>executeBlocking(blockingHandler -> {
+            try {
 
-                try {
+                if (handler.body() != null) {
 
-                    if (handler.body() != null) {
+                    JsonObject data = handler.body();
 
-                        JsonObject data = handler.body();
+                    data.put(Constants.CATEGORY, Constants.POLLING);
 
-                        data.put(Constants.CATEGORY, Constants.POLLING);
+                    if (data.containsKey(Constants.METRIC_GROUP) && data.containsKey(Constants.METRIC_ID) && data.getString(Constants.METRIC_GROUP).equalsIgnoreCase("ping")) {
 
-                        if (data.containsKey(Constants.METRIC_GROUP) && data.containsKey(Constants.METRIC_ID) && data.getString(Constants.METRIC_GROUP).equalsIgnoreCase("ping")) {
+                        JsonObject result = Utils.checkAvailability(data.getString(Constants.IP_ADDRESS));
 
-                            JsonObject result = Utils.checkAvailability(data.getString(Constants.IP_ADDRESS));
+                        checkStatus.put(data.getInteger(Constants.MONITOR_ID), result.getString(Constants.STATUS));
 
-                            checkStatus.put(data.getInteger(Constants.MONITOR_ID), result.getString(Constants.STATUS));
+                        if (!result.containsKey(Constants.ERROR)) {
+
+                            if (result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)) {
+
+                                data.put(Constants.RESULT, result);
+
+                                blockingHandler.complete(data);
+
+                            } else {
+
+                                blockingHandler.fail(Constants.PING_FAIL);
+
+                            }
+
+                        } else {
+
+                            blockingHandler.fail(result.getString(Constants.ERROR));
+
+                        }
+
+                    } else {
+
+                        if (!checkStatus.containsKey(data.getInteger(Constants.MONITOR_ID)) || checkStatus.get(data.getInteger(Constants.MONITOR_ID)).equalsIgnoreCase(Constants.SUCCESS)) {
+
+                            JsonObject result = Utils.spawnProcess(data);
 
                             if (!result.containsKey(Constants.ERROR)) {
 
-                                if (result.getString(Constants.STATUS).equalsIgnoreCase(Constants.SUCCESS)) {
+                                data.put(Constants.RESULT, result);
 
-                                    data.put(Constants.RESULT, result);
-
-                                    blockingHandler.complete(data);
-
-                                } else {
-
-                                    blockingHandler.fail(Constants.PING_FAIL);
-
-                                }
+                                blockingHandler.complete(data);
 
                             } else {
 
@@ -61,85 +77,65 @@ public class Poller extends AbstractVerticle {
 
                         } else {
 
-                            if (!checkStatus.containsKey(data.getInteger(Constants.MONITOR_ID)) || checkStatus.get(data.getInteger(Constants.MONITOR_ID)).equalsIgnoreCase(Constants.SUCCESS)) {
-
-                                    JsonObject result = Utils.spawnProcess(data);
-
-                                    if (!result.containsKey(Constants.ERROR)) {
-
-                                        data.put(Constants.RESULT, result);
-
-                                        blockingHandler.complete(data);
-
-                                    } else {
-
-                                        blockingHandler.fail(result.getString(Constants.ERROR));
-
-                                    }
-
-                            }else {
-
-                                blockingHandler.fail(FAIL + "could be ping fail");
-
-                            }
+                            blockingHandler.fail(PING_FAIL);
 
                         }
 
-                    } else {
-
-                        blockingHandler.fail(Constants.FAIL);
-
                     }
-
-                } catch (Exception exception) {
-
-                    LOG.debug("Error in Polling {}", exception.getMessage());
-
-                    blockingHandler.fail(exception.getMessage());
-
-                }
-
-            }).onComplete(completionHandler -> {
-
-                if (completionHandler.succeeded()) {
-
-                    JsonObject data = completionHandler.result();
-
-                    data.remove(NAME);
-
-                    data.remove(PASSWORD);
-
-                    data.remove(COMMUNITY);
-
-                    data.remove(TIME);
-
-                    data.remove(CATEGORY);
-
-                    data.remove(VERSION);
-
-                    data.remove(TYPE);
-
-                    data.remove(PORT);
-
-                    data.remove(IP_ADDRESS);
-
-                    data.remove(METRIC_ID);
-
-                    data.put(Constants.METHOD, Constants.DATABASE_INSERT);
-
-                    data.put(Constants.TABLE_NAME, Constants.POLLER);
-
-                    vertx.eventBus().send(Constants.EVENTBUS_DATABASE, data);
 
                 } else {
 
-                    LOG.debug("Fail data :: {} ", completionHandler.cause().getMessage());
+                    blockingHandler.fail(Constants.FAIL);
 
                 }
 
-            });
+            } catch (Exception exception) {
 
-        });
+                LOG.debug("Error in Polling {}", exception.getMessage());
+
+                blockingHandler.fail(exception.getMessage());
+
+            }
+
+        }).onComplete(completionHandler -> {
+
+            if (completionHandler.succeeded()) {
+
+                JsonObject data = completionHandler.result();
+
+                data.remove(USERNAME);
+
+                data.remove(PASSWORD);
+
+                data.remove(COMMUNITY);
+
+                data.remove(TIME);
+
+                data.remove(CATEGORY);
+
+                data.remove(VERSION);
+
+                data.remove(TYPE);
+
+                data.remove(PORT);
+
+                data.remove(IP_ADDRESS);
+
+                data.remove(METRIC_ID);
+
+                data.put(Constants.METHOD, Constants.DATABASE_INSERT);
+
+                data.put(Constants.TABLE_NAME, Constants.POLLER);
+
+                vertx.eventBus().send(Constants.EVENTBUS_DATABASE, data);
+
+            } else {
+
+                LOG.debug("Fail data :: {} ", completionHandler.cause().getMessage());
+
+            }
+
+        }));
 
         startPromise.complete();
     }

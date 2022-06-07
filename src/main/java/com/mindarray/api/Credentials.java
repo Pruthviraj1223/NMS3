@@ -21,7 +21,7 @@ public class Credentials {
 
     private static final Logger LOG = LoggerFactory.getLogger(Credentials.class.getName());
     private final Vertx vertx = Bootstrap.vertx;
-    private final Set<String> checkFields = Set.of(CREDENTIAL_NAME, PROTOCOL, NAME, PASSWORD);
+    private final Set<String> checkFields = Set.of(CREDENTIAL_NAME, PROTOCOL, USERNAME, PASSWORD);
     private final Set<String> validateFields = Set.of(CREDENTIAL_NAME, PROTOCOL, COMMUNITY, VERSION);
 
     public void init(Router credentialRouter) {
@@ -66,6 +66,15 @@ public class Credentials {
 
                             }
 
+                            for (Map.Entry<String, Object> entry : user) {
+
+                                if (entry.getValue() instanceof String) {
+
+                                    user.put(entry.getKey(), entry.getValue().toString().trim());
+
+                                }
+                            }
+
                             routingContext.setBody(user.toBuffer());
 
                             routingContext.next();
@@ -98,6 +107,14 @@ public class Credentials {
                                 }
                             }
 
+                            for (Map.Entry<String, Object> entry : user) {
+
+                                if (entry.getValue() instanceof String) {
+
+                                    user.put(entry.getKey(), entry.getValue().toString().trim());
+
+                                }
+                            }
 
                             routingContext.setBody(user.toBuffer());
 
@@ -128,7 +145,6 @@ public class Credentials {
 
                     }
 
-
                 } else if (routingContext.request().method() == HttpMethod.PUT) {
 
                     vertx.eventBus().<JsonArray>request(EVENTBUS_DATABASE, new JsonObject().put(METHOD, DATABASE_GET).put(TABLE_NAME, CREDENTIAL_TABLE).put(TABLE_COLUMN, CREDENTIAL_ID).put(TABLE_ID, routingContext.pathParam("id")), handler -> {
@@ -145,22 +161,22 @@ public class Credentials {
 
                                     if (data.getString(PROTOCOL).equalsIgnoreCase(SSH) || data.getString(PROTOCOL).equalsIgnoreCase(WINRM)) {
 
-                                        Iterator<Map.Entry<String,Object>> iterator = user.iterator();
+                                        Iterator<Map.Entry<String, Object>> iterator = user.iterator();
 
-                                        while (iterator.hasNext()){
+                                        while (iterator.hasNext()) {
 
-                                            if(!checkFields.contains(iterator.next().getKey())){
+                                            if (!checkFields.contains(iterator.next().getKey())) {
 
                                                 iterator.remove();
 
                                             }
                                         }
 
-                                        for(Map.Entry<String,Object> entry:user){
+                                        for (Map.Entry<String, Object> entry : user) {
 
-                                            if(entry.getValue() instanceof String){
+                                            if (entry.getValue() instanceof String) {
 
-                                                user.put(entry.getKey(),entry.getValue().toString().trim());
+                                                user.put(entry.getKey(), entry.getValue().toString().trim());
 
                                             }
                                         }
@@ -214,7 +230,7 @@ public class Credentials {
 
                                         .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                        .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR,NOT_PRESENT).encodePrettily());
+                                        .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, NOT_PRESENT).encodePrettily());
 
                             }
 
@@ -226,7 +242,7 @@ public class Credentials {
 
                                     .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                    .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR,handler.cause().getMessage()).encodePrettily());
+                                    .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, handler.cause().getMessage()).encodePrettily());
 
                         }
 
@@ -240,7 +256,7 @@ public class Credentials {
 
                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                            .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
+                            .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, INVALID_REQUEST).encodePrettily());
 
                 }
 
@@ -281,15 +297,6 @@ public class Credentials {
                 JsonObject userData = routingContext.getBodyAsJson();
 
                 if (userData != null && !userData.isEmpty()) {
-
-                    for (Map.Entry<String, Object> entry : userData) {
-
-                        if (entry.getValue() instanceof String) {
-
-                            userData.put(entry.getKey(), entry.getValue().toString().trim());
-
-                        }
-                    }
 
                     if (routingContext.request().method() == HttpMethod.POST) {
 
@@ -539,27 +546,13 @@ public class Credentials {
 
                     JsonArray result = response.result().body();
 
-                    if (!result.isEmpty()) {
+                    routingContext.response()
 
-                        routingContext.response()
+                            .setStatusCode(200)
 
-                                .setStatusCode(200)
+                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
-
-                                .end(result.encodePrettily());
-
-                    } else {
-
-                        routingContext.response()
-
-                                .setStatusCode(400)
-
-                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
-
-                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.MESSAGE, Constants.NOT_PRESENT).encodePrettily());
-
-                    }
+                            .end(new JsonObject().put(STATUS,SUCCESS).put(RESULT,result).encodePrettily());
 
 
                 } else {

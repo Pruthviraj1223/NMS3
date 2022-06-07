@@ -58,11 +58,11 @@ public class Monitor {
 
                     if (fieldNames.size() != 0) {
 
-                        Iterator<Map.Entry<String,Object>> iterator = user.iterator();
+                        Iterator<Map.Entry<String, Object>> iterator = user.iterator();
 
-                        while (iterator.hasNext()){
+                        while (iterator.hasNext()) {
 
-                            if(!checkFields.contains(iterator.next().getKey())){
+                            if (!checkFields.contains(iterator.next().getKey())) {
 
                                 iterator.remove();
 
@@ -84,9 +84,7 @@ public class Monitor {
 
                                 .end(new JsonObject().put(Constants.STATUS, FAIL).put(ERROR, MISSING_DATA).encodePrettily());
 
-
                     }
-
 
                 } else {
 
@@ -139,16 +137,16 @@ public class Monitor {
 
                 if (user != null && !user.isEmpty()) {
 
-                    for(Map.Entry<String,Object> entry:user){
+                    for (Map.Entry<String, Object> entry : user) {
 
-                        if(entry.getValue() instanceof String){
+                        if (entry.getValue() instanceof String) {
 
-                            user.put(entry.getKey(),entry.getValue().toString().trim());
+                            user.put(entry.getKey(), entry.getValue().toString().trim());
 
                         }
                     }
 
-                    if(routingContext.request().method() == HttpMethod.POST) {
+                    if (routingContext.request().method() == HttpMethod.POST) {
 
                         if (user.containsKey(CREDENTIAL_ID) && user.containsKey(IP_ADDRESS) && user.containsKey(TYPE) && user.containsKey(PORT) && user.containsKey(HOST)) {
 
@@ -202,7 +200,7 @@ public class Monitor {
 
                         }
 
-                    }else {
+                    } else {
 
                         String id = routingContext.pathParam("id");
 
@@ -222,15 +220,29 @@ public class Monitor {
 
                                 if (handler.succeeded()) {
 
-                                    if(user.containsKey(PORT) && user.getValue(PORT) instanceof Integer){
+                                    if (user.containsKey(PORT)) {
 
-                                        user.put(MONITOR_ID,id);
+                                        if (user.getValue(PORT) instanceof Integer) {
 
-                                        routingContext.setBody(user.toBuffer());
+                                            user.put(MONITOR_ID, id);
 
-                                        routingContext.next();
+                                            routingContext.setBody(user.toBuffer());
 
-                                    }else{
+                                            routingContext.next();
+
+                                        } else {
+
+                                            routingContext.response()
+
+                                                    .setStatusCode(400)
+
+                                                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+
+                                                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, INVALID_PORT).encodePrettily());
+
+                                        }
+
+                                    } else {
 
                                         routingContext.response()
 
@@ -238,7 +250,7 @@ public class Monitor {
 
                                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, "Port is invalid").encodePrettily());
+                                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, PORT_MISSING).encodePrettily());
 
                                     }
 
@@ -397,13 +409,13 @@ public class Monitor {
 
             } else {
 
-                if (userData.getJsonObject(OBJECTS).containsKey("interface")) {
+                if (userData.getJsonObject(OBJECTS).containsKey(INTERFACE)) {
 
-                    JsonArray interfaces = userData.getJsonObject(OBJECTS).getJsonArray("interface");
+                    JsonArray interfaces = userData.getJsonObject(OBJECTS).getJsonArray(INTERFACE);
 
                     List<JsonObject> list = interfaces.stream().map(JsonObject::mapFrom).filter(val -> val.getString("interface.operational.status").equalsIgnoreCase("Up")).toList();
 
-                    userData.put(OBJECTS, userData.getJsonObject(OBJECTS).put("interface", list));
+                    userData.put(OBJECTS, userData.getJsonObject(OBJECTS).put(INTERFACE, list));
 
                 } else {
 
@@ -666,25 +678,15 @@ public class Monitor {
 
                 if (response.succeeded()) {
 
-                    JsonArray data = response.result().body();
+                    JsonArray result = response.result().body();
 
-                    if (!data.isEmpty()) {
+                    routingContext.response()
 
-                        routingContext.response()
+                            .setStatusCode(200)
 
-                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                            .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
-                                .end(new JsonObject().put(Constants.STATUS, Constants.SUCCESS).put(Constants.RESULT, data).encodePrettily());
-
-                    } else {
-
-                        routingContext.response()
-
-                                .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
-
-                                .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.MESSAGE, Constants.NOT_PRESENT).encodePrettily());
-
-                    }
+                            .end(new JsonObject().put(Constants.STATUS, SUCCESS).put(RESULT, result).encodePrettily());
 
                 } else {
 
@@ -752,7 +754,6 @@ public class Monitor {
                                 .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.MESSAGE, Constants.NOT_PRESENT).encodePrettily());
 
                     }
-
 
                 } else {
 
@@ -830,7 +831,7 @@ public class Monitor {
 
     }
 
-    private void update(RoutingContext routingContext){
+    private void update(RoutingContext routingContext) {
 
         JsonObject context = routingContext.getBodyAsJson();
 
@@ -842,9 +843,9 @@ public class Monitor {
 
         userData.put(Constants.TABLE_COLUMN, MONITOR_ID);
 
-        userData.put(MONITOR_ID,context.getValue(MONITOR_ID));
+        userData.put(MONITOR_ID, context.getValue(MONITOR_ID));
 
-        userData.put(PORT,context.getValue(PORT));
+        userData.put(PORT, context.getValue(PORT));
 
         vertx.eventBus().<JsonObject>request(Constants.EVENTBUS_DATABASE, userData, response -> {
 
@@ -887,9 +888,6 @@ public class Monitor {
             }
 
         });
-
-
-
 
     }
 
