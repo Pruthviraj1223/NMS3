@@ -1,7 +1,5 @@
 package com.mindarray;
 
-import com.mysql.cj.xdevapi.PreparableStatement;
-
 public class Constants {
 
     public static final String DISCOVERY_POST_CHECK = "database.discovery.check";
@@ -172,6 +170,8 @@ public class Constants {
 
     public static final String TIMESTAMP = "timestamp";
 
+    public static final String DISCOVERY_CATEGORY = "discovery";
+
     public static final String INVALID_METRIC_GROUP = "Invalid metric group";
 
     public static final String INVALID_TYPE = "Invalid type";
@@ -185,6 +185,8 @@ public class Constants {
     public static final String INVALID_PORT  = "Port is invalid";
 
     public static final String INVALID_TIME = "Invalid time";
+
+    public static final String MONITOR_ID_MISSING = "Monitor id is missing";
 
     public static final String INTERFACE = "interface";
 

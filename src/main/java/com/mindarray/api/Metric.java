@@ -270,7 +270,7 @@ public class Metric {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", exception.getMessage());
+            LOG.debug("Error {}", (Object) exception.getStackTrace());
 
             routingContext.response()
 
@@ -317,6 +317,8 @@ public class Metric {
                 }
 
             } catch (Exception exception) {
+
+                LOG.debug("Error {}", (Object) exception.getStackTrace());
 
                 routingContext.response()
 
@@ -376,6 +378,8 @@ public class Metric {
             });
 
         } catch (Exception exception) {
+
+            LOG.debug("Error {}", (Object) exception.getStackTrace());
 
             routingContext.response()
 
@@ -448,6 +452,8 @@ public class Metric {
 
         } catch (Exception exception) {
 
+            LOG.debug("Error {}", (Object) exception.getStackTrace());
+
             routingContext.response()
 
                     .setStatusCode(500)
@@ -518,6 +524,8 @@ public class Metric {
             });
 
         } catch (Exception exception) {
+
+            LOG.debug("Error {}", (Object) exception.getStackTrace());
 
             routingContext.response()
 

@@ -262,7 +262,7 @@ public class Credentials {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", exception.getMessage());
+            LOG.debug("Error {}", (Object) exception.getStackTrace());
 
             routingContext.response()
 
@@ -312,7 +312,7 @@ public class Credentials {
 
                         } catch (Exception exception) {
 
-                            LOG.debug("Error {}", exception.getMessage());
+                            LOG.debug("Error {}", (Object) exception.getStackTrace());
 
                             routingContext.response()
 
@@ -375,7 +375,7 @@ public class Credentials {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {}", exception.getMessage());
+                        LOG.debug("Error {}", (Object) exception.getStackTrace());
 
                         routingContext.response()
 
@@ -418,7 +418,7 @@ public class Credentials {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {}", exception.getMessage());
+                        LOG.debug("Error {}", (Object) exception.getStackTrace());
 
                         routingContext.response()
 
@@ -445,7 +445,7 @@ public class Credentials {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", exception.getMessage());
+            LOG.debug("Error {}", (Object) exception.getStackTrace());
 
             routingContext.response()
 
@@ -495,7 +495,7 @@ public class Credentials {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", exception.getMessage());
+                LOG.debug("Error {}", (Object) exception.getStackTrace());
 
                 routingContext.response()
 
@@ -554,7 +554,7 @@ public class Credentials {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", exception.getMessage());
+                LOG.debug("Error {}", (Object) exception.getStackTrace());
 
                 routingContext.response()
 
@@ -612,7 +612,7 @@ public class Credentials {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", exception.getMessage());
+                LOG.debug("Error {}", (Object) exception.getStackTrace());
 
                 routingContext.response()
 
@@ -669,7 +669,7 @@ public class Credentials {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", exception.getMessage());
+                LOG.debug("Error {}", (Object) exception.getStackTrace());
 
                 routingContext.response()
 
@@ -723,7 +723,7 @@ public class Credentials {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", exception.getMessage());
+                LOG.debug("Error {}", (Object) exception.getStackTrace());
 
                 routingContext.response()
 

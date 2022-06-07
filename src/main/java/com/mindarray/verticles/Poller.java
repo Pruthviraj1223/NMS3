@@ -29,7 +29,7 @@ public class Poller extends AbstractVerticle {
 
                     JsonObject data = handler.body();
 
-                    data.put(Constants.CATEGORY, Constants.POLLING);
+                    data.put(CATEGORY, POLLING);
 
                     if (data.containsKey(Constants.METRIC_GROUP) && data.containsKey(Constants.METRIC_ID) && data.getString(Constants.METRIC_GROUP).equalsIgnoreCase("ping")) {
 

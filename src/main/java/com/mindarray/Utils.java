@@ -6,7 +6,10 @@ import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.mindarray.Constants.*;
@@ -15,13 +18,13 @@ public class Utils {
 
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class.getName());
 
-    public static JsonObject checkAvailability(String ip)   {
+    public static JsonObject checkAvailability(String ip) {
 
         JsonObject outcome = new JsonObject();
 
         if (ip == null) {
 
-            return outcome.put(Constants.ERROR, "ip is null");
+            return outcome.put(ERROR, NULL_DATA);
 
         }
 
@@ -100,7 +103,7 @@ public class Utils {
 
         if (data == null) {
 
-            return result.put(Constants.ERROR, "Data is null");
+            return result.put(ERROR, NULL_DATA);
 
         }
 
@@ -118,7 +121,7 @@ public class Utils {
 
             nuProcess = processBuilder.start();
 
-            nuProcess.waitFor(15000,TimeUnit.MILLISECONDS);
+            nuProcess.waitFor(15000, TimeUnit.MILLISECONDS);
 
             String outcome = handler.output();
 
