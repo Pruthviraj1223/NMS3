@@ -8,6 +8,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import jdk.swing.interop.SwingInterOpUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +50,15 @@ public class Discovery {
 
             if (user != null && !user.isEmpty()) {
 
+                for (Map.Entry<String, Object> entry : user) {
+
+                    if (entry.getValue() instanceof String) {
+
+                        user.put(entry.getKey(), entry.getValue().toString().trim());
+
+                    }
+                }
+
                 Set<String> fieldNames = user.fieldNames();
 
                 if (routingContext.request().method() == HttpMethod.POST) {
@@ -84,8 +94,6 @@ public class Discovery {
 
                 } else if (routingContext.request().method() == HttpMethod.PUT) {
 
-                    Object id = routingContext.pathParam("id");
-
                     Iterator<Map.Entry<String, Object>> iterator = user.iterator();
 
                     while (iterator.hasNext()) {
@@ -97,17 +105,9 @@ public class Discovery {
                         }
                     }
 
-                    for (Map.Entry<String, Object> entry : user) {
+                   // ## 4
 
-                        if (entry.getValue() instanceof String) {
-
-                            user.put(entry.getKey(), entry.getValue().toString().trim());
-
-                        }
-                    }
-
-
-                    user.put(DISCOVERY_TABLE_ID, id);
+                    user.put(DISCOVERY_TABLE_ID, routingContext.pathParam("id"));
 
                     routingContext.setBody(user.toBuffer());
 
@@ -212,15 +212,6 @@ public class Discovery {
 
                     if (userData != null && !userData.isEmpty()) {
 
-                        for (Map.Entry<String, Object> entry : userData) {
-
-                            if (entry.getValue() instanceof String) {
-
-                                userData.put(entry.getKey(), entry.getValue().toString().trim());
-
-                            }
-                        }
-
                         if ((userData.containsKey(Constants.CREDENTIAL_ID) && userData.containsKey(Constants.DISCOVERY_NAME) && userData.containsKey(Constants.PORT) && userData.containsKey(Constants.TYPE) && userData.containsKey(Constants.IP_ADDRESS))) {
 
                             userData.put(Constants.METHOD, DISCOVERY_POST_CHECK);
@@ -318,9 +309,9 @@ public class Discovery {
 
                             routingContext.response()
 
-                                    .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
+                                    .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                    .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).put(Constants.ERROR, Constants.INVALID_INPUT).encodePrettily());
+                                    .end(new JsonObject().put(STATUS, FAIL).put(ERROR, NOT_PRESENT).encodePrettily());
 
                         }
 
@@ -814,15 +805,25 @@ public class Discovery {
 
                     if (response.result().body() != null) {
 
-                        JsonObject data = new JsonObject();
+                        userData.remove(PORT);
 
-                        data.put(METHOD, RUN_DISCOVERY_INSERT);
+                        userData.remove(IP_ADDRESS);
 
-                        data.put("result", response.result().body());
+                        userData.remove(USERNAME);
 
-                        data.put(DISCOVERY_TABLE_ID, userData.getString(DISCOVERY_TABLE_ID));
+                        userData.remove(PASSWORD);
 
-                        vertx.eventBus().request(EVENTBUS_DATABASE, data, handler -> {
+                        userData.remove(COMMUNITY);
+
+                        userData.remove(VERSION);
+
+                        userData.remove(TYPE);
+
+                        userData.put(METHOD, RUN_DISCOVERY_INSERT);
+
+                        userData.put(RESULT, response.result().body());
+
+                        vertx.eventBus().request(EVENTBUS_DATABASE, userData, handler -> {
 
                             if (handler.succeeded()) {
 

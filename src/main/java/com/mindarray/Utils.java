@@ -130,7 +130,7 @@ public class Utils {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", exception.getMessage());
+            LOG.debug("Error {}", (Object) exception.getStackTrace());
 
             result.put(Constants.ERROR, exception.getMessage());
 

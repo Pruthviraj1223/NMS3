@@ -24,7 +24,7 @@ public class Monitor {
 
     private final Set<String> checkParams = new HashSet<>(Arrays.asList(MONITOR_ID, LIMIT, METRIC_GROUP));
 
-    private final Set<String> checkMetricGroup = Set.of("cpu", "disk", "memory", "SystemInfo", "process", "interface");
+    private final Set<String> checkMetricGroup = Set.of(CPU, DISK, MEMORY, SYSTEM_INFO, PROCESS, INTERFACE);
 
     private final Vertx vertx = Bootstrap.vertx;
 

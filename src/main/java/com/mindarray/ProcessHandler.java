@@ -5,14 +5,11 @@ import com.zaxxer.nuprocess.NuProcess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.PrintStream;
 import java.nio.ByteBuffer;
 
 public class ProcessHandler extends NuAbstractProcessHandler {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class.getName());
     StringBuilder stringBuilder = new StringBuilder();
-
-    StringBuilder error = new StringBuilder();
 
     private NuProcess nuProcess;
     private String result = null;

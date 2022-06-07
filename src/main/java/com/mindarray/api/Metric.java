@@ -23,9 +23,9 @@ public class Metric {
 
     private final HashSet<String> checkFields = new HashSet<>(Arrays.asList(METRIC_GROUP, TIME));
 
-    private final Set<String> checkMetricGroupSNMP = Set.of("SystemInfo", "interface");
+    private final Set<String> checkMetricGroupSNMP = Set.of(SYSTEM_INFO, INTERFACE);
 
-    private final Set<String> checkMetricGroupOthers = Set.of("cpu", "disk", "memory", "SystemInfo", "process");
+    private final Set<String> checkMetricGroupOthers = Set.of(CPU, DISK, MEMORY, SYSTEM_INFO, PROCESS);
 
     public void init(Router router) {
 
@@ -105,7 +105,7 @@ public class Metric {
 
                                                             .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                                            .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid time").encodePrettily());
+                                                            .end(new JsonObject().put(STATUS, FAIL).put(ERROR,INVALID_TIME).encodePrettily());
 
                                                 }
 
@@ -117,7 +117,7 @@ public class Metric {
 
                                                         .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                                        .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid metric group").encodePrettily());
+                                                        .end(new JsonObject().put(STATUS, FAIL).put(ERROR, INVALID_METRIC_GROUP).encodePrettily());
 
                                             }
 
@@ -139,7 +139,7 @@ public class Metric {
 
                                                             .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
-                                                            .end(new JsonObject().put(STATUS, FAIL).put(ERROR, "Invalid time").encodePrettily());
+                                                            .end(new JsonObject().put(STATUS, FAIL).put(ERROR, INVALID_TIME).encodePrettily());
 
                                                 }
 

@@ -2,13 +2,9 @@ package com.mindarray;
 
 import com.mindarray.verticles.*;
 import io.vertx.core.Future;
-
 import io.vertx.core.Promise;
-
 import io.vertx.core.Vertx;
-
 import org.slf4j.Logger;
-
 import org.slf4j.LoggerFactory;
 
 public class Bootstrap {
@@ -43,13 +39,13 @@ public class Bootstrap {
 
                 });
 
-        }
+    }
 
     public static Future<Void> start(String verticle) {
 
         Promise<Void> promise = Promise.promise();
 
-        vertx.deployVerticle(verticle , handler -> {
+        vertx.deployVerticle(verticle, handler -> {
 
             if (handler.succeeded()) {
 

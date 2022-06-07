@@ -184,6 +184,8 @@ public class Constants {
 
     public static final String INVALID_PORT  = "Port is invalid";
 
+    public static final String INVALID_TIME = "Invalid time";
+
     public static final String INTERFACE = "interface";
 
     public static final String PLUGIN_PATH = "./plugin.exe";
@@ -200,5 +202,26 @@ public class Constants {
 
     public static final String PING = "ping";
 
+    public static final String NULL_DATA = "Data is null";
+
+    public static final String TABLE_NAME_EMPTY = "table name is empty";
+
+    public static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/NMS";
+
+    public static final String DB_USER = "root";
+
+    public static final String DB_PASSWORD = "password";
+
+    public static final String MERGE_QUERY = "select discoveryId,port,ip,username,password,type,community,version from Discovery AS D JOIN Credentials AS C ON D.credentialId = C.credentialId where discoveryId='";
+
+    public static final String CREDENTIAL_TABLE_CREATE = "create table if not exists Credentials (credentialId int PRIMARY KEY ,credential_name varchar(255),protocol varchar(255),username varchar(255),password varchar(255),community varchar(255),version varchar(255))";
+
+    public static final String MONITOR_TABLE_CREATE = "create table if not exists Monitor (monitorId int PRIMARY KEY ,ip varchar(255),type varchar(255),port int,host varchar(255))";
+
+    public static final String DISCOVERY_TABLE_CREATE = "create table if not exists Discovery (discoveryId int PRIMARY KEY ,credentialId int,discovery_name varchar(255),ip varchar(255),type varchar(255),port int,result JSON)";
+
+    public static final String USER_METRIC_TABLE_CREATE = "create table if not exists UserMetric (metricId int PRIMARY KEY ,monitorId int,credentialId int,metricGroup varchar(255),time int,objects JSON)";
+
+    public static final String POLLER_TABLE_CREATE = "create table if not exists Poller (pollerId int PRIMARY KEY AUTO_INCREMENT , monitorId int, metricGroup varchar(255) ,result json,timestamp DATETIME)";
 
 }

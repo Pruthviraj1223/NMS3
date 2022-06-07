@@ -29,7 +29,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
+        try (Connection connection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD); Statement statement = connection.createStatement()) {
 
             String query = "select * from " + table + " where " + column + "='" + value + "'";
 
@@ -61,7 +61,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
+        try (Connection connection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD); Statement statement = connection.createStatement()) {
 
             String query = "select max(" + column + ") from " + tableName;
 
@@ -227,17 +227,17 @@ public class DatabaseEngine extends AbstractVerticle {
 
     private void createTable() {
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
+        try (Connection connection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD); Statement statement = connection.createStatement()) {
 
-            statement.executeUpdate("create table if not exists Credentials (credentialId int PRIMARY KEY ,credential_name varchar(255),protocol varchar(255),username varchar(255),password varchar(255),community varchar(255),version varchar(255))");
+            statement.executeUpdate(CREDENTIAL_TABLE_CREATE);
 
-            statement.executeUpdate("create table if not exists Discovery (discoveryId int PRIMARY KEY ,credentialId int,discovery_name varchar(255),ip varchar(255),type varchar(255),port int,result JSON)");
+            statement.executeUpdate(DISCOVERY_TABLE_CREATE);
 
-            statement.executeUpdate("create table if not exists Monitor (monitorId int PRIMARY KEY ,ip varchar(255),type varchar(255),port int,host varchar(255))");
+            statement.executeUpdate(MONITOR_TABLE_CREATE);
 
-            statement.executeUpdate("create table if not exists UserMetric (metricId int PRIMARY KEY ,monitorId int,credentialId int,metricGroup varchar(255),time int,objects JSON)");
+            statement.executeUpdate(USER_METRIC_TABLE_CREATE);
 
-            statement.executeUpdate("create table if not exists Poller (pollerId int PRIMARY KEY AUTO_INCREMENT , monitorId int, metricGroup varchar(255) ,result json,timestamp DATETIME)");
+            statement.executeUpdate(POLLER_TABLE_CREATE);
 
         } catch (Exception exception) {
 
@@ -252,7 +252,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         if (tableName == null || userData == null) {
 
-            return result.put(ERROR, "Data is null");
+            return result.put(ERROR, NULL_DATA);
 
         }
 
@@ -267,9 +267,13 @@ public class DatabaseEngine extends AbstractVerticle {
                 userData.remove(CREDENTIAL_ID);
 
             }
+        } else {
+
+            return result.put(ERROR, TABLE_NAME_EMPTY);
+
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+        try (Connection connection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD)) {
 
             StringBuilder column = new StringBuilder("insert into ").append(tableName).append("(");
 
@@ -296,8 +300,6 @@ public class DatabaseEngine extends AbstractVerticle {
 
             column.append(values);
 
-            System.out.println("query " + column);
-
             try (PreparedStatement preparedStatement = connection.prepareStatement(column.toString())) {
 
                 preparedStatement.execute();
@@ -305,7 +307,6 @@ public class DatabaseEngine extends AbstractVerticle {
             }
 
             result.put(Constants.STATUS, Constants.SUCCESS);
-
 
         } catch (Exception exception) {
 
@@ -341,6 +342,8 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
+        Map<String, Object> data = userData.getMap();
+
         if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE) && userData.containsKey(CREDENTIAL_NAME)) {
 
             if (userData.containsKey(CREDENTIAL_NAME) && check(CREDENTIAL_TABLE, CREDENTIAL_TABLE_NAME, userData.getString(CREDENTIAL_NAME))) {
@@ -366,8 +369,6 @@ public class DatabaseEngine extends AbstractVerticle {
             return false;
 
         }
-
-        Map<String, Object> data = userData.getMap();
 
         if (tableName.equalsIgnoreCase(CREDENTIAL_TABLE)) {
 
@@ -397,13 +398,11 @@ public class DatabaseEngine extends AbstractVerticle {
 
         data.remove(TABLE_ID);
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+        try (Connection connection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD)) {
 
-            String query;
+            String query = "UPDATE " + tableName + " SET ";
 
             StringBuilder update = new StringBuilder();
-
-            query = "UPDATE " + tableName + " SET ";
 
             for (Map.Entry<String, Object> entry : data.entrySet()) {
 
@@ -517,7 +516,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password")) {
+        try (Connection connection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD)) {
 
             String query = "delete from " + tableName + " where " + column + " ='" + id + "'";
 
@@ -548,13 +547,13 @@ public class DatabaseEngine extends AbstractVerticle {
 
         if (id == null) {
 
-            return result.put(ERROR, "Data is null");
+            return result.put(ERROR, NULL_DATA);
 
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
+        try (Connection connection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD); Statement statement = connection.createStatement()) {
 
-            String query = "select discoveryId,port,ip,username,password,type,community,version from Discovery AS D JOIN Credentials AS C ON D.credentialId = C.credentialId where discoveryId='" + id + "'";
+            String query = MERGE_QUERY + id + "'";
 
             try (ResultSet resultSet = statement.executeQuery(query)) {
 
@@ -603,7 +602,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
+        try (Connection connection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD); Statement statement = connection.createStatement()) {
 
             String check = "select * from " + MONITOR + " where ip = '" + data.getString(IP_ADDRESS) + "' and type = '" + data.getString(TYPE) + "'";
 
@@ -669,13 +668,13 @@ public class DatabaseEngine extends AbstractVerticle {
 
         if (id == null) {
 
-            return result.put(ERROR, "Data is null");
+            return result.put(ERROR, NULL_DATA);
 
         }
 
         JsonArray metric;
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
+        try (Connection connection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD); Statement statement = connection.createStatement()) {
 
             metric = getAll(USER_METRIC, METRIC_ID, id);
 
@@ -749,7 +748,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         JsonArray pollData = new JsonArray();
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/NMS", "root", "password"); Statement statement = connection.createStatement()) {
+        try (Connection connection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD); Statement statement = connection.createStatement()) {
 
             String query;
 
@@ -1130,6 +1129,7 @@ public class DatabaseEngine extends AbstractVerticle {
                                 blockingHandler.fail(FAIL);
 
                             }
+
                         } else {
 
                             blockingHandler.fail(FAIL);
