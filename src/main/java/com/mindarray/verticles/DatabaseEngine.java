@@ -41,7 +41,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error : {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             return false;
 
@@ -75,7 +75,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {} ", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             return -1;
 
@@ -241,7 +241,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error : {} ", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
         }
     }
@@ -310,9 +310,9 @@ public class DatabaseEngine extends AbstractVerticle {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error : {} ", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
-            result.put(ERROR, exception.getStackTrace());
+            result.put(ERROR, exception.getMessage());
 
         }
 
@@ -432,7 +432,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {} ", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             return false;
 
@@ -496,7 +496,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {} ", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             return null;
 
@@ -532,7 +532,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {} ", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             return false;
 
@@ -576,7 +576,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error : {} ", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             result.put(ERROR,  exception.getStackTrace());
 
@@ -654,7 +654,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error : {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             return exception.getMessage();
 
@@ -728,7 +728,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             return new JsonObject().put(ERROR,  exception.getStackTrace());
 
@@ -804,7 +804,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             return null;
 
@@ -860,7 +860,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {}", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -923,7 +923,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {}", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(Constants.FAIL);
 
@@ -986,7 +986,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {} ", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(Constants.FAIL);
 
@@ -1033,7 +1033,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {} ", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(Constants.FAIL);
 
@@ -1092,7 +1092,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error : {}" , (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -1138,7 +1138,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {} ", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(Constants.FAIL);
 
@@ -1182,7 +1182,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error : {}" , (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -1228,7 +1228,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {}", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -1274,7 +1274,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error Merge data {}", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -1322,7 +1322,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {}", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -1389,7 +1389,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {}", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -1527,7 +1527,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error : {}" , (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -1575,7 +1575,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error : Database delete monitor {}" , (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -1631,7 +1631,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error: create context {}", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -1677,7 +1677,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error: create context {}", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(exception.getMessage());
 
@@ -1742,7 +1742,7 @@ public class DatabaseEngine extends AbstractVerticle {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {}", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(),exception);
 
                         blockingHandler.fail(exception.getMessage());
 

@@ -49,29 +49,19 @@ public class Metric {
 
                 if (userData != null && !userData.isEmpty() && userData.size() >= checkFields.size()) {
 
-                    String id = routingContext.pathParam("id");
+                    userData.forEach(key -> {
 
-                    for(Map.Entry<String,Object> entry:userData){
+                        if (key.getValue() instanceof String) {
 
-                        if(entry.getValue() instanceof String){
-
-                            userData.put(entry.getKey(),entry.getValue().toString().trim());
+                            userData.put(key.getKey(), key.getValue().toString().trim());
 
                         }
-                    }
 
-                    Iterator<Map.Entry<String,Object>> iterator = userData.iterator();
+                    });
 
-                    while (iterator.hasNext()) {
+                    userData.fieldNames().removeIf(key ->  !checkFields.contains(key));
 
-                        if (!checkFields.contains(iterator.next().getKey())) {
-
-                            iterator.remove();
-
-                        }
-                    }
-
-                    userData.put(MONITOR_ID, id);
+                    userData.put(MONITOR_ID,  routingContext.pathParam("id"));
 
                     if (userData.getValue(METRIC_GROUP) instanceof String && userData.getValue(TIME) instanceof Integer && userData.getInteger(TIME) % 10000 == 0) {
 
@@ -207,7 +197,6 @@ public class Metric {
 
                     }
 
-
                 } else {
 
                     routingContext.response()
@@ -237,6 +226,8 @@ public class Metric {
                     try {
 
                         if (handler.succeeded()) {
+
+                            routingContext.setBody(request.toBuffer());
 
                             routingContext.next();
 
@@ -270,7 +261,7 @@ public class Metric {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             routingContext.response()
 
@@ -318,7 +309,7 @@ public class Metric {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", (Object) exception.getStackTrace());
+                LOG.error(exception.getMessage(),exception);
 
                 routingContext.response()
 
@@ -379,7 +370,7 @@ public class Metric {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             routingContext.response()
 
@@ -398,7 +389,7 @@ public class Metric {
 
         try {
 
-            JsonObject request = new JsonObject();
+            JsonObject request = routingContext.getBodyAsJson();
 
             request.put(Constants.METHOD, Constants.DATABASE_GET);
 
@@ -452,7 +443,7 @@ public class Metric {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             routingContext.response()
 
@@ -471,7 +462,7 @@ public class Metric {
 
         try {
 
-            JsonObject request = new JsonObject();
+            JsonObject request = routingContext.getBodyAsJson();
 
             request.put(Constants.METHOD, Constants.DATABASE_GET);
 
@@ -525,7 +516,7 @@ public class Metric {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             routingContext.response()
 

@@ -8,11 +8,12 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 
 public class ProcessHandler extends NuAbstractProcessHandler {
+
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class.getName());
-    StringBuilder stringBuilder = new StringBuilder();
+
+    private final StringBuilder stringBuilder = new StringBuilder();
 
     private NuProcess nuProcess;
-    private String result = null;
 
     public void onStart(NuProcess nuProcess) {
 
@@ -34,9 +35,7 @@ public class ProcessHandler extends NuAbstractProcessHandler {
 
                 buffer.get(bytes);
 
-                result = new String(bytes);
-
-                stringBuilder.append(result);
+                stringBuilder.append(new String(bytes));
 
                 nuProcess.closeStdin(true);
 
@@ -44,7 +43,7 @@ public class ProcessHandler extends NuAbstractProcessHandler {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", exception.getMessage());
+            LOG.error(exception.getMessage(),exception);
 
         }
 
@@ -60,9 +59,7 @@ public class ProcessHandler extends NuAbstractProcessHandler {
 
                 buffer.get(bytes);
 
-                result = new String(bytes);
-
-                stringBuilder.append(result);
+                stringBuilder.append(new String(bytes));
 
                 nuProcess.closeStdin(true);
 
@@ -70,7 +67,7 @@ public class ProcessHandler extends NuAbstractProcessHandler {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", exception.getMessage());
+            LOG.error(exception.getMessage(),exception);
 
         }
     }

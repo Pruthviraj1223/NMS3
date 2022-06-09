@@ -11,8 +11,6 @@ import io.vertx.ext.web.RoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 
 import static com.mindarray.Constants.*;
@@ -49,31 +47,21 @@ public class Discovery {
 
             if (user != null && !user.isEmpty()) {
 
-                for (Map.Entry<String, Object> entry : user) {
+                user.forEach(key -> {
 
-                    if (entry.getValue() instanceof String) {
+                    if (key.getValue() instanceof String) {
 
-                        user.put(entry.getKey(), entry.getValue().toString().trim());
+                        user.put(key.getKey(), key.getValue().toString().trim());
 
                     }
-                }
 
-                Set<String> fieldNames = user.fieldNames();
+                });
 
                 if (routingContext.request().method() == HttpMethod.POST) {
 
-                    if (fieldNames.size() >= checkFields.size()) {
+                    if (user.fieldNames().size() >= checkFields.size()) {
 
-                        Iterator<Map.Entry<String, Object>> iterator = user.iterator();
-
-                        while (iterator.hasNext()) {
-
-                            if (!checkFields.contains(iterator.next().getKey())) {
-
-                                iterator.remove();
-
-                            }
-                        }
+                        user.fieldNames().removeIf(key -> !checkFields.contains(key));
 
                         routingContext.setBody(user.toBuffer());
 
@@ -93,18 +81,7 @@ public class Discovery {
 
                 } else if (routingContext.request().method() == HttpMethod.PUT) {
 
-                    Iterator<Map.Entry<String, Object>> iterator = user.iterator();
-
-                    while (iterator.hasNext()) {
-
-                        if (!checkFields.contains(iterator.next().getKey())) {
-
-                            iterator.remove();
-
-                        }
-                    }
-
-                    // ## 4
+                    user.fieldNames().removeIf(key -> !checkFields.contains(key));
 
                     user.put(DISCOVERY_TABLE_ID, routingContext.pathParam("id"));
 
@@ -128,7 +105,7 @@ public class Discovery {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(), exception);
 
             routingContext.response()
 
@@ -194,7 +171,7 @@ public class Discovery {
 
                         } catch (Exception exception) {
 
-                            LOG.debug("Error {}", (Object) exception.getStackTrace());
+                            LOG.error(exception.getMessage(), exception);
 
                             routingContext.response()
 
@@ -241,7 +218,7 @@ public class Discovery {
 
                                 } catch (Exception exception) {
 
-                                    LOG.debug("Error {}", (Object) exception.getStackTrace());
+                                    LOG.error(exception.getMessage(), exception);
 
                                     routingContext.response()
 
@@ -316,7 +293,7 @@ public class Discovery {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {} ", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(), exception);
 
                         routingContext.response()
 
@@ -348,6 +325,8 @@ public class Discovery {
 
                         if (handler.succeeded()) {
 
+                            routingContext.setBody(request.toBuffer());
+
                             routingContext.next();
 
                         } else {
@@ -364,7 +343,7 @@ public class Discovery {
 
                     } catch (Exception exception) {
 
-                        LOG.debug("Error {} ", (Object) exception.getStackTrace());
+                        LOG.error(exception.getMessage(), exception);
 
                         routingContext.response()
 
@@ -392,7 +371,7 @@ public class Discovery {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {} ", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(), exception);
 
             routingContext.response()
 
@@ -456,7 +435,7 @@ public class Discovery {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", (Object) exception.getStackTrace());
+                LOG.error(exception.getMessage(), exception);
 
                 routingContext.response()
 
@@ -530,7 +509,7 @@ public class Discovery {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", (Object) exception.getStackTrace());
+                LOG.error(exception.getMessage(), exception);
 
                 routingContext.response()
 
@@ -549,7 +528,7 @@ public class Discovery {
 
     private void getId(RoutingContext routingContext) {
 
-        JsonObject request = new JsonObject();
+        JsonObject request = routingContext.getBodyAsJson();
 
         request.put(Constants.METHOD, Constants.DATABASE_GET);
 
@@ -603,7 +582,7 @@ public class Discovery {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", (Object) exception.getStackTrace());
+                LOG.error(exception.getMessage(), exception);
 
                 routingContext.response()
 
@@ -658,7 +637,7 @@ public class Discovery {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", (Object) exception.getStackTrace());
+                LOG.error(exception.getMessage(), exception);
 
                 routingContext.response()
 
@@ -676,7 +655,7 @@ public class Discovery {
 
     private void delete(RoutingContext routingContext) {
 
-        JsonObject request = new JsonObject();
+        JsonObject request = routingContext.getBodyAsJson();
 
         request.put(Constants.METHOD, Constants.DATABASE_DELETE);
 
@@ -714,7 +693,7 @@ public class Discovery {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", (Object) exception.getStackTrace());
+                LOG.error(exception.getMessage(), exception);
 
                 routingContext.response()
 
@@ -776,7 +755,7 @@ public class Discovery {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", (Object) exception.getStackTrace());
+                LOG.error(exception.getMessage(), exception);
 
                 routingContext.response()
 
@@ -875,7 +854,7 @@ public class Discovery {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", (Object) exception.getStackTrace());
+                LOG.error(exception.getMessage(), exception);
 
                 routingContext.response()
 

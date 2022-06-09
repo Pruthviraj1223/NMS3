@@ -79,7 +79,7 @@ public class Utils {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {} ", exception.getMessage());
+            LOG.error(exception.getMessage(),exception);
 
             outcome.put(Constants.ERROR, exception.getMessage());
 
@@ -129,11 +129,15 @@ public class Utils {
 
                 result = new JsonObject(outcome);
 
+            }else {
+
+                result.put(ERROR,NULL_DATA);
+
             }
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             result.put(Constants.ERROR, exception.getMessage());
 

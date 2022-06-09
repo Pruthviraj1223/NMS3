@@ -91,7 +91,7 @@ public class Poller extends AbstractVerticle {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error in Polling {}", exception.getMessage());
+                LOG.error(exception.getMessage(),exception);
 
                 blockingHandler.fail(exception.getMessage());
 
@@ -131,7 +131,7 @@ public class Poller extends AbstractVerticle {
 
             } else {
 
-                LOG.debug("Fail data :: {} ", completionHandler.cause().getMessage());
+                LOG.error("Fail data :: {} ", completionHandler.cause().getMessage());
 
             }
 

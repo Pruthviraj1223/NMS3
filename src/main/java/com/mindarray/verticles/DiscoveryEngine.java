@@ -72,7 +72,7 @@ public class DiscoveryEngine extends AbstractVerticle {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {} ", exception.getMessage());
+                LOG.error(exception.getMessage(),exception);
 
                 blockingHandler.fail(exception.getMessage());
 

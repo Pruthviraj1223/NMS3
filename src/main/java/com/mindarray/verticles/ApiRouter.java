@@ -34,7 +34,7 @@ public class ApiRouter extends AbstractVerticle {
 
         }catch (Exception exception){
 
-            LOG.debug("Error  {}",(Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
         }
 

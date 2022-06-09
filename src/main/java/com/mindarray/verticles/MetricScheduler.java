@@ -55,13 +55,13 @@ public class MetricScheduler extends AbstractVerticle {
 
                 } else {
 
-                    LOG.debug("Error fail in creating context Initially  {}", contextHandler.cause().getMessage());
+                    LOG.error("Error fail in creating context Initially  {}", contextHandler.cause().getMessage());
 
                 }
 
             } catch (Exception exception) {
 
-                LOG.debug("Error fail in creating context initially {} ", exception.getMessage());
+                LOG.error(exception.getMessage(),exception);
 
             }
 
@@ -92,7 +92,7 @@ public class MetricScheduler extends AbstractVerticle {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error in Scheduler {}", exception.getMessage());
+                LOG.error(exception.getMessage(),exception);
 
             }
 
@@ -124,7 +124,7 @@ public class MetricScheduler extends AbstractVerticle {
 
                             } else {
 
-                                LOG.debug("Error in set periodic {}", contextHandler.cause().getMessage());
+                                LOG.error("Error in set periodic {}", contextHandler.cause().getMessage());
 
                             }
 
@@ -140,7 +140,7 @@ public class MetricScheduler extends AbstractVerticle {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error in set periodic {}", exception.getMessage());
+                LOG.error(exception.getMessage(),exception);
 
             }
 
@@ -172,7 +172,7 @@ public class MetricScheduler extends AbstractVerticle {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error SCHEDULER DELETE {} ", exception.getMessage());
+                LOG.error(exception.getMessage(),exception);
 
             }
 
@@ -198,7 +198,7 @@ public class MetricScheduler extends AbstractVerticle {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error SCHEDULER UPDATE {} ", exception.getMessage());
+                LOG.error(exception.getMessage(),exception);
 
             }
 

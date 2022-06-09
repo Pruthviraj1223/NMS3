@@ -54,20 +54,9 @@ public class Monitor {
 
                 if (user != null && !user.isEmpty()) {
 
-                    Set<String> fieldNames = user.fieldNames();
+                    if (user.fieldNames().size() != 0) {
 
-                    if (fieldNames.size() != 0) {
-
-                        Iterator<Map.Entry<String, Object>> iterator = user.iterator();
-
-                        while (iterator.hasNext()) {
-
-                            if (!checkFields.contains(iterator.next().getKey())) {
-
-                                iterator.remove();
-
-                            }
-                        }
+                        user.fieldNames().removeIf(key ->  !checkFields.contains(key));
 
                         routingContext.setBody(user.toBuffer());
 
@@ -198,7 +187,7 @@ public class Monitor {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
             routingContext.response()
 
@@ -223,14 +212,15 @@ public class Monitor {
 
                 if (user != null && !user.isEmpty()) {
 
-                    for (Map.Entry<String, Object> entry : user) {
+                    user.forEach(key -> {
 
-                        if (entry.getValue() instanceof String) {
+                        if (key.getValue() instanceof String) {
 
-                            user.put(entry.getKey(), entry.getValue().toString().trim());
+                            user.put(key.getKey(), key.getValue().toString().trim());
 
                         }
-                    }
+
+                    });
 
                     if (routingContext.request().method() == HttpMethod.POST) {
 
@@ -352,7 +342,7 @@ public class Monitor {
 
                             } catch (Exception exception) {
 
-                                LOG.debug("Error {}", (Object) exception.getStackTrace());
+                                LOG.error(exception.getMessage(),exception);
 
                                 routingContext.response()
 
@@ -417,6 +407,8 @@ public class Monitor {
 
         } catch (Exception exception) {
 
+            LOG.error(exception.getMessage(),exception);
+
             routingContext.response()
 
                     .setStatusCode(500)
@@ -471,6 +463,8 @@ public class Monitor {
 
         } catch (Exception exception) {
 
+            LOG.error(exception.getMessage(),exception);
+
             routingContext.response()
 
                     .setStatusCode(500)
@@ -505,7 +499,7 @@ public class Monitor {
 
                 } else {
 
-                    LOG.debug("Error {}", "Interface is invalid");
+                    LOG.error("Error {}", "Interface is invalid");
 
                     userData.remove(OBJECTS);
 
@@ -519,7 +513,7 @@ public class Monitor {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
         }
     }
@@ -542,14 +536,12 @@ public class Monitor {
 
                 if (handler.succeeded()) {
 
-                    System.out.println("inserted in metric " + handler.result().body());
-
                     vertx.eventBus().send(SCHEDULER, handler.result().body());
 
 
                 } else {
 
-                    LOG.debug("Error : Insert Metric {} {} ", "Data is not inserted ", handler.cause().getMessage());
+                    LOG.error("Error : Insert Metric {} {} ", "Data is not inserted ", handler.cause().getMessage());
 
                 }
 
@@ -557,7 +549,7 @@ public class Monitor {
 
         } catch (Exception exception) {
 
-            LOG.debug("Error {}", (Object) exception.getStackTrace());
+            LOG.error(exception.getMessage(),exception);
 
         }
 
@@ -622,6 +614,8 @@ public class Monitor {
 
             } catch (Exception exception) {
 
+                LOG.error(exception.getMessage(),exception);
+
                 routingContext.response()
 
                         .setStatusCode(500)
@@ -677,7 +671,7 @@ public class Monitor {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", (Object) exception.getStackTrace());
+                LOG.error(exception.getMessage(),exception);
 
                 routingContext.response()
 
@@ -744,6 +738,8 @@ public class Monitor {
 
             } catch (Exception exception) {
 
+                LOG.error(exception.getMessage(),exception);
+
                 routingContext.response()
 
                         .setStatusCode(500)
@@ -795,6 +791,8 @@ public class Monitor {
             });
 
         } catch (Exception exception) {
+
+            LOG.error(exception.getMessage(),exception);
 
             routingContext.response()
 
@@ -852,7 +850,7 @@ public class Monitor {
 
             } catch (Exception exception) {
 
-                LOG.debug("Error {}", (Object) exception.getStackTrace());
+                LOG.error(exception.getMessage(),exception);
 
                 routingContext.response()
 

@@ -226,4 +226,6 @@ public class Constants {
 
     public static final String POLLER_TABLE_CREATE = "create table if not exists Poller (pollerId int PRIMARY KEY AUTO_INCREMENT , monitorId int, metricGroup varchar(255) ,result json,timestamp DATETIME)";
 
+    public static final String EMPTY_DATA =  "Empty data from plugin";
+
 }
