@@ -227,9 +227,7 @@ public class Discovery {
                                             .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                                             .end(new JsonObject().put(Constants.STATUS, FAIL).encodePrettily());
-
                                 }
-
                             });
 
                         } else {
@@ -446,9 +444,7 @@ public class Discovery {
                         .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
             }
-
         });
-
     }
 
     private void get(RoutingContext routingContext) {
@@ -481,7 +477,6 @@ public class Discovery {
 
                                 .end(new JsonObject().put(Constants.STATUS, SUCCESS).put(RESULT, result).encodePrettily());
 
-
                     } else {
 
                         routingContext.response()
@@ -493,7 +488,6 @@ public class Discovery {
                                 .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
                     }
-
 
                 } else {
 
@@ -520,10 +514,7 @@ public class Discovery {
                         .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
             }
-
         });
-
-
     }
 
     private void getId(RoutingContext routingContext) {
@@ -593,10 +584,7 @@ public class Discovery {
                         .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
             }
-
         });
-
-
     }
 
     private void update(RoutingContext routingContext) {
@@ -738,7 +726,6 @@ public class Discovery {
                                 .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                                 .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
-
                     }
 
                 } else {
@@ -766,9 +753,7 @@ public class Discovery {
                         .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
             }
-
         });
-
     }
 
     private void runDiscovery(RoutingContext routingContext) {
@@ -822,9 +807,7 @@ public class Discovery {
                                         .putHeader(Constants.CONTENT_TYPE, Constants.CONTENT_VALUE)
 
                                         .end(new JsonObject().put(STATUS, FAIL).put(ERROR, handler.cause().getMessage()).encodePrettily());
-
                             }
-
                         });
 
                     } else {
@@ -838,7 +821,6 @@ public class Discovery {
                                 .end(new JsonObject().put(STATUS, FAIL).encodePrettily());
 
                     }
-
 
                 } else {
 
@@ -865,7 +847,6 @@ public class Discovery {
                         .end(new JsonObject().put(Constants.STATUS, Constants.FAIL).encodePrettily());
 
             }
-
         });
 
     }

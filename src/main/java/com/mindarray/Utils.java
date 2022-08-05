@@ -22,7 +22,7 @@ public class Utils {
 
         JsonObject outcome = new JsonObject();
 
-        if (ip == null) {
+        if (ip == null || ip.isEmpty()) {
 
             return outcome.put(ERROR, NULL_DATA);
 

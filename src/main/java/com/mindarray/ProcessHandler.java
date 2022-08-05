@@ -43,7 +43,7 @@ public class ProcessHandler extends NuAbstractProcessHandler {
 
         } catch (Exception exception) {
 
-            LOG.error(exception.getMessage(),exception);
+            LOG.error(exception.getMessage(), exception);
 
         }
 
@@ -67,7 +67,7 @@ public class ProcessHandler extends NuAbstractProcessHandler {
 
         } catch (Exception exception) {
 
-            LOG.error(exception.getMessage(),exception);
+            LOG.error(exception.getMessage(), exception);
 
         }
     }

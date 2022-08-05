@@ -68,7 +68,6 @@ public class Credentials {
 
                             routingContext.next();
 
-
                         } else {
 
                             routingContext.response()
@@ -194,7 +193,6 @@ public class Credentials {
                             .putHeader(CONTENT_TYPE, CONTENT_VALUE)
 
                             .end(new JsonObject().put(STATUS, FAIL).put(ERROR, INVALID_REQUEST).encodePrettily());
-
                 }
 
             } else {

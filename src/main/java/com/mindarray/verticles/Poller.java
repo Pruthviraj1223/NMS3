@@ -2,11 +2,13 @@ package com.mindarray.verticles;
 
 import com.mindarray.Constants;
 import com.mindarray.Utils;
+import com.mindarray.api.GoDatabase;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.zeromq.ZMQ;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,8 +16,9 @@ import static com.mindarray.Constants.*;
 
 public class Poller extends AbstractVerticle {
 
+    public static final GoDatabase GO_DATABASE = new GoDatabase();
+    public static final ZMQ.Socket subscriber = GoDatabase.Init();
     private static final Logger LOG = LoggerFactory.getLogger(Poller.class.getName());
-
     private final ConcurrentHashMap<Integer, String> checkStatus = new ConcurrentHashMap<>();
 
     @Override
@@ -91,7 +94,7 @@ public class Poller extends AbstractVerticle {
 
             } catch (Exception exception) {
 
-                LOG.error(exception.getMessage(),exception);
+                LOG.error(exception.getMessage(), exception);
 
                 blockingHandler.fail(exception.getMessage());
 
@@ -102,6 +105,8 @@ public class Poller extends AbstractVerticle {
             if (completionHandler.succeeded()) {
 
                 JsonObject data = completionHandler.result();
+
+                GO_DATABASE.sendToDB(data, subscriber);
 
                 data.remove(USERNAME);
 
@@ -128,6 +133,7 @@ public class Poller extends AbstractVerticle {
                 data.put(Constants.TABLE_NAME, Constants.POLLER);
 
                 vertx.eventBus().send(Constants.EVENTBUS_DATABASE, data);
+
 
             } else {
 
